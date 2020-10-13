@@ -5,7 +5,7 @@ import numpy as np
 from paraview.simple import *
 #### disable automatic camera reset on 'Show'
 paraview.simple._DisableFirstRenderCameraReset()
-
+ 
 home = expanduser("~")
 sys.path.insert(1, home+'/kode/paraUtils')
 outputPath = home+'/results/simra/HuntHill/'
