@@ -17,4 +17,6 @@ gfortran ic_bc.f90 -o ic_bc
 ./ic_bc simra.in
 
 simra simra.in
+
+siso -f pvd cont.res
 ```
