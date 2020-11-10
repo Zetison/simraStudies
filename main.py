@@ -23,11 +23,7 @@ animationScene1 = GetAnimationScene()
 
 # get the time-keeper
 timeKeeper1 = GetTimeKeeper()
-noVTUfiles = 20
-fileNames = [''] * noVTUfiles
-for i in range(0,noVTUfiles):
-	fileNames[i] = home+'/kode/simraStudies/HuntHill/HuntHill-'+str(i+1)+'.vtu'
-fileName = home+'/results/simra/HuntHill/cont.pvd'
+fileName = home+'/kode/simraStudies/HuntHill/cont.pvd'
 
 # create a new 'XML Unstructured Grid Reader'
 huntHill = PVDReader(registrationName='HuntHill', FileName=fileName)
