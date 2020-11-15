@@ -1,0 +1,26 @@
+#!/bin/bash
+
+res=0.02573
+resultsFolder=$HOME/results/simra/HuntHill
+
+pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
+cp simra.in ../ic_bc.f90 generateHuntHill.py main.py $resultsFolder
+
+pushd $resultsFolder > /dev/null
+PHI=270
+U_A=0.4366
+SED_VARIABLES="PHI U_A"
+DICTS="ic_bc.f90"
+source $HOME/kode/bashScripts/sedFiles
+python3 generateHuntHill.py
+siso -f vts HuntHill.g2
+simramesh HuntHill.g2 HuntHill_3D.g2 --nz 35 --height 1.603 --res $res
+#siso -f vts HuntHill_3D.g2
+#paraview HuntHill_3D.vts & # View mesh (optional)
+siso -f dat HuntHill_3D.g2 mesh.dat
+gfortran ic_bc.f90 -o ic_bc
+./ic_bc simra.in
+simra simra.in
+siso -f pvd cont.res
+paraview --script=main.py
+popd > /dev/null

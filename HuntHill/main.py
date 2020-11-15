@@ -23,7 +23,7 @@ animationScene1 = GetAnimationScene()
 
 # get the time-keeper
 timeKeeper1 = GetTimeKeeper()
-fileName = home+'/kode/simraStudies/HuntHill/cont.pvd'
+fileName = outputPath+'cont.pvd'
 
 # create a new 'XML Unstructured Grid Reader'
 huntHill = PVDReader(registrationName='HuntHill', FileName=fileName)
@@ -88,8 +88,8 @@ uPWF = GetOpacityTransferFunction('u')
 uPWF.ApplyPreset('Parula', True)
 
 # create a new 'XML Unstructured Grid Reader'
-mapvtu = XMLUnstructuredGridReader(registrationName='map.vtu', FileName=[home+'/kode/simraStudies/map.vtu'])
-mapvtu.TimeArray = 'None'
+topology = XMLStructuredGridReader(registrationName='Topology', FileName=[outputPath+'HuntHill.vts'])
+topology.TimeArray = 'None'
 
 ####################################################################################
 ## Layout 1 - Surface LIC plots
@@ -241,7 +241,7 @@ if plot1Dcurves:
 	plotOverLine1Display.SeriesLabel = ['Cp','z = '+str(z_lnPltLvl)]
 	plotOverLine1Display.SeriesVisibility = ['Cp']
 	
-	resampleWithDataset1 = ResampleWithDataset(registrationName='ResampleWithDataset1', SourceDataArrays=calculator2, DestinationMesh=mapvtu)
+	resampleWithDataset1 = ResampleWithDataset(registrationName='ResampleWithDataset1', SourceDataArrays=calculator2, DestinationMesh=topology)
 	plotOnIntersectionCurves1 = PlotOnIntersectionCurves(registrationName='PlotOnIntersectionCurves1', Input=resampleWithDataset1)
 	plotOnIntersectionCurves1.SliceType = 'Plane'
 	plotOnIntersectionCurves1.SliceType.Normal = [0.0, 1.0, 0.0]
@@ -353,10 +353,10 @@ if plotStreamLines:
 	renderView3.OrientationAxesVisibility = 0
 	AssignViewToLayout(view=renderView3, layout=layout3, hint=0)
 	
-	mapvtuDisplay = Show(mapvtu, renderView3, 'UnstructuredGridRepresentation')
-	mapvtuDisplay.Representation = 'Surface'
-	mapvtuDisplay.AmbientColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
-	mapvtuDisplay.DiffuseColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
+	topologyDisplay = Show(topology, renderView3, 'UnstructuredGridRepresentation')
+	topologyDisplay.Representation = 'Surface'
+	topologyDisplay.AmbientColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
+	topologyDisplay.DiffuseColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
 	
 	# create a new 'Stream Tracer'
 	streamTracer1 = StreamTracer(registrationName='StreamTracer1', Input=calculator2, SeedType='Point Cloud')

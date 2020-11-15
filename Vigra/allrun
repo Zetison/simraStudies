@@ -1,0 +1,60 @@
+#!/bin/bash
+ALPHA=135.0 
+#NCX=200
+res=200 # Element resolution in x- and y-dir
+NZ=51 # Number of points in vertical direction
+#ROT=3.16682
+ROT=0.0
+windCase=1
+height=4000
+resultsFolder=$HOME/results/simra/Vigra
+caseName="VigraReg10m"
+#caseName="Vigra10m"
+#caseName="VigraFree10m"
+mkdir -p $resultsFolder
+pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
+#for windCase in $(seq 1 1)
+for windCase in $(seq 1 5)
+do
+	# PHI is wind direction relative to north = PHI[deg] (PHI = 135° is wind from SE)
+	# U_A is wind speed in m/s
+	case $windCase in
+		1)
+			PHI=240
+			U_A=12
+			;;
+		2)
+			PHI=150
+			U_A=12
+			;;
+		3)
+			PHI=50
+			U_A=12
+			;;
+		4)
+			PHI=150
+			U_A=20.2
+			;;
+		5)
+			PHI=150
+			U_A=5
+			;;
+	esac
+	
+	cp simra.in ../ic_bc.f90 paraviewScript.py $resultsFolder
+	
+	pushd $resultsFolder > /dev/null
+	SED_VARIABLES="PHI U_A"
+	DICTS="ic_bc.f90"
+	source $HOME/kode/bashScripts/sedFiles
+	 
+	simramesh ${caseName}.g2 ${caseName}_3D.g2 --nz $NZ --height $height --res $res --rot=$ROT # Run mesh generator
+	siso -f vts ${caseName}_3D.g2
+	#paraview ${caseName}_3D.vts & # View mesh (optional)
+	siso -f dat ${caseName}_3D.g2 ${runFolder}mesh.dat # Convert to a computational mesh
+	gfortran ic_bc.f90 -o ic_bc
+	./ic_bc simra.in
+	simra simra.in | tee log.simra
+	siso -f pvd hist.res ${caseName}_${windCase}.pvd
+	popd > /dev/null
+done

@@ -27,7 +27,25 @@ implicit none
     real :: DT,CC,VIS,RHOREF,UREF,LENREF,TAU_SU,PSI,COURANT_MIN,COURANT_MAX,RELAX
 end module inputlist
 
+module linalg
+
+    implicit none
+    
+    contains
+    
+    FUNCTION cross(a, b)
+      real, DIMENSION(3) :: cross
+      real, DIMENSION(3), INTENT(IN) :: a, b
+    
+      cross(1) = a(2) * b(3) - a(3) * b(2)
+      cross(2) = a(3) * b(1) - a(1) * b(3)
+      cross(3) = a(1) * b(2) - a(2) * b(1)
+    END FUNCTION cross
+  
+end module linalg
+
 subroutine gen_BC(filepar)
+use linalg
 implicit none
 character*256 filepar
     integer nstep,iout,istrat,niter,npoin,nelem,imax,jmax,kmax,   &
@@ -38,6 +56,7 @@ character*256 filepar
     integer ipN,ipS,ipW,ipE
     real dt,eps,omega,visc,rho0,hscal,uinf,cappa,z0,delta,        &
        ustar,r2,time
+    logical isinflow
 
     integer, allocatable:: kon_we(:),icod_b(:),icod_n(:),         &
                       icu(:),icv(:),icw(:),ick(:),icp(:),ice(:)
@@ -47,6 +66,9 @@ character*256 filepar
     u3m(:),tleng(:),s1(:),s2(:),s3(:),dimas(:),detj(:),epk(:)
     real, allocatable:: z1(:),rho1(:),tk1(:),ep1(:),av1(:),u(:),v(:)
     real, allocatable:: z0_var(:)
+    real, DIMENSION(3,4) :: normals
+    real, DIMENSION(3) :: PswBot,PswTop,PseBot,PseTop,            &
+                          PnwBot,PnwTop,PneBot,PneTop
 
 !Read parameters for SIMRA, SI units
     call readparam_ibc(filepar,nstep,dt,istrat,iout,kont,niter,eps,visc,rho0,uinf,hscal)
@@ -86,24 +108,24 @@ character*256 filepar
 !Compute initial turbulence from simplified, 1D eddy model
 !        along each quasi-vertical line (subroutine eddy)
     do i=1,imax
-    do j=1,jmax
-      do k=1,kmax
-          i3=k+(i-1)*kmax+(j-1)*imax*kmax
-          z1(k)=coord(3,i3)
-          rho1(k)=rho(i3)
-          u(k)=u1(i3)
-          v(k)=u2(i3)
-      enddo
+        do j=1,jmax
+            do k=1,kmax
+                i3=k+(i-1)*kmax+(j-1)*imax*kmax
+                z1(k)=coord(3,i3)
+                rho1(k)=rho(i3)
+                u(k)=u1(i3)
+                v(k)=u2(i3)
+            enddo
 
-      CALL eddy (kmax,delta,z1,rho1,u,v,tk1,ep1,av1,z0,m1)
+            CALL eddy (kmax,delta,z1,rho1,u,v,tk1,ep1,av1,z0,m1)
 
-      do k=1,kmax
-        i3=k+(i-1)*kmax+(j-1)*imax*kmax
-        vtef(i3)=av1(k)
-        tk(i3)=tk1(k)
-        td(i3)=ep1(k)
-      enddo
-    enddo
+            do k=1,kmax
+              i3=k+(i-1)*kmax+(j-1)*imax*kmax
+              vtef(i3)=av1(k)
+              tk(i3)=tk1(k)
+              td(i3)=ep1(k)
+            enddo
+        enddo
     enddo
 
 !********************************************************************
@@ -117,9 +139,9 @@ character*256 filepar
     icont=0
     do j=1,jmax-1
         do i=1,imax-1
-          icont=icont+1
-          iew=1+(kmax-1)*(i-1)+(imax-1)*(kmax-1)*(j-1)
-          kon_we(icont)=iew
+            icont=icont+1
+            iew=1+(kmax-1)*(i-1)+(imax-1)*(kmax-1)*(j-1)
+            kon_we(icont)=iew
         enddo
     enddo
     new=icont
@@ -154,140 +176,151 @@ character*256 filepar
         fixd(ik)=0.0        !    "
         fixe(istr)=pt(i3)   ! temp. along ground, from UM
     end do
+!--------------------------------------------------------------
+! ---- Dirichlet BC if inflow: dot(u,n) < 0 
+! The four boundaries are assumed to be planar    
+    PswBot=coord(:,1)
+    PswTop=coord(:,kmax)
+    PseBot=coord(:,(imax-1)*kmax+1)
+    PseTop=coord(:,kmax*imax)
+    PnwBot=coord(:,(jmax-1)*imax*kmax+1)
+    PnwTop=coord(:,(jmax-1)*imax*kmax+kmax)
+    PneBot=coord(:,(jmax-1)*imax*kmax+(imax-1)*kmax+1)
+    PneTop=coord(:,jmax*imax*kmax)
+    normals(:,1)=cross(PseBot-PswBot,PswTop-PswBot)
+    normals(:,2)=cross(PnwBot-PneBot,PneTop-PneBot)
+    normals(:,3)=cross(PneBot-PseBot,PseTop-PseBot)
+    normals(:,4)=cross(PswBot-PnwBot,PnwTop-PnwBot)
 !SOUTHERN BOUNDARY (j=1):  conditional
     itest_S=1
     if (itest_S.eq.1) then
         j=1
         do i=1,imax
-        do k=1,kmax
-            i3=k+(i-1)*kmax+(j-1)*imax*kmax
-! ---- Dirichlet BC if inflow: u2 > 0 
-        if (u2(i3).gt.0.0) then
-              if (k.eq.kmax.and.i.eq.1) print*, 'wind from S'
-              iu=iu+1
-              iv=iv+1
-              iw=iw+1
-              istr=istr+1
-              icu(iu)=i3
-              icv(iv)=i3
-              icw(iw)=i3
-              ice(istr)=i3
-              fixu(iu)=u1(i3)
-              fixv(iv)=u2(i3)
-              fixw(iw)=u3(i3)
-              fixe(istr)=pt(i3)
-              if (iturb.eq.1) then
-                ik=ik+1
-                ick(ik)=i3
-                fixk(ik)=tk(i3)
-                fixd(ik)=td(i3)
-              endif
-        endif
-        enddo
+            do k=1,kmax
+                i3=k+(i-1)*kmax+(j-1)*imax*kmax
+                call checkFlowDir (isInflow,u1(i3),u2(i3),u3(i3),normals(:,1))
+                if (isInflow) then
+                     if (k.eq.kmax.and.i.eq.1) print*, 'wind from bottom boundary'
+                     iu=iu+1
+                     iv=iv+1
+                     iw=iw+1
+                     istr=istr+1
+                     icu(iu)=i3
+                     icv(iv)=i3
+                     icw(iw)=i3
+                     ice(istr)=i3
+                     fixu(iu)=u1(i3)
+                     fixv(iv)=u2(i3)
+                     fixw(iw)=u3(i3)
+                     fixe(istr)=pt(i3)
+                     if (iturb.eq.1) then
+                         ik=ik+1
+                         ick(ik)=i3
+                         fixk(ik)=tk(i3)
+                         fixd(ik)=td(i3)
+                     endif
+                endif
+            enddo
         enddo
     endif
-!--------------------------------------------------------------
 !NORTHERN BOUNDARY (j=jmax):  conditional 
     itest_N=1
     if (itest_N.eq.1) then
         j=jmax
         do i=1,imax
-        do k=1,kmax
-            i3=k+(i-1)*kmax+(j-1)*imax*kmax
-!Dirichlet BC if inflow (u2 < 0 along N boundary)
-            if (u2(i3).lt.0.0) then
-                if (k.eq.kmax.and.i.eq.1) print*, 'wind from N'
-                iu=iu+1
-                iv=iv+1
-                iw=iw+1
-                istr=istr+1
-                icu(iu)=i3
-                icv(iv)=i3
-                icw(iw)=i3
-                ice(istr)=i3
-                fixu(iu)=u1(i3)
-                fixv(iv)=u2(i3)
-                fixw(iw)=u3(i3)
-                fixe(istr)=pt(i3)
-                if (iturb.eq.1) then
-                    ik=ik+1
-                    ick(ik)=i3
-                    fixk(ik)=tk(i3)
-                    fixd(ik)=td(i3)
+            do k=1,kmax
+                i3=k+(i-1)*kmax+(j-1)*imax*kmax
+                call checkFlowDir (isInflow,u1(i3),u2(i3),u3(i3),normals(:,2))
+                if (isInflow) then
+                    if (k.eq.kmax.and.i.eq.1) print*, 'wind from top boundary'
+                    iu=iu+1
+                    iv=iv+1
+                    iw=iw+1
+                    istr=istr+1
+                    icu(iu)=i3
+                    icv(iv)=i3
+                    icw(iw)=i3
+                    ice(istr)=i3
+                    fixu(iu)=u1(i3)
+                    fixv(iv)=u2(i3)
+                    fixw(iw)=u3(i3)
+                    fixe(istr)=pt(i3)
+                    if (iturb.eq.1) then
+                        ik=ik+1
+                        ick(ik)=i3
+                        fixk(ik)=tk(i3)
+                        fixd(ik)=td(i3)
+                    endif
                 endif
-            endif
+            enddo
         enddo
-        enddo
-
     endif
-!-------------------------------------------------------------------
 !  EASTERN BOUNDARY (i=imax):  conditional
     itest_E=1  !
     if (itest_E.eq.1) then
         i=imax
         do j=1,jmax
-        do k=1,kmax
-            i3=k+kmax*(i-1)+kmax*imax*(j-1)
-!Dirichlet BC if inflow (u1 < 0 along E boundary)
-            if (u1(i3).lt.0.0) then
-                if (k.eq.kmax.and.j.eq.1) print*, 'wind from E'
-                iu=iu+1
-                iv=iv+1
-                iw=iw+1
-                istr=istr+1
-                icu(iu)=i3
-                icv(iv)=i3
-                icw(iw)=i3
-                ice(istr)=i3
-                fixu(iu)=u1(i3)
-                fixv(iv)=u2(i3)
-                fixw(iw)=u3(i3)
-                fixe(istr)=pt(i3)
-                  if (iturb.eq.1) then
-                    ik=ik+1
-                    ick(ik)=i3
-                    fixk(ik)=tk(i3)
-                    fixd(ik)=td(i3)
-                  endif
-            endif
-        enddo
+            do k=1,kmax
+                i3=k+kmax*(i-1)+kmax*imax*(j-1)
+                call checkFlowDir (isInflow,u1(i3),u2(i3),u3(i3),normals(:,3))
+                if (isInflow) then
+                    if (k.eq.kmax.and.j.eq.1) print*, 'wind from right boundary'
+                    iu=iu+1
+                    iv=iv+1
+                    iw=iw+1
+                    istr=istr+1
+                    icu(iu)=i3
+                    icv(iv)=i3
+                    icw(iw)=i3
+                    ice(istr)=i3
+                    fixu(iu)=u1(i3)
+                    fixv(iv)=u2(i3)
+                    fixw(iw)=u3(i3)
+                    fixe(istr)=pt(i3)
+                    if (iturb.eq.1) then
+                        ik=ik+1
+                        ick(ik)=i3
+                        fixk(ik)=tk(i3)
+                        fixd(ik)=td(i3)
+                    endif
+                endif
+            enddo
         enddo
     endif
-!-------------------------------------------------------------------
 !  WESTERN BOUNDARY (i=1):   Conditional     
     itest_W=1
     if (itest_W.eq.1) then
         do j=1,jmax
-        do k=1,kmax
-        i3=k+kmax*imax*(j-1)
-! ---- Dirichlet BC if inflow (u1 > 0 along W boundary)
-        if (u1(i3).gt.0.0) then
-          if (k.eq.kmax.and.j.eq.1) print*, 'wind from W'
-        iu=iu+1
-        iv=iv+1
-        iw=iw+1
-        istr=istr+1
-        icu(iu)=i3
-        icv(iv)=i3
-        icw(iw)=i3
-        ice(istr)=i3
-        fixu(iu)=u1(i3)
-        fixv(iv)=u2(i3)
-        fixw(iw)=u3(i3)
-        fixe(istr)=pt(i3)
-          if (iturb.eq.1) then
-            ik=ik+1
-            ick(ik)=i3
-            fixk(ik)=tk(i3)
-            fixd(ik)=td(i3)
-          endif
-        endif
+            do k=1,kmax
+                i3=k+kmax*imax*(j-1)
+                call checkFlowDir (isInflow,u1(i3),u2(i3),u3(i3),normals(:,4))
+                if (isInflow) then
+                    if (k.eq.kmax.and.j.eq.1) print*, 'wind from left boundary'
+                    iu=iu+1
+                    iv=iv+1
+                    iw=iw+1
+                    istr=istr+1
+                    icu(iu)=i3
+                    icv(iv)=i3
+                    icw(iw)=i3
+                    ice(istr)=i3
+                    fixu(iu)=u1(i3)
+                    fixv(iv)=u2(i3)
+                    fixw(iw)=u3(i3)
+                    fixe(istr)=pt(i3)
+                    if (iturb.eq.1) then
+                        ik=ik+1
+                        ick(ik)=i3
+                        fixk(ik)=tk(i3)
+                        fixd(ik)=td(i3)
+                    endif
+                endif
+            enddo
         enddo
-        enddo
-      endif
+    endif
 !-------------------------------------------------------------------
 !  UPPER BOUNDARY (K=KMAX):
-      do i=1,imax
+    do i=1,imax
       do j=1,jmax
         i3=kmax+(i-1)*kmax+(j-1)*imax*kmax
 ! ---- Dirichlet BC for (K, eps)
@@ -300,7 +333,7 @@ character*256 filepar
         icw(iw)=i3
         fixw(iw)=u3(i3)    
       enddo
-      enddo
+    enddo
 ! ----- Estimate other parameters
       do ie=1,nelem
         pd(ie)=0.0
@@ -521,7 +554,7 @@ character*256 filepar
 !----------------------------------------------------------------------
          grav=9.81
          delta=delta+z0
-         u_a=0.4366  ! wind at delta   
+         u_a=SED_U_A  ! wind at delta   
          dz=abs(coord(3,2)-coord(3,1))
          cappa=0.42
 !
@@ -532,7 +565,8 @@ character*256 filepar
          ustar=u_a*cappa/(alog(delta/z0)+wake)
          
 ! ---- Wind direction relative to x-axis = alpha[deg]
-         alpha=0.0 !  SE wind
+         phi=SED_PHI
+         alpha=270.0-phi
          alpha=alpha/57.295
 !
 ! ---- Stratification:
@@ -576,6 +610,19 @@ character*256 filepar
 !-------------------------------------------------------------------
       END subroutine profile
 
+!###################################################################
+SUBROUTINE checkFlowDir (isInflow,u,v,w,normal)                                                                   
+!    1D (vertical profile) eddy viscosity model 
+!    - given vertical geometry, velocity and density
+!    - output: 
+!       eddy viscosity (av), turb kin energy (tk), dissipation (td)                    
+!###################################################################
+      logical isInflow
+      real u,v,w,normal(3)
+      
+      isInflow = (u*normal(1)+v*normal(2)+w*normal(3)).lt.0.0
+
+      END SUBROUTINE checkFlowDir
 
 !###################################################################
 SUBROUTINE eddy (kmax,delta,z,rho,u,v,tk,td,av,z0,m1)                                                                   
@@ -642,7 +689,7 @@ implicit none
     ASTRATIFICATION=STRATIFICATION
     ASAVE_RES=SAVE_RES
     ARESTART=RESTART
-    AMAXIT=	MAXIT
+    AMAXIT=MAXIT
     ACC=CC
     AVIS=VIS
     ARHOREF=RHOREF

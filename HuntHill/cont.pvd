@@ -1,5 +1,0 @@
-<VTKFile type="Collection">
-  <Collection>
-    <DataSet timestep="1455.5992431640625" part="0" file="cont.pvd-data/data.vtu" />
-  </Collection>
-</VTKFile>
