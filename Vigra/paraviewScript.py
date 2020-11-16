@@ -9,19 +9,27 @@ paraview.simple._DisableFirstRenderCameraReset()
 home = expanduser("~")
 sys.path.insert(1, home+'/kode/paraUtils')
 from SINTEFlogo import insertSINTEFlogo
+from sources import extCone
 
 outputPath = home+'/results/simra/Vigra/'
-saveScreenShots = True
-caseName = 'VigraFree10m_1'
+windCase = 2
+caseName = 'VigraFree10m_'+str(windCase)
 sqrtTKE_max = 5.0
+h_max = 4000
+angleOfAttack = 4.6
 viewSize = [1920, 1080]
 useTransparentBackground = True
 scalarBarLength = 0.26
-plotLIC = True
-plot1Dcurves = True
-plotStreamLines = True
-plotVolumeRendering = True
-makeVideo = True
+plotLIC = False
+plotStreamLines = False
+plotVolumeRendering = False
+plotIPPCmaps = True
+makeVideo = False
+saveScreenShots = False
+NumberOfFrames = 201
+runwayEndWest = np.array([42890.95,6967738.00,10])
+runwayEndEast = np.array([45123.04,6968439.01,10])
+runwayCenter = (runwayEndEast+runwayEndWest)/2
 # get animation scene
 animationScene1 = GetAnimationScene()
 LoadPalette(paletteName='WhiteBackground')
@@ -34,8 +42,6 @@ fileName = home+'/results/simra/Vigra/'+caseName+'.pvd'
 
 # create a new 'XML Unstructured Grid Reader'
 huntHill = PVDReader(registrationName=caseName, FileName=fileName)
-#huntHill = XMLUnstructuredGridReader(registrationName='HuntHill', FileName=fileNames)
-#huntHill.CellArrayStatus = []
 huntHill.PointArrays = ['ps', 'pts', 'tk', 'u']
 
 animationScene1.UpdateAnimationUsingDataTimeSteps()
@@ -43,7 +49,7 @@ animationScene1.GoToLast()
 # update animation scene based on data timesteps
 
 # get active view
-layout1 = GetLayout()
+layout1 = GetLayoutByName("Layout #1")
 
 # create a new 'Calculator'
 calculator1 = Calculator(registrationName='Calculator1', Input=huntHill)
@@ -63,7 +69,6 @@ slice1.SliceOffsetValues = [0.0]
 slice1.HyperTreeGridSlicer.Origin = [0.11449999999999994, 0.0, 0.8015]
 slice1.SliceType.Normal = [0.30300368726820465, -0.9529862428683145, 0.0]
 slice1.SliceType.Origin = [48671.06678998141, 6969600.636836766, 1223.1745535236325]
-
 # toggle 3D widget visibility (only when running from the GUI)
 Hide3DWidgets(proxy=slice1.SliceType)
 
@@ -72,14 +77,14 @@ topology = XMLStructuredGridReader(registrationName='Topology',FileName=[outputP
 topology.TimeArray = 'None'
 topology.PointArrayStatus = ['TCoords_']
 layout1 = GetLayout()
-topologyDisplay = Show(topology, renderView1, 'StructuredGridRepresentation')
-topologyDisplay.Representation = 'Surface'
-topologyDisplay.Texture = CreateTexture(outputPath+'VigraFree10m.png')
 
 ####################################################################################
 ## Layout 1 - Surface LIC plots
 # create a new 'Clip'
 if plotLIC:
+	topologyDisplay = Show(topology, renderView1, 'StructuredGridRepresentation')
+	topologyDisplay.Representation = 'Surface'
+	topologyDisplay.Texture = CreateTexture(outputPath+'VigraFree10m.png')
 	# current camera placement for renderView1
 	#renderView1.InteractionMode = '2D'
 	CreateLayout('Layout #2')
@@ -182,10 +187,15 @@ if plotStreamLines:
 	P_se = [70493.555053226,6956794.646711984,z]
 	P_nw = [29466.912132806,6982238.693045641,z]
 	P_ne = [69366.258652280,6983800.313949561,z]
-	#streamTracer1.SeedType.Point1 = P_sw
-	#streamTracer1.SeedType.Point2 = P_ne
-	streamTracer1.SeedType.Point1 = P_sw
-	streamTracer1.SeedType.Point2 = P_nw
+	if windCase == 1:
+		streamTracer1.SeedType.Point1 = P_sw
+		streamTracer1.SeedType.Point2 = P_nw
+	elif windCase == 2 or windCase == 4 or windCase == 5:
+		streamTracer1.SeedType.Point1 = P_sw
+		streamTracer1.SeedType.Point2 = P_se
+	else:
+		streamTracer1.SeedType.Point1 = P_nw
+		streamTracer1.SeedType.Point2 = P_ne
 	
 	# show data in view
 	streamTracer1Display = Show(streamTracer1, renderView3, 'GeometryRepresentation')
@@ -221,9 +231,8 @@ sqrtTKERWF.ScalarRangeInitialized = 1
 sqrtTKERWF.RescaleTransferFunction(0.0, sqrtTKE_max)
 sqrtTKERWF.Points = [0.0, 0.0, 0.5, 0.0, 1.6, 0.0, 0.5, 0.0, 4.0, 1.0, 0.5, 0.0]
 
-RenderAllViews()
 ####################################################################################
-## Layout 3 - Stream lines
+## Layout 4 - Volume rendering
 if plotVolumeRendering:
 	CreateLayout('Layout #4')
 	layout4 = GetLayoutByName("Layout #4")
@@ -251,29 +260,42 @@ if plotVolumeRendering:
 	sqrtTKELUTColorBar_4.WindowLocation = 'UpperRightCorner'
 	sqrtTKELUTColorBar_4.ComponentTitle = ''
 	sqrtTKELUTColorBar_4.ScalarBarLength = scalarBarLength
-	
-	# current camera placement for renderView3
-	renderView4.CameraPosition = [50414.52908030598, 6945409.324726033, 10357.237713466891]
-	renderView4.CameraFocalPoint = [54214.78474098443, 6968421.997248842, 27.3130353338029]
-	renderView4.CameraViewUp = [0.0, 0.0, 1.0]
-	renderView4.CameraParallelScale = 25072.349478743286
 
-renderView1.CameraPosition = [45915.71585360529, 6938099.25941025, 22536.227838368617]
-renderView1.CameraFocalPoint = [51563.52982665786, 6966996.095785035, -614.0106624878072]
-renderView1.CameraViewUp = [0.08910050644944713, 0.612082952061688, 0.7857579522638646]
-renderView1.CameraParallelScale = 25143.74802298738
-renderView2.CameraPosition = renderView1.CameraPosition
-renderView2.CameraFocalPoint = renderView1.CameraFocalPoint
-renderView2.CameraViewUp = renderView1.CameraViewUp
-renderView2.CameraParallelScale = renderView1.CameraParallelScale
-renderView3.CameraPosition = renderView1.CameraPosition
-renderView3.CameraFocalPoint = renderView1.CameraFocalPoint
-renderView3.CameraViewUp = renderView1.CameraViewUp
-renderView3.CameraParallelScale = renderView1.CameraParallelScale
-renderView4.CameraPosition = renderView1.CameraPosition
-renderView4.CameraFocalPoint = renderView1.CameraFocalPoint
-renderView4.CameraViewUp = renderView1.CameraViewUp
-renderView4.CameraParallelScale = renderView1.CameraParallelScale
+if plotIPPCmaps:
+	CreateLayout('Layout #5')
+	layout5 = GetLayoutByName("Layout #5")
+	
+	# Create a new 'Render View'
+	renderView5 = CreateView('RenderView')
+	renderView5.AxesGrid = 'GridAxes3DActor'
+	renderView5.StereoType = 'Crystal Eyes'
+	renderView5.CameraFocalDisk = 1.0
+	renderView5.OrientationAxesVisibility = 0
+	AssignViewToLayout(view=renderView5, layout=layout5, hint=0)
+	
+	#topologyDisplay = Show(topology, renderView5, 'UnstructuredGridRepresentation')
+	#topologyDisplay.Representation = 'Surface'
+	#topologyDisplay.Texture = CreateTexture(outputPath+'VigraFree10m.png')
+	
+	vtkName = outputPath+'temp'
+	extCone(runwayEndWest,runwayEndEast,h_max,phi=angleOfAttack,n=200,name=vtkName)
+	extendedCone = LegacyVTKReader(registrationName='ExtendedCone', FileNames=[vtkName+'.vtk'])
+	resampleWithDataset1 = ResampleWithDataset(SourceDataArrays=calculator1, DestinationMesh=extendedCone)
+	resampleWithDataset1Display = Show(resampleWithDataset1, renderView5, 'StructuredGridRepresentation')
+	resampleWithDataset1Display.Opacity = 0.51
+	renderView5.InteractionMode = '2D'
+	renderView5.CameraPosition = [46920.61544565432, 6968698.369576645, 25646.089429199277]
+	renderView5.CameraFocalPoint = runwayCenter
+	renderView5.CameraViewUp = [0.0, 1.0, 0.0]
+	renderView5.CameraParallelScale = 8086.972022277982
+
+	sqrtTKELUTColorBar_5 = GetScalarBar(sqrtTKELUT, renderView5)
+	sqrtTKELUTColorBar_5.Title = 'Turbulence, $\sqrt{k}$'
+	sqrtTKELUTColorBar_5.Orientation = 'Vertical'
+	sqrtTKELUTColorBar_5.WindowLocation = 'UpperRightCorner'
+	sqrtTKELUTColorBar_5.ComponentTitle = ''
+	sqrtTKELUTColorBar_5.ScalarBarLength = scalarBarLength
+	
 
 
 # get color transfer function/color map for 'sqrtTKE'
@@ -289,43 +311,56 @@ sqrtTKERWF.ScalarRangeInitialized = 1
 sqrtTKERWF.RescaleTransferFunction(0.0, sqrtTKE_max)
 sqrtTKERWF.Points = [0.0, 0.0, 0.5, 0.0, 1.6, 0.0, 0.5, 0.0, 4.0, 1.0, 0.5, 0.0]
 
+renderView1.CameraPosition = [45915.71585360529, 6938099.25941025, 22536.227838368617]
+renderView1.CameraFocalPoint = [51563.52982665786, 6966996.095785035, -614.0106624878072]
+renderView1.CameraViewUp = [0.08910050644944713, 0.612082952061688, 0.7857579522638646]
+renderView1.CameraParallelScale = 25143.74802298738
 color = 'blue'
-insertSINTEFlogo(renderView1,color)
-insertSINTEFlogo(renderView2,color)
-insertSINTEFlogo(renderView3,color)
-insertSINTEFlogo(renderView4,color)
 RenderAllViews()
-if saveScreenShots:
-	SaveScreenshot(outputPath+caseName+'surfaceLICside.png', renderView1,
-			FontScaling='Scale fonts proportionally',
-			TransparentBackground=useTransparentBackground,
-			ImageResolution=viewSize,
-			ImageQuality=100)
-	SaveScreenshot(outputPath+caseName+'surfaceLICtop.png', renderView2,
-			FontScaling='Scale fonts proportionally',
-			TransparentBackground=useTransparentBackground,
-			ImageResolution=viewSize,
-			ImageQuality=100)
-	SaveScreenshot(outputPath+caseName+'streamTracer.png', renderView3,
-			FontScaling='Scale fonts proportionally',
-			ImageResolution=viewSize,
-			TransparentBackground=useTransparentBackground,
-			ImageQuality=100)
-	SaveScreenshot(outputPath+caseName+'volumeRendering.png', renderView4,
-			FontScaling='Scale fonts proportionally',
-			ImageResolution=viewSize,
-			TransparentBackground=useTransparentBackground,
-			ImageQuality=100)
-if makeVideo:
-	# save animation
-	renderView2.ViewSize = viewSize
-	animationScene1 = GetAnimationScene()
-	SaveAnimation(outputPath+caseName+'surfaceLICtop.ogv', renderView2,
-			FontScaling='Scale fonts proportionally',
-			OverrideColorPalette='',
-			StereoMode='No change',
-			TransparentBackground=0,
-			ImageQuality=100,
-			FrameRate=15,
-			ImageResolution=viewSize,
-			FrameWindow=[0, animationScene1.NumberOfFrames-1])
+def saveScreenShot(renderView,name):
+	if saveScreenShots:
+		SaveScreenshot(outputPath+caseName+name+'.png', renderView,
+				FontScaling='Scale fonts proportionally',
+				TransparentBackground=useTransparentBackground,
+				ImageResolution=viewSize,
+				ImageQuality=100)
+def saveAnimation(renderView,name):
+	if makeVideo:
+		renderView2.ViewSize = viewSize
+		animationScene1 = GetAnimationScene()
+		slice2Display.SetRepresentationType('Surface')
+		SaveAnimation(outputPath+caseName+name+'.ogv', renderView,
+				FontScaling='Scale fonts proportionally',
+				OverrideColorPalette='',
+				StereoMode='No change',
+				TransparentBackground=0,
+				ImageQuality=100,
+				FrameRate=15,
+				ImageResolution=viewSize,
+				FrameWindow=[0, NumberOfFrames-1])
+
+def copyCamera(renderview1,renderview2):
+	renderview2.CameraPosition = renderview1.CameraPosition
+	renderview2.CameraFocalPoint = renderview1.CameraFocalPoint
+	renderview2.CameraViewUp = renderview1.CameraViewUp
+	renderview2.CameraParallelScale = renderview1.CameraParallelScale
+
+if plotLIC:
+	insertSINTEFlogo(renderView1,color)
+	insertSINTEFlogo(renderView2,color)
+	saveScreenShot(renderView1,'surfaceLICside')
+	saveScreenShot(renderView2,'surfaceLICtop')
+	copyCamera(renderView1,renderView2)
+	saveAnimation(renderView2,'surface')
+
+if plotStreamLines:
+	insertSINTEFlogo(renderView3,color)
+	copyCamera(renderView1,renderView3)
+	saveScreenShot(renderView3,'streamTracer')
+		
+if plotVolumeRendering:
+	insertSINTEFlogo(renderView4,color)
+	copyCamera(renderView1,renderView4)
+	saveScreenShot(renderView4,'volumeRendering')
+	saveAnimation(renderView4,'volumeRendering')
+

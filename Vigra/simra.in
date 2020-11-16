@@ -1,5 +1,5 @@
 &PARAM_DATA
- NSTEP=301,         ! Numper of time steps
+ NSTEP=4000,        ! Numper of time steps
  DT=1.0,            ! Initial time step
  STRATIFICATION=0,  ! = 1: stratification included
  SAVE_RES=50,       ! time-steps between output
@@ -19,5 +19,5 @@
 
 &EXTRA_DATA
  TURB=1,            ! = 1: turbulence model included
- SAVE_HIST=10,      ! time-steps between saved output
+ SAVE_HIST=20,      ! time-steps between saved output
  SOURCE=0/          ! Source function flag
