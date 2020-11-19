@@ -18,7 +18,7 @@ topoRes = '10m'
 topologyFileName = outputPath+'VigraFree'+topoRes+'.vts'
 textureFileName_topo = outputPath+'VigraFree10m_topo.png'
 textureFileName_NIB = outputPath+'VigraFree10m.png'
-windCase = 4
+windCase = 5
 noSteps = 201
 finalTime = 11.7006
 caseName = 'VigraFree10m_'+str(windCase)
@@ -32,13 +32,13 @@ viewSize = [1920, 1080]
 scalarBarLength = 0.26
 if windCase == 1:
 	glyphScale1 = 30
-	glyphScale2 = 0.1
+	glyphScale2 = 0.05
 elif windCase == 2:
 	glyphScale1 = 30
 	glyphScale2 = 0.1
 elif windCase == 3:
 	glyphScale1 = 30
-	glyphScale2 = 0.1
+	glyphScale2 = 0.05
 elif windCase == 4:
 	glyphScale1 = 30
 	glyphScale2 = 0.1
@@ -56,7 +56,7 @@ plotVolumeRendering      = 1
 plotIPPCmapsHorizontal   = 1 
 plotIPPCmapsVertical     = 1 
 
-makeVideo                = 1
+makeVideo                = 0
 saveScreenShots          = 1
 useTransparentBackground = 0
 
@@ -440,7 +440,11 @@ if plotIPPCmapsHorizontal:
 	contour3.Isosurfaces = [2.0,3.0,4.0]
 	contour3.PointMergeMethod = 'Uniform Binning'
 	contour3Display = Show(contour3, renderView5, 'GeometryRepresentation')
-	ColorBy(contour3Display, None)
+	try:
+		ColorBy(contour3Display, None)
+	except:
+		print('No turbulence above 2 to be shown')
+	
 	contour3Display.DiffuseColor = [0.0, 0.0, 0.0]
 
 	calculatorConeProj = Calculator(Input=resampleWithDataset1)
@@ -541,7 +545,11 @@ if plotIPPCmapsVertical:
 	contour4.Isosurfaces = [2.0,3.0,4.0]
 	contour4.PointMergeMethod = 'Uniform Binning'
 	contour4Display = Show(contour4, renderView6, 'GeometryRepresentation')
-	ColorBy(contour4Display, None)
+	try:
+		ColorBy(contour3Display, None)
+	except:
+		print('No turbulence above 2 to be shown')
+	
 	contour4Display.DiffuseColor = [0.0, 0.0, 0.0]
 	
 	if plotRunwayStuff:
@@ -658,10 +666,10 @@ def copyCamera(renderview1,renderview2):
 
 if plotLIC:
 	insertSINTEFlogo(renderView1,color)
-	insertSINTEFlogo(renderView2,color)
 	saveScreenShot(renderView1,'surfaceLICside')
-	saveScreenShot(renderView2,'surfaceLICtop')
+	insertSINTEFlogo(renderView2,color)
 	copyCamera(renderView1,renderView2)
+	saveScreenShot(renderView2,'surfaceLICtop')
 	saveAnimation(renderView2,'surface')
 
 if plotStreamLines:
