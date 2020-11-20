@@ -1,5 +1,4 @@
 #!/bin/bash
-ALPHA=135.0 
 #NCX=200
 res=200 # Element resolution in x- and y-dir
 NZ=51 # Number of points in vertical direction
@@ -48,7 +47,7 @@ do
 	DICTS="ic_bc.f90"
 	source $HOME/kode/bashScripts/sedFiles
 	 
-	simramesh ${caseName}.g2 ${caseName}_3D.g2 --nz $NZ --height $height --res $res --rot=$ROT # Run mesh generator
+	simramesh ${caseName}.g2 ${caseName}_3D.g2 --nz $NZ --height $height --res $res # Run mesh generator
 	siso -f vts ${caseName}_3D.g2
 	#paraview ${caseName}_3D.vts & # View mesh (optional)
 	siso -f dat ${caseName}_3D.g2 ${runFolder}mesh.dat # Convert to a computational mesh

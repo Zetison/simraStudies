@@ -18,7 +18,7 @@ topoRes = '10m'
 topologyFileName = outputPath+'VigraFree'+topoRes+'.vts'
 textureFileName_topo = outputPath+'VigraFree10m_topo.png'
 textureFileName_NIB = outputPath+'VigraFree10m.png'
-windCase = 5
+windCase = 4
 noSteps = 201
 finalTime = 11.7006
 caseName = 'VigraFree10m_'+str(windCase)
@@ -30,20 +30,16 @@ angleOfAttack_East = 3.4
 runwayWidth = 150.0
 viewSize = [1920, 1080]
 scalarBarLength = 0.26
+glyphScale1 = 30
 if windCase == 1:
-	glyphScale1 = 30
 	glyphScale2 = 0.05
 elif windCase == 2:
-	glyphScale1 = 30
 	glyphScale2 = 0.1
 elif windCase == 3:
-	glyphScale1 = 30
 	glyphScale2 = 0.05
 elif windCase == 4:
-	glyphScale1 = 30
 	glyphScale2 = 0.1
 elif windCase == 5:
-	glyphScale1 = 30
 	glyphScale2 = 0.1
 
 SAVE_HIST = 20
@@ -146,7 +142,7 @@ Hide3DWidgets(proxy=sliceTopology.SliceType)
 def annotateTimeStep(obj,renderview,location='UpperLeftCorner'):
 	pythonAnnotation = PythonAnnotation(registrationName='Time annotation', Input=obj)
 	pythonAnnotation.ArrayAssociation = 'Point Data'
-	pythonAnnotation.Expression = '"Step: %d\nTime: %0.2fs" % ((time_index+1)*'+str(SAVE_HIST)+', time_value)'
+	pythonAnnotation.Expression = '"Step: %d\\nTime: %0.2fs" % ((time_index+1)*'+str(SAVE_HIST)+', time_value)'
 	pythonAnnotationDisplay = Show(pythonAnnotation, renderview, 'TextSourceRepresentation')
 	pythonAnnotationDisplay.WindowLocation = location 
 	pythonAnnotationDisplay.FontSize = 5
@@ -546,7 +542,7 @@ if plotIPPCmapsVertical:
 	contour4.PointMergeMethod = 'Uniform Binning'
 	contour4Display = Show(contour4, renderView6, 'GeometryRepresentation')
 	try:
-		ColorBy(contour3Display, None)
+		ColorBy(contour4Display, None)
 	except:
 		print('No turbulence above 2 to be shown')
 	
