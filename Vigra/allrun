@@ -6,7 +6,7 @@ NZ=51 # Number of points in vertical direction
 ROT=0.0
 windCase=1
 height=4000
-resultsFolder=$HOME/results/simra/Vigra
+resultsFolder=$HOME/results/simra/Vigra_test
 #caseName="VigraReg10m"
 #caseName="Vigra10m"
 caseName="VigraFree10m"
@@ -50,7 +50,7 @@ do
 	simramesh ${caseName}.g2 ${caseName}_3D.g2 --nz $NZ --height $height --res $res # Run mesh generator
 	siso -f vts ${caseName}_3D.g2
 	#paraview ${caseName}_3D.vts & # View mesh (optional)
-	siso -f dat ${caseName}_3D.g2 ${runFolder}mesh.dat # Convert to a computational mesh
+	siso -f dat ${caseName}_3D.g2 mesh.dat # Convert to a computational mesh
 	gfortran ic_bc.f90 -o ic_bc
 	./ic_bc simra.in
 	simra simra.in | tee log.simra

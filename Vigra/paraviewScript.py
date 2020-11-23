@@ -12,7 +12,8 @@ home = expanduser("~")
 sys.path.insert(1, home+'/kode/paraUtils')
 from SINTEFlogo import insertSINTEFlogo
 from sources import coffeeFilter
-outputPath = home+'/results/simra/Vigra/'
+from utils import latLonUTM
+outputPath = home+'/results/simra/Vigra_coarse/'
 #topoRes = '50m'
 topoRes = '10m'
 topologyFileName = outputPath+'VigraFree'+topoRes+'.vts'
@@ -28,8 +29,14 @@ height_max = 1000 #max height of height colormap
 angleOfAttack_West = 3.0
 angleOfAttack_East = 3.4
 runwayWidth = 150.0
+runwayEndWest = latLonUTM("623323.41","0060532.89",35.3)
+runwayEndEast = latLonUTM("623351.26","0060740.31",49.2)
+SAVE_HIST = 20
+
 viewSize = [1920, 1080]
 scalarBarLength = 0.26
+streamLines_z = 100
+horizontalSlice_z = 300
 glyphScale1 = 30
 if windCase == 1:
 	glyphScale2 = 0.05
@@ -42,24 +49,22 @@ elif windCase == 4:
 elif windCase == 5:
 	glyphScale2 = 0.1
 
-SAVE_HIST = 20
 
 plotRunwayStuff          = 1 
 
-plotLIC                  = 1
-plotStreamLines          = 1
+plotLIC                  = 0
+plotStreamLines          = 0
 plotVolumeRendering      = 1 
-plotIPPCmapsHorizontal   = 1 
-plotIPPCmapsVertical     = 1 
+plotIPPCmapsHorizontal   = 0 
+plotIPPCmapsVertical     = 0 
 
-makeVideo                = 0
+makeVideo                = 1
 saveScreenShots          = 1
 useTransparentBackground = 0
 
 timeStepAnnotation       = makeVideo
+# Extract UTM-33 coordinates from rwyCoords.png file (available at https://ais.avinor.no/no/AIP/View/95/2020-11-05-AIRAC/html/index-no-NO.html). The coordinates in rwyCoords.png are given in Lat-lon Degrees Minutes seconds format. Here, "THR COORD" is the start of the RWY (runway), and "RWY end COORD" is its end
 
-runwayEndWest = np.array([42890.95,6967738.00,10])
-runwayEndEast = np.array([45123.04,6968439.01,10])
 runwayDir = runwayEndEast-runwayEndWest
 runwayDir = runwayDir/np.linalg.norm(runwayDir)
 runwayNormal = np.cross(runwayDir,[0,0,1])
@@ -76,7 +81,7 @@ renderView1.OrientationAxesVisibility = 0
 
 # get the time-keeper
 timeKeeper1 = GetTimeKeeper()
-fileName = home+'/results/simra/Vigra/'+caseName+'.pvd'
+fileName = outputPath+caseName+'.pvd'
 
 # create a new 'XML Unstructured Grid Reader'
 simraPVDresults = PVDReader(registrationName=caseName, FileName=fileName)
@@ -114,8 +119,8 @@ proj_u.ResultArrayName = 'u_proj'
 planeSlice = Plane(registrationName='Plane slice')
 planeSliceLength = 43e3
 planeSliceHeight = h_max
-planeSlice.Origin = runwayCenter-runwayDir*15e3
-planeSlice.Point1 = planeSlice.Origin+runwayDir*planeSliceLength
+planeSlice.Origin = np.append(runwayCenter[:2]-runwayDir[:2]*15e3,np.zeros(1))
+planeSlice.Point1 = planeSlice.Origin + planeSliceLength*np.append(runwayDir[:2],np.zeros(1))
 planeSlice.Point2 = planeSlice.Origin + planeSliceHeight*np.array([0,0,1])
 planeSlice.XResolution = np.round(planeSliceLength/1500).astype('int')
 planeSlice.YResolution = np.round(10*planeSliceHeight/1500).astype('int')
@@ -171,9 +176,8 @@ if plotLIC:
 	slice2.SliceType = 'Plane'
 	slice2.HyperTreeGridSlicer = 'Plane'
 	slice2.SliceOffsetValues = [0.0]
-	slice2.HyperTreeGridSlicer.Origin = [0.11449999999999994, 0.0, 0.8015]
 	slice2.SliceType.Normal = [0.0, 0.0, 1.0]
-	slice2.SliceType.Origin = [49979.89939835307, 6969396.944194966, 300]
+	slice2.SliceType.Origin = np.append(runwayCenter[:2],horizontalSlice_z)
 	Hide3DWidgets(proxy=slice2.SliceType)
 	
 	# show data in view
@@ -240,20 +244,15 @@ if plotStreamLines:
 	topologyDisplay.Texture = CreateTexture(textureFileName_NIB)
 	
 	# create a new 'Stream Tracer'
-	#streamTracer1 = StreamTracer(registrationName='StreamTracer1', Input=calculator1, SeedType='Point Cloud')
-	#streamTracer1.SeedType.NumberOfPoints = 2
 	streamTracer1 = StreamTracer(registrationName='StreamTracer1', Input=calculator1, SeedType='Line')
 	streamTracer1.SeedType.Resolution = 200
 	streamTracer1.Vectors = ['POINTS', 'u']
 	streamTracer1.MaximumStepLength = 0.5
 	streamTracer1.MaximumStreamlineLength = 100000.0
-	#streamTracer1.SeedType.Center = [54575.67373728964, 6967974.3741878215, 374.2404115051399]
-	#streamTracer1.SeedType.Radius = 2000
-	z = 100.0
-	P_sw = [30613.073672987,6954997.078414851,z]
-	P_se = [70493.555053226,6956794.646711984,z]
-	P_nw = [29466.912132806,6982238.693045641,z]
-	P_ne = [69366.258652280,6983800.313949561,z]
+	P_sw = [30613.073672987,6954997.078414851,streamLines_z]
+	P_se = [70493.555053226,6956794.646711984,streamLines_z]
+	P_nw = [29466.912132806,6982238.693045641,streamLines_z]
+	P_ne = [69366.258652280,6983800.313949561,streamLines_z]
 	if windCase == 1:
 		streamTracer1.SeedType.Point1 = P_sw
 		streamTracer1.SeedType.Point2 = P_nw
@@ -666,7 +665,6 @@ if plotLIC:
 	insertSINTEFlogo(renderView2,color)
 	copyCamera(renderView1,renderView2)
 	saveScreenShot(renderView2,'surfaceLICtop')
-	saveAnimation(renderView2,'surface')
 
 if plotStreamLines:
 	insertSINTEFlogo(renderView3,color)

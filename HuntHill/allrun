@@ -15,12 +15,12 @@ source $HOME/kode/bashScripts/sedFiles
 python3 generateHuntHill.py
 siso -f vts HuntHill.g2
 simramesh HuntHill.g2 HuntHill_3D.g2 --nz 35 --height 1.603 --res $res
-#siso -f vts HuntHill_3D.g2
+siso -f vts HuntHill_3D.g2
 #paraview HuntHill_3D.vts & # View mesh (optional)
 siso -f dat HuntHill_3D.g2 mesh.dat
 gfortran ic_bc.f90 -o ic_bc
 ./ic_bc simra.in
-simra simra.in
-siso -f pvd cont.res
-paraview --script=main.py
+simra simra.in | tee log.simra
+#siso -f pvd cont.res cont.pvd
+#paraview --script=main.py
 popd > /dev/null
