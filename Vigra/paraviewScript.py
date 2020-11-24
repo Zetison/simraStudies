@@ -58,7 +58,7 @@ plotVolumeRendering      = 1
 plotIPPCmapsHorizontal   = 0 
 plotIPPCmapsVertical     = 0 
 
-makeVideo                = 1
+makeVideo                = 0
 saveScreenShots          = 1
 useTransparentBackground = 0
 

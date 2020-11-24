@@ -20,7 +20,7 @@ plot1Dcurves = True
 plotStreamLines = True
 # get animation scene
 animationScene1 = GetAnimationScene()
-
+LoadPlugin(home+'/programs/paraview_build/lib/paraview-5.8/plugins/SurfaceLIC/SurfaceLIC.so', remote=False, ns=globals())
 # get the time-keeper
 timeKeeper1 = GetTimeKeeper()
 fileName = outputPath+'cont.pvd'
