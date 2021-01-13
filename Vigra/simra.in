@@ -20,4 +20,5 @@
 &EXTRA_DATA
  TURB=1,            ! = 1: turbulence model included
  SAVE_HIST=20,      ! time-steps between saved output
+ WRITE_NORMS=.TRUE.,! print absolute norm of updates
  SOURCE=0/          ! Source function flag

@@ -1,26 +1,142 @@
 #!/bin/bash
 
-res=0.02573
-resultsFolder=$HOME/results/simra/HuntHill
-
-pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
-cp simra.in ../ic_bc.f90 generateHuntHill.py main.py $resultsFolder
-
-pushd $resultsFolder > /dev/null
 PHI=270
 U_A=0.4366
-SED_VARIABLES="PHI U_A"
-DICTS="ic_bc.f90"
-source $HOME/kode/bashScripts/sedFiles
-python3 generateHuntHill.py
-siso -f vts HuntHill.g2
-simramesh HuntHill.g2 HuntHill_3D.g2 --nz 35 --height 1.603 --res $res
-siso -f vts HuntHill_3D.g2
-#paraview HuntHill_3D.vts & # View mesh (optional)
-siso -f dat HuntHill_3D.g2 mesh.dat
-gfortran ic_bc.f90 -o ic_bc
-./ic_bc simra.in
-simra simra.in | tee log.simra
-#siso -f pvd cont.res cont.pvd
-#paraview --script=main.py
-popd > /dev/null
+U_A=10.0
+zeta=0.1
+grading=1.12
+grading=1.1585
+gend=0.5
+nz=31
+noitrs=1
+pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
+NAVIERSTOKES=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
+#for NAME in HuntHill_Sula HuntHill HuntHill_test
+for NAME in HuntHill_Sula
+#for NAME in HuntHill_test
+do
+    #for M in 0 1 2
+    for M in 0
+    do
+        if [[ $NAME == "HuntHill_Sula" ]]
+        then
+            hxarr="400 200 100 50 25"
+            hxarr="25"
+        else
+            hxarr="100"
+        fi
+        for hx in $hxarr
+        do
+            caseName=${NAME}_hx${hx}_M${M}_DNS_uniRef
+            simraresultsFolder=$HOME/results/simra
+            resultsFolder=$simraresultsFolder/$caseName
+            mkdir -p $resultsFolder
+            if [[ $1 == 1 ]]
+    	    then
+                rm $resultsFolder/yplus*.g2
+            fi
+    
+            for ((i=0; i<$noitrs; i++))
+            do
+                cp simra.in ../ic_bc.f90 generateHuntHill.py extract_yplusSurf.py main.py HuntHill.xinp POINT_FILE plotMesh.py $resultsFolder
+                pushd $resultsFolder > /dev/null
+                logsimramesh="log.simramesh_$i"
+                fileName=${caseName}_itr${i}
+                echo "Running "$fileName
+                FILENAME=$fileName
+                SED_VARIABLES="PHI U_A resultsFolder FILENAME"
+                DICTS="ic_bc.f90 main.py extract_yplusSurf.py"
+                source $HOME/kode/bashScripts/sedFiles
+                if [[ $1 == 1 ]]
+        	    then
+                    if [[ "$M" == 0 ]]
+                    then
+                        options=""
+                    elif [[ "$M" == 1 ]]
+                    then
+                        options="--refu 0.3,0.9 --refv 0.33,0.67 --refw 0.04,0.217"
+                    elif [[ "$M" == 2 ]]
+                    then
+                        options="--refu 0.3,0.9,0.35,1.0 --refv 0.33,0.67,0.35,0.65 --refw 0.04,0.217,0.05,0.15"
+                    fi
+                    
+                    if [[ $NAME == "HuntHill_test" ]]
+                    then
+                        res=0.058
+                        #options="${options} --delta 0.03"
+                        python3 generateHuntHill.py --dcpts 0,0.19,0.372,0.372 --filename ${fileName}.g2
+                    elif [[ $NAME == "HuntHill_Sula" ]]
+                    then
+                        res=$(echo "0.0572*$hx/100" | bc -l)
+                        refz=$(echo "l(100/$hx)/l(2)" | bc -l )
+                        source ~/kode/bashScripts/round
+                        refz=$(round "$refz")
+                        echo $refz
+                        python3 generateHuntHill.py --dcpts 0,0.19,0.372,0.372 --filename ${fileName}.g2
+                        options="${options} --uniformref 0,0,$refz" 
+                    else
+                        res=0.026
+                        python3 generateHuntHill.py --fileName ${fileName}.g2
+                    fi
+                    options="${options} --yplusfilename ${resultsFolder}/yplus"
+                    siso -f vts ${fileName}.g2
+                    #paraview --script=/home/zetison/kode/simraStudies/HuntHill/paraviewCompareMeshBot.py & # View mesh (optional)
+                    simramesh ${fileName}.g2 ${fileName}_3D.g2 --nz $nz --height 1.603 --res $res --grading $grading --zeta $zeta --gend $gend --no-addpadding $options | tee $logsimramesh
+                    siso -f vts ${fileName}_3D.g2
+                    #paraview ${fileName}_3D.vts & # View mesh (optional)
+                    #paraview --script=plotMesh.py &
+                fi
+        
+                simrainfile="simra.in"
+        	    if [[ $2 == 1 ]]
+        	    then
+                    siso -f dat ${fileName}_3D.g2 mesh.dat
+                    gfortran ic_bc.f90 -o ic_bc
+                    ./ic_bc $simrainfile
+                    logsimra="log.simra_$i"
+                    simra simra.in | tee $logsimra 
+                    $NAVIERSTOKES HuntHill.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc_$i
+                    siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
+                    NSTEP=$(cat $simrainfile | grep -oP '(?<=NSTEP=)[+-]?[0-9]+([.][0-9]+)?')
+                    SAVE_HIST=$(cat $simrainfile | grep -oP '(?<=SAVE_HIST=)[+-]?[0-9]+([.][0-9]+)?')
+                    #SAVE_HIST=$NSTEP
+                    nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
+                    nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
+                    nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
+                    python extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $SAVE_HIST --pvdname $fileName --pvdname $fileName 
+                    pidx=1
+                    echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
+                    cat $logsimra | awk '($3 ~ /1:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
+                    pidx=2
+                    echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
+                    cat $logsimra | awk '($3 ~ /2:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
+                    pidx=3
+                    echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
+                    cat $logsimra | awk '($3 ~ /3:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
+                    pidx=4
+                    echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
+                    cat $logsimra | awk '($3 ~ /4:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
+                    pidx=5
+                    echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
+                    cat $logsimra | awk '($3 ~ /5:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
+                fi
+        	    if [[ $3 == 1 ]]
+        	    then
+                    #paraview --script=main.py &
+                    pvbatch main.py
+                    tarName=${caseName}_itr${i}
+                    tar -cvf ${fileName}.tar *.png *.ogv log.* *.csv simra.in HuntHill.xinp ic_bc.f90
+                    mkdir -p $tarName
+                    tar -xvf ${fileName}.tar -C ./${fileName}
+                    #paraview --script=paraviewCompareMesh.py & # View mesh (optional)
+                fi
+                popd > /dev/null
+            done
+        done
+    done    
+done
+
+#cp -r ~/results/simra/HuntHill_Sula_M*/HuntHill_Sula_M*_itr*/ ~/Dropbox/Apps/Overleaf/Report_hunt_hill/figures
+#rm -rf ~/Dropbox/Apps/Overleaf/Report_hunt_hill/figures/*.pvd-data
+
+#cp -r ~/results/simra/HuntHill_Sula_M*/HuntHill_Sula_M*_itr*/ !(~/Dropbox/Apps/Overleaf/Report_hunt_hill/figures/*.pvd-data) ~/Dropbox/Apps/Overleaf/Report_hunt_hill/figures

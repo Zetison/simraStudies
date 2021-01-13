@@ -10,9 +10,8 @@ paraview.simple._DisableFirstRenderCameraReset()
  
 home = expanduser("~")
 sys.path.insert(1, home+'/kode/paraUtils')
-from SINTEFlogo import insertSINTEFlogo
 from sources import coffeeFilter
-from utils import latLonUTM
+from utils import *
 outputPath = home+'/results/simra/Vigra_coarse/'
 #topoRes = '50m'
 topoRes = '10m'
@@ -52,13 +51,13 @@ elif windCase == 5:
 
 plotRunwayStuff          = 1 
 
-plotLIC                  = 0
-plotStreamLines          = 0
+plotLIC                  = 1
+plotStreamLines          = 1
 plotVolumeRendering      = 1 
-plotIPPCmapsHorizontal   = 0 
-plotIPPCmapsVertical     = 0 
+plotIPPCmapsHorizontal   = 1 
+plotIPPCmapsVertical     = 1 
 
-makeVideo                = 0
+makeVideo                = 1
 saveScreenShots          = 1
 useTransparentBackground = 0
 
@@ -631,59 +630,32 @@ renderView1.CameraViewUp = [0.08910050644944713, 0.612082952061688, 0.7857579522
 renderView1.CameraParallelScale = 25143.74802298738
 color = 'blue'
 RenderAllViews()
-def saveScreenShot(renderView,name):
-	if saveScreenShots:
-		SaveScreenshot(outputPath+caseName+name+'.png', renderView,
-				FontScaling='Scale fonts proportionally',
-				TransparentBackground=useTransparentBackground,
-				ImageResolution=viewSize,
-				ImageQuality=100)
-
-def saveAnimation(renderView,name):
-	if makeVideo:
-		renderView.ViewSize = viewSize
-		animationScene1 = GetAnimationScene()
-		SaveAnimation(outputPath+caseName+name+'.ogv', renderView,
-				FontScaling='Scale fonts proportionally',
-				OverrideColorPalette='',
-				StereoMode='No change',
-				TransparentBackground=0,
-				ImageQuality=100,
-				FrameRate=15,
-				ImageResolution=viewSize,
-				FrameWindow=[0, noSteps-1])
-
-def copyCamera(renderview1,renderview2):
-	renderview2.CameraPosition = renderview1.CameraPosition
-	renderview2.CameraFocalPoint = renderview1.CameraFocalPoint
-	renderview2.CameraViewUp = renderview1.CameraViewUp
-	renderview2.CameraParallelScale = renderview1.CameraParallelScale
 
 if plotLIC:
 	insertSINTEFlogo(renderView1,color)
-	saveScreenShot(renderView1,'surfaceLICside')
+	saveScreenShot(renderView1,outputPath+caseName+'surfaceLICside',saveScreenShots)
 	insertSINTEFlogo(renderView2,color)
 	copyCamera(renderView1,renderView2)
-	saveScreenShot(renderView2,'surfaceLICtop')
+	saveScreenShot(renderView2,outputPath+caseName+'surfaceLICtop',saveScreenShots)
 
 if plotStreamLines:
 	insertSINTEFlogo(renderView3,color)
 	copyCamera(renderView1,renderView3)
-	saveScreenShot(renderView3,'streamTracer')
+	saveScreenShot(renderView3,outputPath+caseName+'streamTracer',saveScreenShots)
 		
 if plotVolumeRendering:
 	insertSINTEFlogo(renderView4,color)
 	copyCamera(renderView1,renderView4)
-	saveScreenShot(renderView4,'volumeRendering')
-	saveAnimation(renderView4,'volumeRendering')
+	saveScreenShot(renderView4,outputPath+caseName+'volumeRendering',saveScreenShots)
+	saveAnimation(renderView4,outputPath+caseName+'volumeRendering',noSteps,makeVideo)
 
 if plotIPPCmapsHorizontal:
 	insertSINTEFlogo(renderView5,'white')
-	saveScreenShot(renderView5,'IPPC_horizontal')
+	saveScreenShot(renderView5,outputPath+caseName+'IPPC_horizontal',saveScreenShots)
 	ColorBy(calculator2Display, None)
 	Hide(contour1, renderView5)
-	saveScreenShot(renderView5,'IPPC_horizontal_topo4')
+	saveScreenShot(renderView5,outputPath+caseName+'IPPC_horizontal_topo4',saveScreenShots)
 
 if plotIPPCmapsVertical:
 	insertSINTEFlogo(renderView6,'blue')
-	saveScreenShot(renderView6,'IPPC_vertical')
+	saveScreenShot(renderView6,outputPath+caseName+'IPPC_vertical',saveScreenShots)

@@ -81,7 +81,8 @@ character*256 filepar
 
     mp=npoin
     mb=imax*jmax*2+imax*kmax*2+jmax*kmax*2
-    m1=max(imax,jmax)
+!    m1=max(imax,jmax) ! Old bug?
+    m1=kmax
     allocate (kon_we(mb),icod_b(mb),icod_n(mb),icu(mb),icv(mb),    &
             icw(mb),ick(mb),icp(mb),ice(mb))
     allocate (pd(mp),ps(mp),rhos(mp),rho(mp),u1(mp),u2(mp),u3(mp), &
@@ -550,34 +551,34 @@ character*256 filepar
      &                   pts,mp,m1)
 !======================================================================
       real coord(3,mp),u1(mp),u2(mp),u3(mp),pts(mp)
-      real pro_u(m1), pro_v(m1), pro_w(m1), pro_t(m1),delta,ustar
+      real pro_u(m1),pro_v(m1),pro_w(m1),pro_t(m1),delta,ustar
 !----------------------------------------------------------------------
-         grav=9.81
-         delta=delta+z0
-         u_a=SED_U_A  ! wind at delta   
-         dz=abs(coord(3,2)-coord(3,1))
-         cappa=0.42
+      grav=9.81
+      delta=delta+z0
+      u_a=SED_U_A  ! wind at delta   
+      dz=abs(coord(3,2)-coord(3,1))
+      cappa=0.42
 !
 ! ---- Geostrophic values (upper boundary)    
-         eta=1.0
-         wake=3*eta-2*eta**2
-         wake=0.
-         ustar=u_a*cappa/(alog(delta/z0)+wake)
+      eta=1.0
+      wake=3*eta-2*eta**2
+      wake=0.
+      ustar=u_a*cappa/(alog(delta/z0)+wake)
          
 ! ---- Wind direction relative to x-axis = alpha[deg]
-         phi=SED_PHI
-         alpha=270.0-phi
-         alpha=alpha/57.295
+      phi=SED_PHI
+      alpha=270.0-phi
+      alpha=alpha/57.295
 !
 ! ---- Stratification:
-         T0 = 290.
-         BVN=1.0   ! = N.h/U, dvs F = 1.0
-         BVN=0.0   ! neutral
+      T0 = 290.
+      BVN=1.0   ! = N.h/U, dvs F = 1.0
+      BVN=0.0   ! neutral
 !-------------------------------------------------------------------
 !
 !  ----- Inflow profile
 !
-       DO k=1,kmax
+      do k=1,kmax
           ib=1
           z_bakke=coord(3,ib)
           z=(coord(3,k)-z_bakke)+z0
@@ -592,7 +593,7 @@ character*256 filepar
 
           z1=z-z0
           pro_t(k)=T0*exp((BVN**2)*z1/grav)
-       ENDDO
+      enddo
 !--------------------------------------------------------------------
 ! INITIAL CONDITIONS
 ! Inflow profiles used as initialization
