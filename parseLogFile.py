@@ -8,7 +8,6 @@ def parseLogFile(filename):
 	with open(filename) as f:
 		content = f.readlines()
 	
-	#df = pd.DataFrame()
 	df = {}
 	for i in range(0,len(content)):
 		sep_eq = content[i].find('=') != -1

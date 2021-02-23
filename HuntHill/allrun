@@ -12,8 +12,8 @@ noitrs=1
 pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
 NAVIERSTOKES=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
 #for NAME in HuntHill_Sula HuntHill HuntHill_test
-for NAME in HuntHill_Sula
-#for NAME in HuntHill_test
+#for NAME in HuntHill_Sula
+for NAME in HuntHill_test
 do
     #for M in 0 1 2
     for M in 0
@@ -78,10 +78,9 @@ do
                         res=0.026
                         python3 generateHuntHill.py --fileName ${fileName}.g2
                     fi
-                    options="${options} --yplusfilename ${resultsFolder}/yplus"
                     siso -f vts ${fileName}.g2
                     #paraview --script=/home/zetison/kode/simraStudies/HuntHill/paraviewCompareMeshBot.py & # View mesh (optional)
-                    simramesh ${fileName}.g2 ${fileName}_3D.g2 --nz $nz --height 1.603 --res $res --grading $grading --zeta $zeta --gend $gend --no-addpadding $options | tee $logsimramesh
+                    simramesh ${fileName}.g2 ${fileName}_3D.g2 --nz $nz --height 1.603 --res $res --grading $grading --zeta $zeta --no-addpadding $options | tee $logsimramesh
                     siso -f vts ${fileName}_3D.g2
                     #paraview ${fileName}_3D.vts & # View mesh (optional)
                     #paraview --script=plotMesh.py &
@@ -103,7 +102,7 @@ do
                     nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
                     nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
                     nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
-                    python extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $SAVE_HIST --pvdname $fileName --pvdname $fileName 
+                    #python extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $SAVE_HIST --pvdname $fileName --pvdname $fileName 
                     pidx=1
                     echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
                     cat $logsimra | awk '($3 ~ /1:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"

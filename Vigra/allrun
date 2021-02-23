@@ -12,8 +12,8 @@ resultsFolder=$HOME/results/simra/Vigra_test
 caseName="VigraFree10m"
 mkdir -p $resultsFolder
 pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
-#for windCase in $(seq 1 1)
-for windCase in $(seq 1 5)
+for windCase in $(seq 1 1)
+#for windCase in $(seq 1 5)
 do
 	# PHI is wind direction relative to north = PHI[deg] (PHI = 135° is wind from SE)
 	# U_A is wind speed in m/s
