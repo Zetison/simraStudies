@@ -1,0 +1,8 @@
+1, 0, 250, 0        ! isolve, kont, iout, istrat
+8000, 0.125         ! nstep, dt
+100, 0.01, 0.25     ! niter, eps, supg  
+0.000015, 1.3       ! visc, rho0
+2000., 20.          ! hscal, uinf   
+0, 1                ! itract, irelax
+0.0                 ! mesh rotation
+0.25, 1.0           ! cr_min, cr_max

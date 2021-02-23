@@ -1,0 +1,42 @@
+#!/bin/bash
+
+NAVIERSTOKES=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
+caseName=Sula
+simraresultsFolder=$HOME/results/simra
+resultsFolder=$simraresultsFolder/$caseName
+cp simra.in paraviewScript.py $caseName.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
+pushd $resultsFolder > /dev/null
+fileName=${caseName}
+simrainfile="simra.in"
+nelu=260
+nelv=260
+nelw=50
+NSTEP=$(cat $simrainfile | grep -oP '(?<=NSTEP=)[+-]?[0-9]+([.][0-9]+)?')
+UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?')
+UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?')
+LENREF=$(cat $simrainfile | grep -oP '(?<=LENREF=)[+-]?[0-9]+([.][0-9]+)?')
+VIS=$(cat $simrainfile | grep -oP '(?<=VIS=)[+-]?[0-9]+([.][0-9]+)?')
+SED_VARIABLES="UREF LENREF VIS"
+DICTS="paraviewScript.py ${caseName}.xinp"
+source $HOME/kode/bashScripts/sedFiles
+#python convertBE.py
+#siso -f dat mesh_converted.dat mesh.dat --in-coords local utm:33n --coords utm:33n
+if [[ $1 == 1 ]]
+then
+    #$NAVIERSTOKES $caseName.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc
+    #siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
+    python extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $NSTEP --pvdname $fileName 
+fi
+if [[ $2 == 1 ]]
+then
+    for ((i=1; i<2; i++))
+    do
+        BRIDGE=$i
+        SED_VARIABLES="BRIDGE caseName"
+        DICTS="paraviewScript.py"
+        source $HOME/kode/bashScripts/sedFiles
+        paraview --script=paraviewScript.py &
+        #pvbatch paraviewScript.py
+    done
+fi
+popd > /dev/null
