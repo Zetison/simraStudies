@@ -38,7 +38,7 @@ do
     
             for ((i=0; i<$noitrs; i++))
             do
-                cp simra.in ../ic_bc.f90 generateHuntHill.py extract_yplusSurf.py main.py HuntHill.xinp POINT_FILE $resultsFolder
+                cp simra.in ../ic_bc.f90 generateHuntHill.py ../extract_yplusSurf.py main.py HuntHill.xinp POINT_FILE $resultsFolder
                 pushd $resultsFolder > /dev/null
                 logsimramesh="log.simramesh_$i"
                 fileName=${caseName}_itr${i}
