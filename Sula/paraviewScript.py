@@ -13,17 +13,16 @@ home = expanduser("~")
 sys.path.insert(1, home+'/kode/paraUtils')
 from sources import coffeeFilter
 from utils import *
-modelName = 'Sula'
-outputPath = home+'/results/simra/'+modelName+'/'
+caseName = 'SED_caseName'
+outputPath = home+'/results/simra/'+caseName+'/'
 topoRes = '50m'
 #topoRes = '10m'
-topologyFileName = outputPath+modelName+topoRes+'.vts'
-textureFileName_topo = outputPath+modelName+'10m_topo.png'
-textureFileName_NIB = outputPath+modelName+'10m.png'
+topologyFileName = outputPath+caseName+topoRes+'.vts'
+textureFileName_topo = outputPath+caseName+topoRes+'_topo.png'
+textureFileName_NIB = outputPath+caseName+topoRes+'.png'
 windCase = 1
 noSteps = 201
 finalTime = 11.7006
-caseName = modelName+topoRes+'_'+str(windCase)
 sqrtTKE_max = 5.0
 h_max = 4000
 height_max = 1600 #max height of height colormap
@@ -33,7 +32,7 @@ runwayWidth = 150.0
 runwayHeight = 30.0
 runwayHeight = 10.0
 plotRunway               = 1 
-plotTakeOffLines         = 1 
+plotTakeOffLines         = 0 
 
 plotLIC                  = 1 
 plotStreamLines          = 1 
@@ -45,8 +44,7 @@ makeVideo                = 0
 saveScreenShots          = 1
 useTransparentBackground = 0
 
-bridge = 1
-#bridge = 2
+bridge = SED_BRIDGE
 bridgeHeight = 20
 # Use i.e. norgeskart.no and "Vis koordinater" to get UTM coordinates (NORD,ØST,height)
 #runwayEndWest = latLonUTM("623323.41","0060532.89",35.3)

@@ -38,7 +38,7 @@ do
     
             for ((i=0; i<$noitrs; i++))
             do
-                cp simra.in ../ic_bc.f90 generateHuntHill.py extract_yplusSurf.py main.py HuntHill.xinp POINT_FILE plotMesh.py $resultsFolder
+                cp simra.in ../ic_bc.f90 generateHuntHill.py extract_yplusSurf.py main.py HuntHill.xinp POINT_FILE $resultsFolder
                 pushd $resultsFolder > /dev/null
                 logsimramesh="log.simramesh_$i"
                 fileName=${caseName}_itr${i}
@@ -83,7 +83,6 @@ do
                     simramesh ${fileName}.g2 ${fileName}_3D.g2 --nz $nz --height 1.603 --res $res --grading $grading --zeta $zeta --no-addpadding $options | tee $logsimramesh
                     siso -f vts ${fileName}_3D.g2
                     #paraview ${fileName}_3D.vts & # View mesh (optional)
-                    #paraview --script=plotMesh.py &
                 fi
         
                 simrainfile="simra.in"
@@ -93,16 +92,16 @@ do
                     gfortran ic_bc.f90 -o ic_bc
                     ./ic_bc $simrainfile
                     logsimra="log.simra_$i"
-                    simra simra.in | tee $logsimra 
-                    $NAVIERSTOKES HuntHill.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc_$i
-                    siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
+                    #simra simra.in | tee $logsimra 
+                    #$NAVIERSTOKES HuntHill.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc_$i
+                    #siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
                     NSTEP=$(cat $simrainfile | grep -oP '(?<=NSTEP=)[+-]?[0-9]+([.][0-9]+)?')
                     SAVE_HIST=$(cat $simrainfile | grep -oP '(?<=SAVE_HIST=)[+-]?[0-9]+([.][0-9]+)?')
                     #SAVE_HIST=$NSTEP
                     nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
                     nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
                     nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
-                    #python extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $SAVE_HIST --pvdname $fileName --pvdname $fileName 
+                    python extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $SAVE_HIST --pvdname $fileName 
                     pidx=1
                     echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
                     cat $logsimra | awk '($3 ~ /1:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
@@ -121,8 +120,8 @@ do
                 fi
         	    if [[ $3 == 1 ]]
         	    then
-                    #paraview --script=main.py &
-                    pvbatch main.py
+                    paraview --script=main.py &
+                    #pvbatch main.py
                     tarName=${caseName}_itr${i}
                     tar -cvf ${fileName}.tar *.png *.ogv log.* *.csv simra.in HuntHill.xinp ic_bc.f90
                     mkdir -p $tarName
