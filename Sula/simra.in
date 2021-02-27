@@ -4,7 +4,7 @@
  STRATIFICATION=0,  ! = 1: stratification included
  SAVE_RES=250,      ! time-steps between output
  RESTART=0,         ! Toggle startup from previous run 
- MAXIT=100,         ! max number of iterations
+ MAXIT=1000,         ! max number of iterations
  CC=0.01,           ! Tolerance level for linear solver
  VIS=1.5e-05,       ! kinematic viscosity
  RHOREF=1.3,        ! reference density
@@ -19,6 +19,9 @@
 
 &EXTRA_DATA
  TURB=1,            ! = 1: turbulence model included
- SAVE_HIST=20,      ! time-steps between saved output
  WRITE_NORMS=.TRUE.,! print absolute norm of updates
+ LOG_ADJUST=.FALSE.,
+ POINT_FILE='POINT_FILE', ! File containing list of points at which to evaluate solution (closest node)
  SOURCE=0/          ! Source function flag
+
+! SAVE_HIST=20,      ! time-steps between saved output

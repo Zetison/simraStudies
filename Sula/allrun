@@ -4,39 +4,89 @@ NAVIERSTOKES=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
 caseName=Sula
 simraresultsFolder=$HOME/results/simra
 resultsFolder=$simraresultsFolder/$caseName
-cp simra.in paraviewScript.py $caseName.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
-pushd $resultsFolder > /dev/null
-fileName=${caseName}
+python convertCoords.py
 simrainfile="simra.in"
-nelu=260
-nelv=260
-nelw=50
-NSTEP=$(cat $simrainfile | grep -oP '(?<=NSTEP=)[+-]?[0-9]+([.][0-9]+)?')
-UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?')
-UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?')
-LENREF=$(cat $simrainfile | grep -oP '(?<=LENREF=)[+-]?[0-9]+([.][0-9]+)?')
-VIS=$(cat $simrainfile | grep -oP '(?<=VIS=)[+-]?[0-9]+([.][0-9]+)?')
-SED_VARIABLES="UREF LENREF VIS"
-DICTS="paraviewScript.py ${caseName}.xinp"
-source $HOME/kode/bashScripts/sedFiles
-#python convertBE.py
-#siso -f dat mesh_converted.dat mesh.dat --in-coords local utm:33n --coords utm:33n
-if [[ $1 == 1 ]]
-then
-    #$NAVIERSTOKES $caseName.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc
-    #siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
-    python extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $NSTEP --pvdname $fileName 
-fi
-if [[ $2 == 1 ]]
-then
-    for ((i=1; i<2; i++))
-    do
-        BRIDGE=$i
-        SED_VARIABLES="BRIDGE caseName"
-        DICTS="paraviewScript.py"
-        source $HOME/kode/bashScripts/sedFiles
-        paraview --script=paraviewScript.py &
-        #pvbatch paraviewScript.py
-    done
-fi
+#nelu=260
+#nelv=260
+#nelw=50
+zeta=0.1
+grading=1.116
+#res=600
+res=300
+#res=150
+nz=51
+#nz=31
+height=3888.51
+topoRes="50m"
+PHI=234.192
+U_A=27.783
+for M in 0
+do
+    cp POINT_FILE ../ic_bc.f90 simra.in paraviewScript.py $caseName.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
+    pushd $resultsFolder > /dev/null
+    NSTEP=$(cat $simrainfile | grep -oP '(?<=NSTEP=)[+-]?[0-9]+')
+    UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
+    LENREF=$(cat $simrainfile | grep -oP '(?<=LENREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
+    VIS=$(cat $simrainfile | grep -oP '(?<=VIS=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
+    SED_VARIABLES="PHI U_A UREF LENREF VIS"
+    DICTS="ic_bc.f90 paraviewScript.py ${caseName}.xinp"
+    source $HOME/kode/bashScripts/sedFiles
+    #python convertBE.py
+    #siso -f dat mesh_converted.dat mesh.dat --in-coords local utm:33n --coords utm:33n
+    fileName=${caseName}_M${M}
+    logsimramesh=${fileName}_simramesh.log
+    if [[ $1 == 1 ]]
+    then
+        if [[ "$M" == 0 ]]
+        then
+            options=""
+        elif [[ "$M" == 1 ]]
+        then
+            options="--refu 0.0,0.5 --refv 0.0,0.76"
+        elif [[ "$M" == 2 ]]
+        then
+            options="--refu 0.0,0.5,0.0,0.49 --refv 0.0,0.76,0.4,0.75"
+        elif [[ "$M" == 3 ]]
+        then
+            options="--refu 0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,0.76,0.4,0.75,0.5,0.74"
+        fi
+        pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
+        simramesh ${caseName}${topoRes}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
+        siso -f vts ${fileName}_3D.g2
+        siso -f dat ${fileName}_3D.g2 mesh.dat
+        #paraview ${fileName}_3D.vts & # View mesh (optional)
+    fi
+    noObsPoints=$(head -n 1 POINT_FILE | grep -oP '^[^0-9]*\K[0-9]+')
+    if [[ $2 == 1 ]]
+    then
+        rm $resultsFolder/yplus*.*
+        gfortran ic_bc.f90 -o ic_bc
+        ./ic_bc simra.in
+        logsimra=${fileName}_simra.log
+        simra simra.in | tee $logsimra
+        $NAVIERSTOKES $caseName.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc
+        siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
+        nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
+        nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
+        nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
+        python extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $NSTEP --pvdname $fileName 
+        for ((pidx=1; pidx<=$noObsPoints; pidx++))
+        do
+            echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
+            cat $logsimra | gawk '($3 = /'\ $pidx':/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
+        done
+    fi
+    if [[ $3 == 1 ]]
+    then
+        for ((i=1; i<2; i++))
+        do
+            BRIDGE=$i
+            SED_VARIABLES="BRIDGE caseName fileName topoRes noObsPoints"
+            DICTS="paraviewScript.py"
+            source $HOME/kode/bashScripts/sedFiles
+            paraview --script=paraviewScript.py &
+            #pvbatch paraviewScript.py
+        done
+    fi
+done
 popd > /dev/null

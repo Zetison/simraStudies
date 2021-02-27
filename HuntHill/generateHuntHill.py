@@ -20,7 +20,6 @@ def HuntHill(x,y,x0,y0,height):
 @click.option('--stretch/--no-stretch',         default=True, help='Toggle horizontal stretching of nodes')
 @click.option('--interpolate/--no-interpolate', default=True, help='Use interpolation of Hunthill or a least square')
 @click.option('--dcpts', default='0,0.6,0.6,0.6', help='Control points of the spline stretching distribution')
-#def main(height, ny, plotdistr, stretch, interpolate, dcpts):
 def main(height: float, ny: int, filename: str, plotdistr: bool, stretch: bool, interpolate: bool, dcpts: str):
     # Parameters from Utnes2007mos
     ymin = -5*height

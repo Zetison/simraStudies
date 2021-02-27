@@ -102,21 +102,12 @@ do
                     nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
                     nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
                     python extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $SAVE_HIST --pvdname $fileName 
-                    pidx=1
-                    echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
-                    cat $logsimra | awk '($3 ~ /1:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
-                    pidx=2
-                    echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
-                    cat $logsimra | awk '($3 ~ /2:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
-                    pidx=3
-                    echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
-                    cat $logsimra | awk '($3 ~ /3:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
-                    pidx=4
-                    echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
-                    cat $logsimra | awk '($3 ~ /4:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
-                    pidx=5
-                    echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
-                    cat $logsimra | awk '($3 ~ /5:/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
+                    noObsPoints=$(head -n 1 POINT_FILE | grep -oP '^[^0-9]*\K[0-9]+')
+                    for ((pidx=1; pidx<=$noObsPoints; pidx++))
+                    do
+                        echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
+                        cat $logsimra | awk '($3 ~ /'$pidx':/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
+                    done
                 fi
         	    if [[ $3 == 1 ]]
         	    then

@@ -4,6 +4,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as Rot
 import copy
 from pyproj import Transformer
+from matplotlib import cm
 #### import the simple module from the paraview
 from paraview.simple import *
 #### disable automatic camera reset on 'Show'
@@ -13,9 +14,10 @@ home = expanduser("~")
 sys.path.insert(1, home+'/kode/paraUtils')
 from sources import coffeeFilter
 from utils import *
+fileName = 'SED_fileName'
 caseName = 'SED_caseName'
 outputPath = home+'/results/simra/'+caseName+'/'
-topoRes = '50m'
+topoRes = 'SED_topoRes' 
 #topoRes = '10m'
 topologyFileName = outputPath+caseName+topoRes+'.vts'
 textureFileName_topo = outputPath+caseName+topoRes+'_topo.png'
@@ -35,10 +37,11 @@ plotRunway               = 1
 plotTakeOffLines         = 0 
 
 plotLIC                  = 1 
-plotStreamLines          = 1 
-plotVolumeRendering      = 1 
-plotIPPCmapsHorizontal   = 1 
-plotIPPCmapsVertical     = 1 
+plotStreamLines          = 0 
+plotVolumeRendering      = 0 
+plotIPPCmapsHorizontal   = 0 
+plotIPPCmapsVertical     = 0 
+plotOverTime             = 1
 
 makeVideo                = 0
 saveScreenShots          = 1
@@ -105,12 +108,9 @@ renderView1.OrientationAxesVisibility = 0
 
 # get the time-keeper
 timeKeeper1 = GetTimeKeeper()
-fileName = outputPath+caseName+'.pvd'
 
 # create a new 'XML Unstructured Grid Reader'
-simraPVDresults = PVDReader(registrationName=caseName, FileName=fileName)
-simraPVDresults.PointArrays = ['ps', 'pts', 'tk', 'u']
-
+simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+fileName+'.pvd')
 animationScene1.UpdateAnimationUsingDataTimeSteps()
 animationScene1.GoToLast()
 # update animation scene based on data timesteps
@@ -226,6 +226,29 @@ def annotateTimeStep(obj,renderview,location='UpperLeftCorner'):
     pythonAnnotationDisplay.WindowLocation = location 
     pythonAnnotationDisplay.FontSize = 5
 
+labels = ['SulaNW (Kvitneset) - 1','SulaNW (Kvitneset) - 2','SulaNW (Kvitneset) - 3',
+          'SulaNE (Trælbodneset) - 1','SulaNE (Trælbodneset) - 2','SulaNE (Trælbodneset) - 3',
+          'SulaSW (Langeneset) - 1','SulaSW (Langeneset) - 2','SulaSW (Langeneset) - 3','SulaSW (Langeneset) - 4',
+          'SulaSE (Kårsteinen) - 1','SulaSE (Kårsteinen) - 2','SulaSE (Kårsteinen) - 3',
+          'Midspan bridge 1', 'Midspan bridge 2']
+points = np.genfromtxt('POINT_FILE', delimiter=' ', skip_header=True)
+noPoints = points.shape[0]
+pointSources = [''] * noPoints
+for i in range(0,noPoints):
+    pointSources[i] = PointSource(registrationName=labels[i])
+    pointSources[i].Center = points[i]
+
+def showPoints(renderView):
+    pointSourceDisplay = [''] * noPoints
+    for i in range(0,noPoints):
+        pointSourceDisplay[i] = Show(pointSources[i], renderView, 'GeometryRepresentation')
+        pointSourceDisplay[i].RenderPointsAsSpheres = 1
+        pointSourceDisplay[i].PointSize = 10.0
+        pointSourceDisplay[i].AmbientColor = [1.0, 0.0, 0.0]
+        pointSourceDisplay[i].DiffuseColor = [1.0, 0.0, 0.0]
+
+
+
 ####################################################################################
 ## Layout 1 - Surface LIC plots
 # create a new 'Clip'
@@ -234,6 +257,7 @@ if plotLIC:
     topologyDisplay.Representation = 'Surface'
     topologyDisplay.Texture = CreateTexture(textureFileName_NIB)
     showRunway(renderView1)
+    showPoints(renderView1)
     # current camera placement for renderView1
     #renderView1.InteractionMode = '2D'
     CreateLayout('Layout #2')
@@ -300,6 +324,7 @@ if plotLIC:
     # current camera placement for renderView2
     renderView2.OrientationAxesVisibility = 0
     showRunway(renderView2)
+    showPoints(renderView2)
  
 ####################################################################################
 ## Layout 3 - Stream lines
@@ -349,6 +374,7 @@ if plotStreamLines:
     sqrtTKELUTColorBar_3.ScalarBarLength = scalarBarLength
     
     showRunway(renderView3)
+    showPoints(renderView3)
     
 
 
@@ -376,6 +402,7 @@ if plotVolumeRendering:
     calculator1Display.ColorArrayName = ['POINTS', 'sqrtTKE']
 
     showRunway(renderView4)
+    showPoints(renderView4)
     
     sqrtTKELUTColorBar_4 = GetScalarBar(sqrtTKELUT, renderView4)
     sqrtTKELUTColorBar_4.Title = 'Turbulence, $\sqrt{k}$'
@@ -614,6 +641,31 @@ if plotIPPCmapsVertical:
     renderView6.CameraViewAngle = 29.0
     renderView6.CameraParallelScale = 7.450788788748424 
     
+if plotOverTime:
+    CreateLayout('Layout #6')
+    layout6 = GetLayoutByName("Layout #6")
+    quartileChartView1 = CreateView('QuartileChartView')
+    quartileChartView1.BottomAxisTitle = 'Iteration number'
+    quartileChartView1.LeftAxisTitle = 'TKE $[m^2/s^2]$'
+    AssignViewToLayout(view=quartileChartView1, layout=layout6, hint=0)
+
+    cpcsv = [''] * noPoints
+    cpcsvDisplay = [''] * noPoints
+    colors = cm.jet(range(256))[0::256//noPoints]
+    for i in range(0,noPoints):
+
+        cpcsv[i] = CSVReader(registrationName=labels[i], FileName=[outputPath+fileName+'_Point'+str(i+1)+'.csv'])
+        cpcsvDisplay[i] = Show(cpcsv[i], quartileChartView1, 'XYChartRepresentation')
+        cpcsvDisplay[i].UseIndexForXAxis = 1
+        #cpcsvDisplay.XArrayName = ''
+        #cpcsvDisplay.SeriesLineStyle = ['TKE', '0']
+        #cpcsvDisplay[i].SeriesMarkerSize = ['TKE', '8']
+        #cpcsvDisplay[i].SeriesMarkerStyle = ['TKE', '4']
+        cpcsvDisplay[i].SeriesColor = ['TKE', str(colors[i][0]), str(colors[i][1]), str(colors[i][2])]
+        cpcsvDisplay[i].SeriesLabel = ['TKE', labels[i]]
+        cpcsvDisplay[i].SeriesVisibility = ['TKE']
+    
+    saveScreenShot(quartileChartView1,outputPath+'TKE',saveScreenShots)
     
 
 if plotIPPCmapsHorizontal:
@@ -659,29 +711,29 @@ RenderAllViews()
 
 if plotLIC:
     insertSINTEFlogo(renderView1,color)
-    saveScreenShot(renderView1,outputPath+caseName+'surfaceLICside_bridge'+str(bridge),saveScreenShots)
+    saveScreenShot(renderView1,outputPath+fileName+'surfaceLICside_bridge'+str(bridge),saveScreenShots)
     insertSINTEFlogo(renderView2,color)
     copyCamera(renderView1,renderView2)
-    saveScreenShot(renderView2,outputPath+caseName+'surfaceLICtop_bridge'+str(bridge),saveScreenShots)
+    saveScreenShot(renderView2,outputPath+fileName+'surfaceLICtop_bridge'+str(bridge),saveScreenShots)
 
 if plotStreamLines:
     insertSINTEFlogo(renderView3,color)
     copyCamera(renderView1,renderView3)
-    saveScreenShot(renderView3,outputPath+caseName+'streamTracer_bridge'+str(bridge),saveScreenShots)
+    saveScreenShot(renderView3,outputPath+fileName+'streamTracer_bridge'+str(bridge),saveScreenShots)
         
 if plotVolumeRendering:
     insertSINTEFlogo(renderView4,color)
     copyCamera(renderView1,renderView4)
-    saveScreenShot(renderView4,outputPath+caseName+'volumeRendering_bridge'+str(bridge),saveScreenShots)
-    saveAnimation(renderView4,outputPath+caseName+'volumeRendering_bridge'+str(bridge),noSteps,makeVideo)
+    saveScreenShot(renderView4,outputPath+fileName+'volumeRendering_bridge'+str(bridge),saveScreenShots)
+    saveAnimation(renderView4,outputPath+fileName+'volumeRendering_bridge'+str(bridge),noSteps,makeVideo)
 
 if plotIPPCmapsHorizontal:
     insertSINTEFlogo(renderView5,'white')
-    saveScreenShot(renderView5,outputPath+caseName+'IPPC_horizontal_bridge'+str(bridge),saveScreenShots)
+    saveScreenShot(renderView5,outputPath+fileName+'IPPC_horizontal_bridge'+str(bridge),saveScreenShots)
     ColorBy(calculator2Display, None)
     Hide(contour1, renderView5)
-    saveScreenShot(renderView5,outputPath+caseName+'IPPC_horizontal_topo4_bridge'+str(bridge),saveScreenShots)
+    saveScreenShot(renderView5,outputPath+fileName+'IPPC_horizontal_topo4_bridge'+str(bridge),saveScreenShots)
 
 if plotIPPCmapsVertical:
     insertSINTEFlogo(renderView6,'blue')
-    saveScreenShot(renderView6,outputPath+caseName+'IPPC_vertical_bridge'+str(bridge),saveScreenShots)
+    saveScreenShot(renderView6,outputPath+fileName+'IPPC_vertical_bridge'+str(bridge),saveScreenShots)
