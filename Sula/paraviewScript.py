@@ -33,15 +33,18 @@ angleOfAttack_East = 3.0
 runwayWidth = 150.0
 runwayHeight = 30.0
 runwayHeight = 10.0
-plotRunway               = 1 
+bridgeBaseHeight=0.0
+plotRunway               = 0 
 plotTakeOffLines         = 0 
+plotBridgeAndSensors     = 0 
+plotUniverseBackground   = 1 
 
 plotLIC                  = 1 
 plotStreamLines          = 0 
 plotVolumeRendering      = 0 
 plotIPPCmapsHorizontal   = 0 
 plotIPPCmapsVertical     = 0 
-plotOverTime             = 1
+plotOverTime             = 0
 
 makeVideo                = 0
 saveScreenShots          = 1
@@ -76,7 +79,6 @@ glyphScale1 = 30
 if windCase == 1:
     glyphScale2 = 0.03
 
-
 timeStepAnnotation       = makeVideo
 # Extract UTM-33 coordinates from rwyCoords.png file (available at https://ais.avinor.no/no/AIP/View/95/2020-11-05-AIRAC/html/index-no-NO.html). The coordinates in rwyCoords.png are given in Lat-lon Degrees Minutes seconds format. Here, "THR COORD" is the start of the RWY (runway), and "RWY end COORD" is its end
 runwayColor      = [0.0,0.0,0.0]
@@ -106,11 +108,16 @@ LoadPalette(paletteName='WhiteBackground')
 renderView1 = GetActiveViewOrCreate('RenderView')
 renderView1.OrientationAxesVisibility = 0
 
+if plotUniverseBackground:
+    #convert -crop 50%x100% lightBlueMarble2.jpg converted_lBM2.jpg
+    import universeBackground 
+
 # get the time-keeper
 timeKeeper1 = GetTimeKeeper()
 
 # create a new 'XML Unstructured Grid Reader'
-simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+fileName+'.pvd')
+#simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+fileName+'.pvd')
+simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+'cont_met.pvd')
 animationScene1.UpdateAnimationUsingDataTimeSteps()
 animationScene1.GoToLast()
 # update animation scene based on data timesteps
@@ -231,21 +238,72 @@ labels = ['SulaNW (Kvitneset) - 1','SulaNW (Kvitneset) - 2','SulaNW (Kvitneset) 
           'SulaSW (Langeneset) - 1','SulaSW (Langeneset) - 2','SulaSW (Langeneset) - 3','SulaSW (Langeneset) - 4',
           'SulaSE (Kårsteinen) - 1','SulaSE (Kårsteinen) - 2','SulaSE (Kårsteinen) - 3',
           'Midspan bridge 1', 'Midspan bridge 2']
+mastLabel = ['SulaNW (Kvitneset)', 'SulaNE (Trælboneset)', 'SulaSW (Langeneset)', 'SulaSE (Kårsteinen)']
 points = np.genfromtxt('POINT_FILE', delimiter=' ', skip_header=True)
+mastLoc = np.genfromtxt('mastLoc.csv', delimiter=',')
+noMasts = mastLoc.shape[0]
 noPoints = points.shape[0]
+noBridges = 2
+idxMap = [0,0,0,1,1,1,2,2,2,2,3,3,3]
 pointSources = [''] * noPoints
-for i in range(0,noPoints):
+lineSource2 = [''] * (noPoints-2)
+for i in range(noPoints):
     pointSources[i] = PointSource(registrationName=labels[i])
     pointSources[i].Center = points[i]
+    Hide3DWidgets(proxy=pointSources[i])
+    if i < noPoints-2:
+        lineSource2[i] = Line(registrationName=labels[i])
+        lineSource2[i].Point1 = [mastLoc[idxMap[i]][0],mastLoc[idxMap[i]][1],points[i][2]]
+        lineSource2[i].Point2 = points[i]
+        lineSource2[i].Resolution = 1
+        Hide3DWidgets(proxy=lineSource2[i])
+splineSource = [''] * noBridges
+bridgeNames = ['Bridge north','Bridge south']
+for i in range(noBridges):
+    splineSource[i] = SplineSource(registrationName=bridgeNames[i])
+    splineSource[i].ParametricFunction.Points = [mastLoc[2*i,0],mastLoc[2*i,1],bridgeBaseHeight,points[i-2,0],points[i-2,1],points[i-2,2],mastLoc[2*i+1,0],mastLoc[2*i+1,1],bridgeBaseHeight]
+    Hide3DWidgets(proxy=splineSource[i])
 
-def showPoints(renderView):
-    pointSourceDisplay = [''] * noPoints
-    for i in range(0,noPoints):
-        pointSourceDisplay[i] = Show(pointSources[i], renderView, 'GeometryRepresentation')
-        pointSourceDisplay[i].RenderPointsAsSpheres = 1
-        pointSourceDisplay[i].PointSize = 10.0
-        pointSourceDisplay[i].AmbientColor = [1.0, 0.0, 0.0]
-        pointSourceDisplay[i].DiffuseColor = [1.0, 0.0, 0.0]
+lineSource = [''] * noMasts
+for i in range(noMasts):
+    lineSource[i] = Line(registrationName=mastLabel[i])
+    lineSource[i].Point1 = [mastLoc[i][0],mastLoc[i][1],mastLoc[i][2]]
+    lineSource[i].Point2 = [mastLoc[i][0],mastLoc[i][1],mastLoc[i][2]+mastLoc[i][3]]
+    lineSource[i].Resolution = 1
+    Hide3DWidgets(proxy=lineSource[i])
+    
+def showMasts(renderView):
+    if plotBridgeAndSensors:
+        pointSourceDisplay = [''] * noPoints
+        lineSource2Display = [''] * (noPoints-2)
+        for i in range(0,noPoints):
+            pointSourceDisplay[i] = Show(pointSources[i], renderView, 'GeometryRepresentation')
+            pointSourceDisplay[i].RenderPointsAsSpheres = 1
+            pointSourceDisplay[i].PointSize = 10.0
+            pointSourceDisplay[i].AmbientColor = [1.0, 0.0, 0.0]
+            pointSourceDisplay[i].DiffuseColor = [1.0, 0.0, 0.0]
+            if i < noPoints-2:
+                lineSource2Display[i] = Show(lineSource2[i], renderView, 'GeometryRepresentation')
+                lineSource2Display[i].RenderLinesAsTubes = 1
+                lineSource2Display[i].LineWidth = 2.0 
+                lineSource2Display[i].AmbientColor = [1.0, 0.0, 0.0]
+                lineSource2Display[i].DiffuseColor = [1.0, 0.0, 0.0]
+
+        splineSourceDisplay = [''] * noBridges
+        for i in range(noBridges):
+            splineSourceDisplay[i] = Show(splineSource[i], renderView, 'GeometryRepresentation')
+            splineSourceDisplay[i].RenderLinesAsTubes = 1
+            splineSourceDisplay[i].LineWidth = 7.0 
+            splineSourceDisplay[i].AmbientColor = [1.0, 0.0, 0.0]
+            splineSourceDisplay[i].DiffuseColor = [1.0, 0.0, 0.0]
+
+        lineSourceDisplay = [''] * noMasts
+        for i in range(noMasts):
+            lineSourceDisplay[i] = Show(lineSource[i], renderView, 'GeometryRepresentation')
+            lineSourceDisplay[i].RenderLinesAsTubes = 1
+            lineSourceDisplay[i].LineWidth = 5.0 
+            lineSourceDisplay[i].AmbientColor = [1.0, 0.0, 0.0]
+            lineSourceDisplay[i].DiffuseColor = [1.0, 0.0, 0.0]
 
 
 
@@ -257,7 +315,7 @@ if plotLIC:
     topologyDisplay.Representation = 'Surface'
     topologyDisplay.Texture = CreateTexture(textureFileName_NIB)
     showRunway(renderView1)
-    showPoints(renderView1)
+    showMasts(renderView1)
     # current camera placement for renderView1
     #renderView1.InteractionMode = '2D'
     CreateLayout('Layout #2')
@@ -324,7 +382,7 @@ if plotLIC:
     # current camera placement for renderView2
     renderView2.OrientationAxesVisibility = 0
     showRunway(renderView2)
-    showPoints(renderView2)
+    showMasts(renderView2)
  
 ####################################################################################
 ## Layout 3 - Stream lines
@@ -374,7 +432,7 @@ if plotStreamLines:
     sqrtTKELUTColorBar_3.ScalarBarLength = scalarBarLength
     
     showRunway(renderView3)
-    showPoints(renderView3)
+    showMasts(renderView3)
     
 
 
@@ -402,7 +460,7 @@ if plotVolumeRendering:
     calculator1Display.ColorArrayName = ['POINTS', 'sqrtTKE']
 
     showRunway(renderView4)
-    showPoints(renderView4)
+    showMasts(renderView4)
     
     sqrtTKELUTColorBar_4 = GetScalarBar(sqrtTKELUT, renderView4)
     sqrtTKELUTColorBar_4.Title = 'Turbulence, $\sqrt{k}$'
@@ -642,12 +700,12 @@ if plotIPPCmapsVertical:
     renderView6.CameraParallelScale = 7.450788788748424 
     
 if plotOverTime:
-    CreateLayout('Layout #6')
-    layout6 = GetLayoutByName("Layout #6")
+    CreateLayout('Layout #7')
+    layout7 = GetLayoutByName("Layout #7")
     quartileChartView1 = CreateView('QuartileChartView')
     quartileChartView1.BottomAxisTitle = 'Iteration number'
     quartileChartView1.LeftAxisTitle = 'TKE $[m^2/s^2]$'
-    AssignViewToLayout(view=quartileChartView1, layout=layout6, hint=0)
+    AssignViewToLayout(view=quartileChartView1, layout=layout7, hint=0)
 
     cpcsv = [''] * noPoints
     cpcsvDisplay = [''] * noPoints

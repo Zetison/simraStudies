@@ -1,5 +1,4 @@
 #!/bin/bash
-
 NAVIERSTOKES=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
 caseName=Sula
 simraresultsFolder=$HOME/results/simra
@@ -11,18 +10,19 @@ simrainfile="simra.in"
 #nelw=50
 zeta=0.1
 grading=1.116
-#res=600
-res=300
+res=600
+#res=300
 #res=150
 nz=51
-#nz=31
+nz=31
 height=3888.51
 topoRes="50m"
+#topoRes="10m"
 PHI=234.192
 U_A=27.783
 for M in 0
 do
-    cp POINT_FILE ../ic_bc.f90 simra.in paraviewScript.py $caseName.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
+    cp mastLoc.csv POINT_FILE ../ic_bc.f90 simra.in paraviewScript.py $caseName.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
     NSTEP=$(cat $simrainfile | grep -oP '(?<=NSTEP=)[+-]?[0-9]+')
     UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
