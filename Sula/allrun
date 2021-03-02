@@ -24,7 +24,7 @@ PHI=234.192
 U_A=27.783
 for M in 0
 do
-    cp mastLoc.csv POINT_FILE ../ic_bc.f90 simra.in paraviewScript.py SIMRA_PostProc.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
+    cp mastLoc.csv POINT_FILE ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
     NSTEP=$(cat $simrainfile | grep -oP '(?<=NSTEP=)[+-]?[0-9]+')
     UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
