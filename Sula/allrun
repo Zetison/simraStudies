@@ -1,8 +1,10 @@
 #!/bin/bash
 NAVIERSTOKES=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
-caseName=Sula
+#caseName=Sula
+caseName=SulaMetReg
 simraresultsFolder=$HOME/results/simra
 resultsFolder=$simraresultsFolder/$caseName
+mkdir -p $resultsFolder
 python convertCoords.py
 simrainfile="simra.in"
 #nelu=260
@@ -14,7 +16,7 @@ res=600
 #res=300
 #res=150
 nz=51
-nz=31
+#nz=31
 height=3888.51
 topoRes="50m"
 #topoRes="10m"
@@ -22,14 +24,14 @@ PHI=234.192
 U_A=27.783
 for M in 0
 do
-    cp mastLoc.csv POINT_FILE ../ic_bc.f90 simra.in paraviewScript.py $caseName.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
+    cp mastLoc.csv POINT_FILE ../ic_bc.f90 simra.in paraviewScript.py SIMRA_PostProc.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
     NSTEP=$(cat $simrainfile | grep -oP '(?<=NSTEP=)[+-]?[0-9]+')
     UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     LENREF=$(cat $simrainfile | grep -oP '(?<=LENREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     VIS=$(cat $simrainfile | grep -oP '(?<=VIS=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     SED_VARIABLES="PHI U_A UREF LENREF VIS"
-    DICTS="ic_bc.f90 paraviewScript.py ${caseName}.xinp"
+    DICTS="ic_bc.f90 paraviewScript.py SIMRA_PostProc.xinp"
     source $HOME/kode/bashScripts/sedFiles
     #python convertBE.py
     #siso -f dat mesh_converted.dat mesh.dat --in-coords local utm:33n --coords utm:33n
@@ -40,6 +42,8 @@ do
         if [[ "$M" == 0 ]]
         then
             options=""
+            options="--refu 0.0,1.0 --refv 0.0,1.0"
+            options="--refu 0.0,1.0,0.0,1.0 --refv 0.0,1.0,0.0,1.0"
         elif [[ "$M" == 1 ]]
         then
             options="--refu 0.0,0.5 --refv 0.0,0.76"
@@ -64,7 +68,7 @@ do
         ./ic_bc simra.in
         logsimra=${fileName}_simra.log
         simra simra.in | tee $logsimra
-        $NAVIERSTOKES $caseName.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc
+        $NAVIERSTOKES SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc
         siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
         nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
         nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
