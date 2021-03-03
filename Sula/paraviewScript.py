@@ -59,6 +59,7 @@ makeVideo                = 0
 saveScreenShots          = 1
 useTransparentBackground = 0
 
+plotError                = plotLIC 
 bridge = SED_BRIDGE
 bridgeHeight = 20
 # Use i.e. norgeskart.no and "Vis koordinater" to get UTM coordinates (NORD,ØST,height)
@@ -773,8 +774,9 @@ RenderAllViews()
 if plotLIC:
     insertSINTEFlogo(renderView1,color)
     saveScreenShot(renderView1,outputPath+fileName+'surfaceLICside_bridge'+str(bridge),saveScreenShots)
-    insertSINTEFlogo(renderView2,color)
+    
     copyCamera(renderView1,renderView2)
+    insertSINTEFlogo(renderView2,color)
     saveScreenShot(renderView2,outputPath+fileName+'surfaceLICtop_bridge'+str(bridge),saveScreenShots)
 
 if plotStreamLines:
@@ -798,3 +800,30 @@ if plotIPPCmapsHorizontal:
 if plotIPPCmapsVertical:
     insertSINTEFlogo(renderView6,'blue')
     saveScreenShot(renderView6,outputPath+fileName+'IPPC_vertical_bridge'+str(bridge),saveScreenShots)
+
+if plotError:
+    slice1Display.Representation = 'Surface'
+    ColorBy(slice1Display, ('CELLS', 'Continuous global L2-projection |u^*-u^h|_H1'))
+    HideScalarBarIfNotNeeded(sqrtTKELUT, renderView1)
+    continuousglobalL2projectionuuh_H1PWF = GetOpacityTransferFunction('ContinuousglobalL2projectionuuh_H1')
+    continuousglobalL2projectionuuh_H1LUT = GetColorTransferFunction('ContinuousglobalL2projectionuuh_H1')
+    continuousglobalL2projectionuuh_H1LUT.AutomaticRescaleRangeMode = "Never"
+    continuousglobalL2projectionuuh_H1LUT.RescaleOnVisibilityChange = 0
+    continuousglobalL2projectionuuh_H1LUT.EnableOpacityMapping = 0
+    slice1Display.RescaleTransferFunctionToDataRange(False, True)
+    continuousglobalL2projectionuuh_H1LUTColorBar = GetScalarBar(continuousglobalL2projectionuuh_H1LUT, renderView1)
+    continuousglobalL2projectionuuh_H1LUTColorBar.WindowLocation = 'AnyLocation'
+    continuousglobalL2projectionuuh_H1LUTColorBar.ScalarBarLength = 0.33000000000000007
+    continuousglobalL2projectionuuh_H1LUTColorBar.Position = [0.9340269406943105, 0.09444444444444428]
+    continuousglobalL2projectionuuh_H1LUTColorBar.ScalarBarLength = 0.3300000000000001
+    continuousglobalL2projectionuuh_H1LUTColorBar.TitleColor = [1.0, 1.0, 1.0]
+    continuousglobalL2projectionuuh_H1LUTColorBar.LabelColor = [1.0, 1.0, 1.0]
+    continuousglobalL2projectionuuh_H1LUTColorBar.Title = 'Continuous global $L^2$-projection $|u^*-u^h|_{H^1}$'
+    continuousglobalL2projectionuuh_H1LUT.RescaleTransferFunction(0.0, 100.0)
+    continuousglobalL2projectionuuh_H1PWF.RescaleTransferFunction(0.0, 100.0)
+    continuousglobalL2projectionuuh_H1LUT.ApplyPreset('SINTEF1', True)
+    saveScreenShot(renderView1,outputPath+fileName+'surfaceLICside_bridge'+str(bridge)+'_Error',saveScreenShots)
+    renderView1.CameraPosition = [39953.1497599849, 6936202.267042985, 2614.4419848900225]
+    renderView1.CameraFocalPoint = [39143.54568842529, 6947093.529147031, 516.8749792426419]
+    renderView1.CameraViewUp = [-0.012278300117821047, 0.18822195283001805, 0.9820497644310452]
+    renderView1.CameraParallelScale = 28350.540722069076
