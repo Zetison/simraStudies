@@ -1,6 +1,6 @@
 #!/bin/bash
 NAVIERSTOKES=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
-#caseName=Sula
+caseName=Sula
 caseName=SulaMetReg
 simraresultsFolder=$HOME/results/simra
 resultsFolder=$simraresultsFolder/$caseName
@@ -88,7 +88,10 @@ do
             SED_VARIABLES="BRIDGE caseName fileName topoRes noObsPoints"
             DICTS="paraviewScript.py"
             source $HOME/kode/bashScripts/sedFiles
-            paraview --script=paraviewScript.py &
+            #paraview --script=paraviewScript.py &
+            /usr/lib/ParaView-5.8.1-osmesa-MPI-Linux-Python3.7-64bit/bin/pvbatch paraviewScript.py
+            #$HOME/programs/paraview_build/bin/pvbatch paraviewScript.py
+            #$HOME/programs/paraview_build/bin/pvbatch paraviewScript.py
             #pvbatch paraviewScript.py
         done
     fi

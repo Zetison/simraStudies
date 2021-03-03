@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from scipy.spatial.transform import Rotation as Rot
 import copy
-from pyproj import Transformer
+#from pyproj import Transformer
 from matplotlib import cm
 #### import the simple module from the paraview
 from paraview.simple import *
@@ -14,6 +14,15 @@ home = expanduser("~")
 sys.path.insert(1, home+'/kode/paraUtils')
 from sources import coffeeFilter
 from utils import *
+ImportPresets(filename=home+'/kode/colormaps/SINTEF1.json')
+ImportPresets(filename=home+'/kode/colormaps/IPPC.json')
+ImportPresets(filename=home+'/kode/colormaps/google.json')
+#import splipy
+#print(sys.executable)
+#print(sys.path)
+#pluginsPath = home+'/programs/paraview_build/lib/paraview-5.8/plugins/'
+pluginsPath =  '/usr/lib/ParaView-5.8.1-osmesa-MPI-Linux-Python3.7-64bit/lib/paraview-5.8/plugins/'
+LoadPlugin(pluginsPath+'/SurfaceLIC/SurfaceLIC.so', remote=False, ns=globals())
 fileName = 'SED_fileName'
 caseName = 'SED_caseName'
 outputPath = home+'/results/simra/'+caseName+'/'
@@ -36,15 +45,15 @@ runwayHeight = 10.0
 bridgeBaseHeight=0.0
 plotRunway               = 0 
 plotTakeOffLines         = 0 
-plotBridgeAndSensors     = 0 
-plotUniverseBackground   = 1 
+plotBridgeAndSensors     = 1 
+plotUniverseBackground   = 0 
 
 plotLIC                  = 1 
 plotStreamLines          = 0 
-plotVolumeRendering      = 0 
-plotIPPCmapsHorizontal   = 0 
-plotIPPCmapsVertical     = 0 
-plotOverTime             = 0
+plotVolumeRendering      = 1 
+plotIPPCmapsHorizontal   = 1 
+plotIPPCmapsVertical     = 1 
+plotOverTime             = 1
 
 makeVideo                = 0
 saveScreenShots          = 1
@@ -55,15 +64,13 @@ bridgeHeight = 20
 # Use i.e. norgeskart.no and "Vis koordinater" to get UTM coordinates (NORD,ØST,height)
 #runwayEndWest = latLonUTM("623323.41","0060532.89",35.3)
 #runwayEndEast = latLonUTM("623351.26","0060740.31",49.2)
-proj32 = "+proj=utm +zone=32K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-proj33 = "+proj=utm +zone=33K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-transformer = Transformer.from_crs(proj32,proj33)
+mastLoc = np.genfromtxt('mastLoc.csv', delimiter=',')
 if bridge == 1:
-    runwayEndWest = np.array(list(transformer.transform(345142,6924741))+[bridgeHeight])
-    runwayEndEast = np.array(list(transformer.transform(348347,6925267))+[bridgeHeight])
+    runwayEndWest = mastLoc[0][:3]
+    runwayEndEast = mastLoc[1][:3]
 elif bridge == 2:
-    runwayEndWest = np.array(list(transformer.transform(346520,6920740))+[bridgeHeight])
-    runwayEndEast = np.array(list(transformer.transform(351140,6922074))+[bridgeHeight])
+    runwayEndWest = mastLoc[2][:3]
+    runwayEndEast = mastLoc[3][:3]
 
 #runwayEndWest = np.array([346520,6920740,4.4])
 #runwayEndEast = np.array([351140,6922074,3.6])
@@ -116,8 +123,8 @@ if plotUniverseBackground:
 timeKeeper1 = GetTimeKeeper()
 
 # create a new 'XML Unstructured Grid Reader'
-#simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+fileName+'.pvd')
-simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+'cont_met.pvd')
+simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+fileName+'.pvd')
+#simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+'cont_met.pvd')
 animationScene1.UpdateAnimationUsingDataTimeSteps()
 animationScene1.GoToLast()
 # update animation scene based on data timesteps
@@ -159,7 +166,6 @@ resampledSlice = ResampleWithDataset(registrationName='proj_u Resampled', Source
 resampledSlice.CellLocator = 'Static Cell Locator'
 
 topology = XMLStructuredGridReader(registrationName='Topology',FileName=topologyFileName)
-topology.TimeArray = 'None'
 topology.PointArrayStatus = ['TCoords_']
 layout1 = GetLayout()
 
@@ -240,7 +246,6 @@ labels = ['SulaNW (Kvitneset) - 1','SulaNW (Kvitneset) - 2','SulaNW (Kvitneset) 
           'Midspan bridge 1', 'Midspan bridge 2']
 mastLabel = ['SulaNW (Kvitneset)', 'SulaNE (Trælboneset)', 'SulaSW (Langeneset)', 'SulaSE (Kårsteinen)']
 points = np.genfromtxt('POINT_FILE', delimiter=' ', skip_header=True)
-mastLoc = np.genfromtxt('mastLoc.csv', delimiter=',')
 noMasts = mastLoc.shape[0]
 noPoints = points.shape[0]
 noBridges = 2
@@ -341,7 +346,6 @@ if plotLIC:
     slice1Display = Show(slice1, renderView1, 'UnstructuredGridRepresentation')
     ColorBy(slice1Display, ('POINTS', 'sqrtTKE'))
     slice1Display.SetRepresentationType('Surface LIC')
-    slice1Display.NumberOfSteps = 100
     slice1Display.ColorMode = 'Multiply'
     slice1Display.EnhanceContrast = 'Color Only'
     slice1Display.HighColorContrastEnhancementFactor = 0.3
@@ -360,7 +364,6 @@ if plotLIC:
     slice2Display = Show(slice2, renderView2, 'UnstructuredGridRepresentation')
     ColorBy(slice2Display, ('POINTS', 'sqrtTKE'))
     slice2Display.SetRepresentationType('Surface LIC')
-    slice2Display.NumberOfSteps = 100
     slice2Display.ColorMode = 'Multiply'
     slice2Display.EnhanceContrast = 'Color Only'
     slice2Display.HighColorContrastEnhancementFactor = 0.3
