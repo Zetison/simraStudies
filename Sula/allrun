@@ -18,11 +18,11 @@ res=600
 nz=51
 #nz=31
 height=3888.51
-topoRes="50m"
-#topoRes="10m"
+#topoRes="50m"
+topoRes="10m"
 PHI=234.192
 U_A=27.783
-for M in 0
+for M in 0 1 2 3
 do
     cp mastLoc.csv POINT_FILE ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
@@ -36,6 +36,7 @@ do
     #python convertBE.py
     #siso -f dat mesh_converted.dat mesh.dat --in-coords local utm:33n --coords utm:33n
     fileName=${caseName}_M${M}
+    logsimra=${fileName}_simra.log
     logsimramesh=${fileName}_simramesh.log
     if [[ $1 == 1 ]]
     then
@@ -46,13 +47,13 @@ do
             options="--refu 0.0,1.0,0.0,1.0 --refv 0.0,1.0,0.0,1.0"
         elif [[ "$M" == 1 ]]
         then
-            options="--refu 0.0,0.5 --refv 0.0,0.76"
+            options="--refu 0.0,1.0,0.0,1.0,0.0,0.5 --refv 0.0,1.0,0.0,1.0,0.0,0.76"
         elif [[ "$M" == 2 ]]
         then
-            options="--refu 0.0,0.5,0.0,0.49 --refv 0.0,0.76,0.4,0.75"
+            options="--refu 0.0,1.0,0.0,1.0,0.0,0.5,0.0,0.49 --refv 0.0,1.0,0.0,1.0,0.0,0.76,0.4,0.75"
         elif [[ "$M" == 3 ]]
         then
-            options="--refu 0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,0.76,0.4,0.75,0.5,0.74"
+            options="--refu 0.0,1.0,0.0,1.0,0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,1.0,0.0,1.0,0.0,0.76,0.4,0.75,0.5,0.74"
         fi
         pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
         simramesh ${caseName}${topoRes}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
@@ -64,16 +65,15 @@ do
     if [[ $2 == 1 ]]
     then
         rm $resultsFolder/yplus*.*
-        gfortran ic_bc.f90 -o ic_bc
-        ./ic_bc simra.in
-        logsimra=${fileName}_simra.log
-        simra simra.in | tee $logsimra
-        $NAVIERSTOKES SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc
-        siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
+        #gfortran ic_bc.f90 -o ic_bc
+        #./ic_bc simra.in
+        #simra simra.in | tee $logsimra
+        #$NAVIERSTOKES SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc
+        #siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
         nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
         nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
         nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
-        python extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $NSTEP --pvdname $fileName 
+        python3 extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $NSTEP --pvdname $fileName 
         for ((pidx=1; pidx<=$noObsPoints; pidx++))
         do
             echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
@@ -95,5 +95,6 @@ do
             #pvbatch paraviewScript.py
         done
     fi
+    tar -cvf ${fileName}.tar *.png *.log *.csv simra.in *.xinp ic_bc.f90 
+    popd > /dev/null
 done
-popd > /dev/null

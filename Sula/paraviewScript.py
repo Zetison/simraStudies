@@ -727,7 +727,7 @@ if plotOverTime:
         cpcsvDisplay[i].SeriesLabel = ['TKE', labels[i]]
         cpcsvDisplay[i].SeriesVisibility = ['TKE']
     
-    saveScreenShot(quartileChartView1,outputPath+'TKE',saveScreenShots)
+    saveScreenShot(quartileChartView1,outputPath+fileName+'TKE',saveScreenShots)
     
 
 if plotIPPCmapsHorizontal:
@@ -822,8 +822,8 @@ if plotError:
     continuousglobalL2projectionuuh_H1LUT.RescaleTransferFunction(0.0, 100.0)
     continuousglobalL2projectionuuh_H1PWF.RescaleTransferFunction(0.0, 100.0)
     continuousglobalL2projectionuuh_H1LUT.ApplyPreset('SINTEF1', True)
-    saveScreenShot(renderView1,outputPath+fileName+'surfaceLICside_bridge'+str(bridge)+'_Error',saveScreenShots)
     renderView1.CameraPosition = [39953.1497599849, 6936202.267042985, 2614.4419848900225]
     renderView1.CameraFocalPoint = [39143.54568842529, 6947093.529147031, 516.8749792426419]
     renderView1.CameraViewUp = [-0.012278300117821047, 0.18822195283001805, 0.9820497644310452]
     renderView1.CameraParallelScale = 28350.540722069076
+    saveScreenShot(renderView1,outputPath+fileName+'surfaceLICside_bridge'+str(bridge)+'_Error',saveScreenShots)
