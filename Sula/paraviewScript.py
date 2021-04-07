@@ -21,8 +21,8 @@ ImportPresets(filename=home+'/kode/colormaps/google.json')
 #print(sys.executable)
 #print(sys.path)
 #pluginsPath = home+'/programs/paraview_build/lib/paraview-5.8/plugins/'
-pluginsPath =  '/usr/lib/ParaView-5.8.1-osmesa-MPI-Linux-Python3.7-64bit/lib/paraview-5.8/plugins/'
-LoadPlugin(pluginsPath+'/SurfaceLIC/SurfaceLIC.so', remote=False, ns=globals())
+#pluginsPath =  '/usr/lib/ParaView-5.8.1-osmesa-MPI-Linux-Python3.7-64bit/lib/paraview-5.8/plugins/'
+#LoadPlugin(pluginsPath+'/SurfaceLIC/SurfaceLIC.so', remote=False, ns=globals())
 fileName = 'SED_fileName'
 caseName = 'SED_caseName'
 outputPath = home+'/results/simra/'+caseName+'/'

@@ -10,7 +10,7 @@ Sensorh = np.array([[92.5,71.5,44.5],[76.8, 48.3, 27.3],[94.8, 75.0, 50.0, 27.0]
 BoomOrient = np.array([[72,74,74],[289, 290, 290],[81, 81, 81, 81],[223, 223, 223]],dtype=object)
 CoordUTM32 = np.array([[6924741, 345142],[6925267, 348347],[6920740, 346520],[6922074, 351140]])
 masth = np.array([100.5, 78.0,97.0,63.0])
-mastb = np.array([6.0,6.0,6.0,6.0])
+mastb = np.array([6.0,6.0,14.0,12.0])
 f = open("POINT_FILE", "w")
 noPoints = sum([len(listElem) for listElem in Sensorh])+len(Sensorh)//2
 f.write("%d\n" % noPoints)

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+  <discretization>
+    <nGauss>2 2</nGauss>
+  </discretization>
+
+  <!-- General - geometry definitions !-->
+  <simra_input>
+    <geometry>
+      <patchfile>mesh_converted.dat</patchfile>
+      <topologysets>
+        <set name="Bottom" type="face">
+          <item patch="1">5</item>
+        </set>
+      </topologysets>
+    </geometry>
+    <resultfile type="restart">cont.res</resultfile>
+    <boundaryfile type="parallel">boun.dat</boundaryfile> 
+  </simra_input>
+
+  <simra_output>
+    <geometry>
+      <patchfile>mesh.dat</patchfile>
+    </geometry>
+    <resultfile type="init">mesh_new.init</resultfile>
+    <boundaryfile>mesh_new.bound</boundaryfile>
+  </simra_output>
+
+</simulation>
