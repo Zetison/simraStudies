@@ -17,7 +17,7 @@ zeta=0.1
 grading=1.116
 res=600
 res=300
-res=150
+#res=150
 #res=600
 nz=51
 #nz=31
@@ -26,7 +26,7 @@ topoRes="50m"
 #topoRes="10m"
 PHI=234.192
 U_A=27.783
-for M in 0 1 2 3
+for M in 0 #1 2 3
 do
     cp mastLoc.csv POINT_FILE ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
@@ -86,9 +86,10 @@ do
         else
             #gfortran ic_bc.f90 -o ic_bc
             #./ic_bc simra.in
-            python convertBE.py
+            python3 convertBE.py
             $SIMRASOLTRANSF Sula-transfer.xinp
-            $HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
+            #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
+            simra simra.in | tee $logsimra
         fi
         $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
         siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
@@ -110,8 +111,8 @@ do
             SED_VARIABLES="BRIDGE caseName fileName topoRes noObsPoints"
             DICTS="paraviewScript.py"
             source $HOME/kode/bashScripts/sedFiles
-            paraview --script=paraviewScript.py &
-            #/usr/lib/ParaView-5.8.1-osmesa-MPI-Linux-Python3.7-64bit/bin/pvbatch paraviewScript.py
+            #paraview --script=paraviewScript.py &
+            /usr/lib/ParaView-5.8.1-osmesa-MPI-Linux-Python3.7-64bit/bin/pvbatch paraviewScript.py
             #$HOME/programs/paraview_build/bin/pvbatch paraviewScript.py
             #pvbatch paraviewScript.py
         done
