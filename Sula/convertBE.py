@@ -15,6 +15,6 @@ om.write_record(np.array(grid_elems,dtype=np.int32))
 
 f = FortranFile('contwSula.res_00+3', 'r', header_dtype='>u4')
 data = f.read_reals('>f4')
-of = FortranFile('cont.res', 'w')
+of = FortranFile('cont_met.res', 'w')
 of.write_record(np.array(data, dtype=np.float32))
 

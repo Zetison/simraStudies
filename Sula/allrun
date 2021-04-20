@@ -2,9 +2,11 @@
 SIMRAPOSTPROC=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
 SIMRASOLTRANSF=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-SolutionTransfer
 caseName=Sula
-#caseName=SulaMetReg
+caseName=SulaMetReg
 simraresultsFolder=$HOME/results/simra
 resultsFolder=$simraresultsFolder/$caseName
+#withMPI=1
+withMPI=0
 mkdir -p $resultsFolder
 python convertCoords.py
 simrainfile="simra.in"
@@ -14,27 +16,27 @@ simrainfile="simra.in"
 zeta=0.1
 grading=1.116
 res=600
-#res=300
-#res=150
+res=300
+res=150
+#res=600
 nz=51
 #nz=31
 height=3888.51
-#topoRes="50m"
-topoRes="10m"
+topoRes="50m"
+#topoRes="10m"
 PHI=234.192
 U_A=27.783
 for M in 0 1 2 3
 do
-    cp mastLoc.csv POINT_FILE ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
+    cp mastLoc.csv POINT_FILE ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
     NSTEP=$(cat $simrainfile | grep -oP '(?<=NSTEP=)[+-]?[0-9]+')
     UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     LENREF=$(cat $simrainfile | grep -oP '(?<=LENREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     VIS=$(cat $simrainfile | grep -oP '(?<=VIS=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     SED_VARIABLES="PHI U_A UREF LENREF VIS"
-    DICTS="ic_bc.f90 paraviewScript.py SIMRA_PostProc.xinp"
+    DICTS="ic_bc.f90 ic_bc_MPI.f90 paraviewScript.py SIMRA_PostProc.xinp"
     source $HOME/kode/bashScripts/sedFiles
-    #python convertBE.py
     #siso -f dat mesh_converted.dat mesh.dat --in-coords local utm:33n --coords utm:33n
     fileName=${caseName}_M${M}
     logsimra=${fileName}_simra.log
@@ -44,18 +46,24 @@ do
     then
         if [[ "$M" == 0 ]]
         then
-            options=""
-            #options="--refu 0.0,1.0 --refv 0.0,1.0"
-            #options="--refu 0.0,1.0,0.0,1.0 --refv 0.0,1.0,0.0,1.0"
+            options="--refu 0.0,1.0,0.0,1.0 --refv 0.0,1.0,0.0,1.0"
+            options="--refu 0.0,1.0 --refv 0.0,1.0"
+            #options=""
         elif [[ "$M" == 1 ]]
         then
             options="--refu 0.0,1.0,0.0,1.0,0.0,0.5 --refv 0.0,1.0,0.0,1.0,0.0,0.76"
+            options="--refu 0.0,1.0,0.0,0.5 --refv 0.0,1.0,0.0,0.76"
+            #options="--refu 0.0,0.5 --refv 0.0,0.76"
         elif [[ "$M" == 2 ]]
         then
             options="--refu 0.0,1.0,0.0,1.0,0.0,0.5,0.0,0.49 --refv 0.0,1.0,0.0,1.0,0.0,0.76,0.4,0.75"
+            options="--refu 0.0,1.0,0.0,0.5,0.0,0.49 --refv 0.0,1.0,0.0,0.76,0.4,0.75"
+            #options="--refu 0.0,0.5,0.0,0.49 --refv 0.0,0.76,0.4,0.75"
         elif [[ "$M" == 3 ]]
         then
             options="--refu 0.0,1.0,0.0,1.0,0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,1.0,0.0,1.0,0.0,0.76,0.4,0.75,0.5,0.74"
+            options="--refu 0.0,1.0,0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,1.0,0.0,0.76,0.4,0.75,0.5,0.74"
+            #options="--refu 0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,0.76,0.4,0.75,0.5,0.74"
         fi
         pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
         simramesh ${caseName}${topoRes}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
@@ -66,11 +74,22 @@ do
     noObsPoints=$(head -n 1 POINT_FILE | grep -oP '^[^0-9]*\K[0-9]+')
     if [[ $2 == 1 ]]
     then
-        rm $resultsFolder/yplus*.*
-        gfortran ic_bc.f90 -o ic_bc
-        ./ic_bc simra.in
         logsimra=${fileName}_simra.log
-        simra simra.in | tee $logsimra
+        rm $resultsFolder/yplus*.*
+        if [[ $withMPI == 1 ]]
+        then
+            gfortran ic_bc_MPI.f90 -o ic_bc_MPI
+            ./ic_bc_MPI simra.in
+            #$HOME/kode/simra/build_mpi/bin/ibc1
+            $HOME/kode/simra/build_mpi/bin/cppe1
+            $HOME/kode/simra/build_mpi/bin/simra_mpi simra.in | tee $logsimra
+        else
+            #gfortran ic_bc.f90 -o ic_bc
+            #./ic_bc simra.in
+            python convertBE.py
+            $SIMRASOLTRANSF Sula-transfer.xinp
+            $HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
+        fi
         $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
         siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
         nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')

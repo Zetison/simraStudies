@@ -613,10 +613,7 @@ character*256 filepar
 
 !###################################################################
 SUBROUTINE checkFlowDir (isInflow,u,v,w,normal)                                                                   
-!    1D (vertical profile) eddy viscosity model 
-!    - given vertical geometry, velocity and density
-!    - output: 
-!       eddy viscosity (av), turb kin energy (tk), dissipation (td)                    
+    !    Check if flow is inflow
 !###################################################################
       logical isInflow
       real u,v,w,normal(3)

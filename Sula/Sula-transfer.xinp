@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 <simulation>
-  <discretization>
-    <nGauss>2 2</nGauss>
-  </discretization>
-
   <!-- General - geometry definitions !-->
   <simra_input>
     <geometry>
@@ -15,16 +11,17 @@
         </set>
       </topologysets>
     </geometry>
-    <resultfile type="restart">cont.res</resultfile>
-    <boundaryfile type="parallel">boun.dat</boundaryfile> 
+    <resultfile type="restart">cont_met.res</resultfile>
+    <boundaryfile type="parallel">boun_met.dat</boundaryfile> 
+    <origin x="-200" y="6899800"/>
   </simra_input>
 
   <simra_output>
     <geometry>
       <patchfile>mesh.dat</patchfile>
     </geometry>
-    <resultfile type="init">mesh_new.init</resultfile>
-    <boundaryfile>mesh_new.bound</boundaryfile>
+    <resultfile type="init">init.dat</resultfile>
+    <boundaryfile>boun.dat</boundaryfile>
   </simra_output>
 
 </simulation>

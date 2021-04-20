@@ -42,14 +42,14 @@ angleOfAttack_East = 3.0
 runwayWidth = 150.0
 runwayHeight = 30.0
 runwayHeight = 10.0
-bridgeBaseHeight=0.0
+bridgeBaseHeight=50.0
 plotRunway               = 0 
 plotTakeOffLines         = 0 
 plotBridgeAndSensors     = 1 
 plotUniverseBackground   = 0 
 
 plotLIC                  = 1 
-plotStreamLines          = 0 
+plotStreamLines          = 1 
 plotVolumeRendering      = 1 
 plotIPPCmapsHorizontal   = 1 
 plotIPPCmapsVertical     = 1 
