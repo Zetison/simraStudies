@@ -24,4 +24,10 @@
     <boundaryfile>boun.dat</boundaryfile>
   </simra_output>
 
+  <linearsolver class="gmres">
+    <type>gmres</type>
+    <pc>asm</pc>
+    <package>petsc</package>
+  </linearsolver>
+
 </simulation>
