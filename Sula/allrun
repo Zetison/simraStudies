@@ -14,19 +14,25 @@ simrainfile="simra.in"
 #nelv=260
 #nelw=50
 zeta=0.1
+zeta=0.05
+#zeta=0.01
 grading=1.116
 res=600
-res=300
+#res=300
 #res=150
-#res=600
 nz=51
+nref=0
+#res=154
+#res=308
+#res=616
+#res=1232
 #nz=31
 height=3888.51
-topoRes="50m"
-#topoRes="10m"
+#topoRes="50m"
+topoRes="10m"
 PHI=234.192
 U_A=27.783
-for M in 0 #1 2 3
+for M in 0 1 2 3
 do
     cp mastLoc.csv POINT_FILE ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
@@ -46,25 +52,21 @@ do
     then
         if [[ "$M" == 0 ]]
         then
-            options="--refu 0.0,1.0,0.0,1.0 --refv 0.0,1.0,0.0,1.0"
-            options="--refu 0.0,1.0 --refv 0.0,1.0"
-            #options=""
+            options=""
         elif [[ "$M" == 1 ]]
         then
-            options="--refu 0.0,1.0,0.0,1.0,0.0,0.5 --refv 0.0,1.0,0.0,1.0,0.0,0.76"
-            options="--refu 0.0,1.0,0.0,0.5 --refv 0.0,1.0,0.0,0.76"
-            #options="--refu 0.0,0.5 --refv 0.0,0.76"
+            options="--refu 0.0,0.5 --refv 0.0,0.76"
+            options="--refu 0.25,0.6 --refv 0.3,0.71"
         elif [[ "$M" == 2 ]]
         then
-            options="--refu 0.0,1.0,0.0,1.0,0.0,0.5,0.0,0.49 --refv 0.0,1.0,0.0,1.0,0.0,0.76,0.4,0.75"
-            options="--refu 0.0,1.0,0.0,0.5,0.0,0.49 --refv 0.0,1.0,0.0,0.76,0.4,0.75"
-            #options="--refu 0.0,0.5,0.0,0.49 --refv 0.0,0.76,0.4,0.75"
+            options="--refu 0.0,0.5,0.0,0.49 --refv 0.0,0.76,0.4,0.75"
+            options="--refu 0.25,0.6,0.25,0.5 --refv 0.3,0.71,0.4,0.7"
         elif [[ "$M" == 3 ]]
         then
-            options="--refu 0.0,1.0,0.0,1.0,0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,1.0,0.0,1.0,0.0,0.76,0.4,0.75,0.5,0.74"
-            options="--refu 0.0,1.0,0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,1.0,0.0,0.76,0.4,0.75,0.5,0.74"
-            #options="--refu 0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,0.76,0.4,0.75,0.5,0.74"
+            options="--refu 0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,0.76,0.4,0.75,0.5,0.74"
+            options="--refu 0.1,0.55,0.1375,0.50,0.175,0.45 --refv 0.45,0.83,0.50,0.74,0.52,0.7"
         fi
+        options="--nrefu $nref --nrefv $nref $options"
         pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
         simramesh ${caseName}${topoRes}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
         siso -f vts ${fileName}_3D.g2
@@ -74,6 +76,7 @@ do
     noObsPoints=$(head -n 1 POINT_FILE | grep -oP '^[^0-9]*\K[0-9]+')
     if [[ $2 == 1 ]]
     then
+        #cp mesh_converted.dat mesh.dat
         logsimra=${fileName}_simra.log
         rm $resultsFolder/yplus*.*
         if [[ $withMPI == 1 ]]
@@ -88,8 +91,8 @@ do
             #./ic_bc simra.in
             python3 convertBE.py
             $SIMRASOLTRANSF Sula-transfer.xinp
-            #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
-            simra simra.in | tee $logsimra
+            $HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
+            #simra simra.in | tee $logsimra
         fi
         $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
         siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
