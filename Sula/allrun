@@ -18,7 +18,7 @@ zeta=0.05
 #zeta=0.01
 grading=1.116
 res=600
-#res=300
+res=300
 res=150
 nz=51
 nref=0
@@ -30,11 +30,11 @@ nref=0
 height=3888.51
 topoRes="50m"
 #topoRes="10m"
-PHI=234.192
+PHI=135
 U_A=27.783
 NSTEP=8000
 NSTEP=10
-for M in 0 1 2 # 0 1 2 3
+for M in 0 # 0 1 2 3
 do
     cp mastLoc.csv POINT_FILE ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
@@ -97,7 +97,7 @@ do
         fi
         $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
         siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
-        siso -f pvd cont.res ${fileName}.pvd
+        #siso -f pvd cont.res ${fileName}.pvd
         nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
         nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
         nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')

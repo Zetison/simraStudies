@@ -28,10 +28,10 @@ res=1000
 #nz=31
 height=4000
 topoRes="25m"
-PHI=234.192
-U_A=27.783
-NSTEP=8000
-NSTEP=10
+PHI=135
+U_A=20
+NSTEP=1000
+#NSTEP=10
 for M in 0 # 0 1 2 3
 do
     cp ../ic_bc_MPI.f90 ../extract_yplusSurf.py ../ic_bc.f90 simra.in ../SIMRA_PostProc.xinp $resultsFolder
