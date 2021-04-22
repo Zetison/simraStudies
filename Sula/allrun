@@ -29,11 +29,11 @@ nref=0
 #nz=31
 height=3888.51
 topoRes="50m"
-#topoRes="10m"
-PHI=135
+topoRes="10m"
+PHI=315
 U_A=27.783
 NSTEP=8000
-NSTEP=10
+#NSTEP=20
 for M in 0 # 0 1 2 3
 do
     cp mastLoc.csv POINT_FILE ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
@@ -88,10 +88,10 @@ do
             $HOME/kode/simra/build_mpi/bin/cppe1
             $HOME/kode/simra/build_mpi/bin/simra_mpi simra.in | tee $logsimra
         else
-            gfortran ic_bc.f90 -o ic_bc
-            ./ic_bc simra.in
-            #python3 convertBE.py
-            #$SIMRASOLTRANSF Sula-transfer.xinp
+            #gfortran ic_bc.f90 -o ic_bc
+            #./ic_bc simra.in
+            python3 convertBE.py
+            $SIMRASOLTRANSF Sula-transfer.xinp
             $HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
             #simra simra.in | tee $logsimra
         fi
