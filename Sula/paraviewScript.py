@@ -28,10 +28,10 @@ caseName = 'SED_caseName'
 outputPath = home+'/results/simra/'+caseName+'/'
 topoRes = 'SED_topoRes' 
 #topoRes = '10m'
-topologyFileName = outputPath+caseName+topoRes+'.vts'
+topographyFileName = outputPath+caseName+topoRes+'.vts'
 textureFileName_topo = outputPath+caseName+topoRes+'_topo.png'
 textureFileName_NIB = outputPath+caseName+topoRes+'.png'
-windCase = 1
+windCase = 2 
 noSteps = 201
 finalTime = 11.7006
 sqrtTKE_max = 5.0
@@ -86,6 +86,8 @@ horizontalSlice_z = 10
 glyphScale1 = 30
 if windCase == 1:
     glyphScale2 = 0.03
+else:
+    glyphScale2 = 0.03
 
 timeStepAnnotation       = makeVideo
 # Extract UTM-33 coordinates from rwyCoords.png file (available at https://ais.avinor.no/no/AIP/View/95/2020-11-05-AIRAC/html/index-no-NO.html). The coordinates in rwyCoords.png are given in Lat-lon Degrees Minutes seconds format. Here, "THR COORD" is the start of the RWY (runway), and "RWY end COORD" is its end
@@ -101,6 +103,9 @@ P_ne = np.array([64999.5156,6967800.5,streamLines_z])
 if windCase == 1:
     streamTracerPoint1 = P_nw
     streamTracerPoint2 = P_se
+else:
+    streamTracerPoint1 = [25749,6951933,streamLines_z]
+    streamTracerPoint2 = [39478,6966147,streamLines_z]
 
 runwayDir = runwayEndEast-runwayEndWest
 runwayDir = runwayDir/np.linalg.norm(runwayDir)
@@ -166,21 +171,21 @@ planeSlice.YResolution = np.round(10*planeSliceHeight/1500).astype('int')
 resampledSlice = ResampleWithDataset(registrationName='proj_u Resampled', SourceDataArrays=proj_u, DestinationMesh=planeSlice)
 resampledSlice.CellLocator = 'Static Cell Locator'
 
-topology = XMLStructuredGridReader(registrationName='Topology',FileName=topologyFileName)
-topology.PointArrayStatus = ['TCoords_']
+topography = XMLStructuredGridReader(registrationName='Topography',FileName=topographyFileName)
+topography.PointArrayStatus = ['TCoords_']
 layout1 = GetLayout()
 
-calculator2 = Calculator(registrationName='Calculator2', Input=topology)
+calculator2 = Calculator(registrationName='Calculator2', Input=topography)
 calculator2.Function = 'coordsZ'
 calculator2.ResultArrayName = 'height'
 heightLUT = GetColorTransferFunction('height')
 heightPWF = GetOpacityTransferFunction('height')
 
-sliceTopology = Slice(registrationName='Slice topology', Input=calculator2)
-sliceTopology.SliceType = 'Plane'
-sliceTopology.SliceType.Normal = runwayNormal 
-sliceTopology.SliceType.Origin = runwayCenter
-Hide3DWidgets(proxy=sliceTopology.SliceType)
+sliceTopography = Slice(registrationName='Slice topography', Input=calculator2)
+sliceTopography.SliceType = 'Plane'
+sliceTopography.SliceType.Normal = runwayNormal 
+sliceTopography.SliceType.Origin = runwayCenter
+Hide3DWidgets(proxy=sliceTopography.SliceType)
 
 def rotTran(obj,rot,tran,regName='Intermediate transform',rotateFirst=True):
     if isinstance(obj,(list,np.ndarray)):
@@ -317,9 +322,9 @@ def showMasts(renderView):
 ## Layout 1 - Surface LIC plots
 # create a new 'Clip'
 if plotLIC:
-    topologyDisplay = Show(topology, renderView1, 'StructuredGridRepresentation')
-    topologyDisplay.Representation = 'Surface'
-    topologyDisplay.Texture = CreateTexture(textureFileName_NIB)
+    topographyDisplay = Show(topography, renderView1, 'StructuredGridRepresentation')
+    topographyDisplay.Representation = 'Surface'
+    topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
     showRunway(renderView1)
     showMasts(renderView1)
     # current camera placement for renderView1
@@ -379,9 +384,9 @@ if plotLIC:
     sqrtTKELUTColorBar_2.ComponentTitle = ''
     sqrtTKELUTColorBar_2.ScalarBarLength = scalarBarLength
 
-    topologyDisplay = Show(topology, renderView2, 'UnstructuredGridRepresentation')
-    topologyDisplay.Representation = 'Surface'
-    topologyDisplay.Texture = CreateTexture(textureFileName_NIB)
+    topographyDisplay = Show(topography, renderView2, 'UnstructuredGridRepresentation')
+    topographyDisplay.Representation = 'Surface'
+    topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
 
     # current camera placement for renderView2
     renderView2.OrientationAxesVisibility = 0
@@ -402,9 +407,9 @@ if plotStreamLines:
     renderView3.OrientationAxesVisibility = 0
     AssignViewToLayout(view=renderView3, layout=layout3, hint=0)
     
-    topologyDisplay = Show(topology, renderView3, 'UnstructuredGridRepresentation')
-    topologyDisplay.Representation = 'Surface'
-    topologyDisplay.Texture = CreateTexture(textureFileName_NIB)
+    topographyDisplay = Show(topography, renderView3, 'UnstructuredGridRepresentation')
+    topographyDisplay.Representation = 'Surface'
+    topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
     
     # create a new 'Stream Tracer'
     streamTracer1 = StreamTracer(registrationName='StreamTracer1', Input=calculator1, SeedType='Line')
@@ -454,9 +459,9 @@ if plotVolumeRendering:
     renderView4.OrientationAxesVisibility = 0
     AssignViewToLayout(view=renderView4, layout=layout4, hint=0)
     
-    topologyDisplay = Show(topology, renderView4, 'UnstructuredGridRepresentation')
-    topologyDisplay.Representation = 'Surface'
-    topologyDisplay.Texture = CreateTexture(textureFileName_NIB)
+    topographyDisplay = Show(topography, renderView4, 'UnstructuredGridRepresentation')
+    topographyDisplay.Representation = 'Surface'
+    topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
     
     # create a new 'Stream Tracer'
     calculator1Display = Show(calculator1, renderView4, 'UnstructuredGridRepresentation')
@@ -608,14 +613,14 @@ if plotIPPCmapsVertical:
             result.CoordinateResults = 1
         return result
 
-    sliceTopologyTransform = SItoFTvsNM(sliceTopology,regName='Slice topology transformed')
-    sliceTopologyTransformDisplay = Show(sliceTopologyTransform, renderView6, 'StructuredGridRepresentation')
-    sliceTopologyTransformDisplay.LineWidth = 3.0
+    sliceTopographyTransform = SItoFTvsNM(sliceTopography,regName='Slice topography transformed')
+    sliceTopographyTransformDisplay = Show(sliceTopographyTransform, renderView6, 'StructuredGridRepresentation')
+    sliceTopographyTransformDisplay.LineWidth = 3.0
     if False:
-        ColorBy(sliceTopologyTransformDisplay, 'height')
+        ColorBy(sliceTopographyTransformDisplay, 'height')
     else:
-        sliceTopologyTransformDisplay.DiffuseColor = [0.0, 0.0, 0.0]
-        ColorBy(sliceTopologyTransformDisplay, None)
+        sliceTopographyTransformDisplay.DiffuseColor = [0.0, 0.0, 0.0]
+        ColorBy(sliceTopographyTransformDisplay, None)
 
     resampledSliceTransform = SItoFTvsNM(resampledSlice,regName='Slice1 transformed')
     slice1Transform = SItoFTvsNM(slice1,regName='Slice1 transformed')
