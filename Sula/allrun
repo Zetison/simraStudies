@@ -80,21 +80,21 @@ do
         #cp mesh_converted.dat mesh.dat
         logsimra=${fileName}_simra.log
         #rm $resultsFolder/yplus*.*
-        if [[ $withMPI == 1 ]]
-        then
-            gfortran ic_bc_MPI.f90 -o ic_bc_MPI
-            ./ic_bc_MPI simra.in
-            #$HOME/kode/simra/build_mpi/bin/ibc1
-            $HOME/kode/simra/build_mpi/bin/cppe1
-            $HOME/kode/simra/build_mpi/bin/simra_mpi simra.in | tee $logsimra
-        else
-            #gfortran ic_bc.f90 -o ic_bc
-            #./ic_bc simra.in
-            python3 convertBE.py
-            $SIMRASOLTRANSF Sula-transfer.xinp
-            $HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
-            #simra simra.in | tee $logsimra
-        fi
+        #if [[ $withMPI == 1 ]]
+        #then
+        #    gfortran ic_bc_MPI.f90 -o ic_bc_MPI
+        #    ./ic_bc_MPI simra.in
+        #    #$HOME/kode/simra/build_mpi/bin/ibc1
+        #    $HOME/kode/simra/build_mpi/bin/cppe1
+        #    $HOME/kode/simra/build_mpi/bin/simra_mpi simra.in | tee $logsimra
+        #else
+        #    #gfortran ic_bc.f90 -o ic_bc
+        #    #./ic_bc simra.in
+        #    python3 convertBE.py
+        #    $SIMRASOLTRANSF Sula-transfer.xinp
+        #    #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
+        #    simra simra.in | tee $logsimra
+        #fi
         $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
         siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
         #siso -f pvd cont.res ${fileName}.pvd
@@ -116,8 +116,8 @@ do
             SED_VARIABLES="BRIDGE caseName fileName topoRes noObsPoints"
             DICTS="paraviewScript.py"
             source $HOME/kode/bashScripts/sedFiles
-            paraview --script=paraviewScript.py &
-            #/usr/lib/ParaView-5.8.1-osmesa-MPI-Linux-Python3.7-64bit/bin/pvbatch paraviewScript.py
+            #paraview --script=paraviewScript.py &
+            /usr/lib/ParaView-5.8.1-osmesa-MPI-Linux-Python3.7-64bit/bin/pvbatch paraviewScript.py
             #$HOME/programs/paraview_build/bin/pvbatch paraviewScript.py
             #pvbatch paraviewScript.py
         done
