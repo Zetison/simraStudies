@@ -8,7 +8,9 @@ resultsFolder=$simraresultsFolder/$caseName
 #withMPI=1
 withMPI=0
 mkdir -p $resultsFolder
-python convertCoords.py
+originx=-200
+originy=6899800
+python convertCoords.py --originx $originx --originy $originy
 simrainfile="simra.in"
 #nelu=260
 #nelv=260
@@ -33,7 +35,7 @@ topoRes="50m"
 PHI=315
 U_A=27.783
 NSTEP=8000
-#NSTEP=1
+#NSTEP=2
 for M in 0 # 0 1 2 3
 do
     cp mastLoc.csv POINT_FILE ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
@@ -90,9 +92,10 @@ do
         else
             #gfortran ic_bc.f90 -o ic_bc
             #./ic_bc simra.in
-            python3 convertBE.py
-            $SIMRASOLTRANSF Sula-transfer.xinp
+            #python3 convertBE.py
+            #$SIMRASOLTRANSF Sula-transfer.xinp
             $HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
+            #$HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
             #simra simra.in | tee $logsimra
         fi
         $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 

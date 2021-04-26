@@ -27,7 +27,8 @@ fileName = 'SED_fileName'
 caseName = 'SED_caseName'
 outputPath = home+'/results/simra/'+caseName+'/'
 topoRes = 'SED_topoRes' 
-#topoRes = '10m'
+originx=-200.0
+originy=6899800.0
 topographyFileName = outputPath+caseName+topoRes+'.vts'
 textureFileName_topo = outputPath+caseName+topoRes+'_topo.png'
 textureFileName_NIB = outputPath+caseName+topoRes+'.png'
@@ -73,10 +74,10 @@ elif bridge == 2:
     runwayEndWest = mastLoc[2][:3]
     runwayEndEast = mastLoc[3][:3]
 
-#runwayEndWest = np.array([346520,6920740,4.4])
-#runwayEndEast = np.array([351140,6922074,3.6])
-#runwayEndWest = np.array([549213-0.4, 6943810+0.905,0.0])
-#runwayEndEast = np.array([549213,6943810,0.0])
+#runwayEndWest = np.array([346520-originx,6920740-originy,4.4])
+#runwayEndEast = np.array([351140-originx,6922074-originy,3.6])
+#runwayEndWest = np.array([549213-0.4-originx, 6943810+0.90-originy,0.0])
+#runwayEndEast = np.array([549213-originx,6943810-originy,0.0])
 SAVE_HIST = 20
 
 viewSize = [1920, 1080]
@@ -96,16 +97,16 @@ takeOffLineColor = [0.0,0.0,0.0]
 
 runwayColor      = [1.0,0.0,0.0]
 
-P_sw = np.array([25000,6927800,streamLines_z])
-P_se = np.array([64999.58,6927800,streamLines_z])
-P_nw = np.array([25000,6967800,streamLines_z])
-P_ne = np.array([64999.5156,6967800.5,streamLines_z])
+P_sw = np.array([25000-originx,6927800-originy,streamLines_z])
+P_se = np.array([64999.58-originx,6927800-originy,streamLines_z])
+P_nw = np.array([25000-originx,6967800-originy,streamLines_z])
+P_ne = np.array([64999.5156-originx,6967800.5-originy,streamLines_z])
 if windCase == 1:
     streamTracerPoint1 = P_nw
     streamTracerPoint2 = P_se
 else:
-    streamTracerPoint1 = [25749,6951933,streamLines_z]
-    streamTracerPoint2 = [39478,6966147,streamLines_z]
+    streamTracerPoint1 = [25749-originx,6951933-originy,streamLines_z]
+    streamTracerPoint2 = [39478-originx,6966147-originy,streamLines_z]
 
 runwayDir = runwayEndEast-runwayEndWest
 runwayDir = runwayDir/np.linalg.norm(runwayDir)
@@ -585,8 +586,8 @@ if plotIPPCmapsHorizontal:
     ColorBy(glyph1Display, None)
 
     renderView5.InteractionMode = '2D'
-    renderView5.CameraPosition = [54279.27032496591, 6950488.075249355, 25242.965782087373]
-    renderView5.CameraFocalPoint = [51365.64987931158, 6949878.21067271, -393.12364711190645]
+    renderView5.CameraPosition = [54279.27032496591-originx, 6950488.075249355-originy, 25242.965782087373]
+    renderView5.CameraFocalPoint = [51365.64987931158-originx, 6949878.21067271-originy, -393.12364711190645]
     renderView5.CameraViewUp = [-0.0026685028441370807, 0.999720760110162, -0.023479371740545256]
     renderView5.CameraParallelScale = 11840.135737817194
     
@@ -767,8 +768,8 @@ sqrtTKEPWF.RescaleTransferFunction(0.0, sqrtTKE_max)
 sqrtTKEPWF.Points = [0.0, 0.0, 0.5, 0.0, 1.6, 0.0, 0.5, 0.0, 4.0, 1.0, 0.5, 0.0]
 
 renderView1.InteractionMode = '3D'
-renderView1.CameraPosition = [42315.178435332025, 6913455.09641479, 39925.03392197488]
-renderView1.CameraFocalPoint = [47321.88134561954, 6944851.971259325, -590.056714551883]
+renderView1.CameraPosition = [42315.178435332025-originx, 6913455.09641479-originy, 39925.03392197488]
+renderView1.CameraFocalPoint = [47321.88134561954-originx, 6944851.971259325-originy, -590.056714551883]
 renderView1.CameraViewUp = [0.10754399354149799, 0.7793741712263841, 0.6172602293023044]
 renderView1.CameraParallelScale = 34572.810251475086
 renderView1.CameraViewAngle = 30.0
@@ -827,8 +828,8 @@ if plotError:
     continuousglobalL2projectionuuh_H1LUT.RescaleTransferFunction(0.0, 100.0)
     continuousglobalL2projectionuuh_H1PWF.RescaleTransferFunction(0.0, 100.0)
     continuousglobalL2projectionuuh_H1LUT.ApplyPreset('SINTEF1', True)
-    renderView1.CameraPosition = [39953.1497599849, 6936202.267042985, 2614.4419848900225]
-    renderView1.CameraFocalPoint = [39143.54568842529, 6947093.529147031, 516.8749792426419]
+    renderView1.CameraPosition = [39953.1497599849-originx, 6936202.267042985-originy, 2614.4419848900225]
+    renderView1.CameraFocalPoint = [39143.54568842529-originx, 6947093.529147031-originy, 516.8749792426419]
     renderView1.CameraViewUp = [-0.012278300117821047, 0.18822195283001805, 0.9820497644310452]
     renderView1.CameraParallelScale = 28350.540722069076
     saveScreenShot(renderView1,outputPath+fileName+'surfaceLICside_bridge'+str(bridge)+'_Error',saveScreenShots)
