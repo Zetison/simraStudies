@@ -29,11 +29,11 @@ nref=0
 #nz=31
 height=3888.51
 topoRes="50m"
-topoRes="10m"
+#topoRes="10m"
 PHI=315
 U_A=27.783
 NSTEP=8000
-#NSTEP=20
+#NSTEP=1
 for M in 0 # 0 1 2 3
 do
     cp mastLoc.csv POINT_FILE ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
@@ -77,7 +77,7 @@ do
     noObsPoints=$(head -n 1 POINT_FILE | grep -oP '^[^0-9]*\K[0-9]+')
     if [[ $2 == 1 ]]
     then
-        #cp mesh_converted.dat mesh.dat
+        ##cp mesh_converted.dat mesh.dat
         logsimra=${fileName}_simra.log
         #rm $resultsFolder/yplus*.*
         if [[ $withMPI == 1 ]]
@@ -97,7 +97,6 @@ do
         fi
         $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
         siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
-        #siso -f pvd cont.res ${fileName}.pvd
         nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
         nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
         nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
