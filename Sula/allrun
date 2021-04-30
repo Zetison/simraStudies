@@ -3,6 +3,8 @@ SIMRAPOSTPROC=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
 SIMRASOLTRANSF=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-SolutionTransfer
 caseName=Sula
 caseName=SulaMetReg
+simraNesting=1
+simraNesting=""
 simraresultsFolder=$HOME/results/simra
 resultsFolder=$simraresultsFolder/$caseName
 #withMPI=1
@@ -10,7 +12,6 @@ withMPI=0
 mkdir -p $resultsFolder
 originx=-200
 originy=6899800
-python convertCoords.py --originx $originx --originy $originy
 simrainfile="simra.in"
 #nelu=260
 #nelv=260
@@ -20,11 +21,10 @@ zeta=0.05
 #zeta=0.01
 grading=1.116
 res=600
-res=300
+#res=300
 res=150
 nz=51
-nref=0
-#res=154
+res=154
 #res=308
 #res=616
 #res=1232
@@ -36,10 +36,12 @@ PHI=315
 U_A=27.783
 NSTEP=8000
 #NSTEP=2
-for M in 0 # 0 1 2 3
+for M in 0 1 # 1 2 3 # 0 1 2 3
 do
-    cp mastLoc.csv POINT_FILE ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
+    nref=0
+    cp convertCoords.py ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
+    python convertCoords.py --originx $originx --originy $originy
     UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     LENREF=$(cat $simrainfile | grep -oP '(?<=LENREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     VIS=$(cat $simrainfile | grep -oP '(?<=VIS=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
@@ -47,7 +49,12 @@ do
     DICTS="simra.in ic_bc.f90 ic_bc_MPI.f90 paraviewScript.py SIMRA_PostProc.xinp"
     source $HOME/kode/bashScripts/sedFiles
     #siso -f dat mesh_converted.dat mesh.dat --in-coords local utm:33n --coords utm:33n
-    fileName=${caseName}_M${M}
+    if [ "$simraNesting" == 1 ] && ! [ "$M" == 0 ]
+    then
+        fileName=${caseName}_nest_M${M}
+    else
+        fileName=${caseName}_M${M}
+    fi
     logsimra=${fileName}_simra.log
     logsimramesh=${fileName}_simramesh.log
     logIFEMmesh=${fileName}_simramesh.log
@@ -58,28 +65,46 @@ do
             options=""
         elif [[ "$M" == 1 ]]
         then
-            options="--refu 0.0,0.5 --refv 0.0,0.76"
-            options="--refu 0.07,0.55 --refv 0.42,0.93"
+            if [[ "$simraNesting" == 1 ]]
+            then
+                options="--cutu 0.07,0.55 --cutv 0.42,0.93"
+                nref=$((nref+1))
+            else
+                options="--refu 0.0,0.5 --refv 0.0,0.76"
+                options="--refu 0.07,0.55 --refv 0.42,0.93"
+            fi
         elif [[ "$M" == 2 ]]
         then
-            options="--refu 0.0,0.5,0.0,0.49 --refv 0.0,0.76,0.4,0.75"
-            options="--refu 0.07,0.55,0.12,0.50 --refv 0.42,0.93,0.47,0.88"
+            if [[ "$simraNesting" == 1 ]]
+            then
+                options="--cutu 0.12,0.50 --cutv 0.47,0.88"
+                nref=$((nref+2))
+            else
+                options="--refu 0.0,0.5,0.0,0.49 --refv 0.0,0.76,0.4,0.75"
+                options="--refu 0.07,0.55,0.12,0.50 --refv 0.42,0.93,0.47,0.88"
+            fi
         elif [[ "$M" == 3 ]]
         then
-            options="--refu 0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,0.76,0.4,0.75,0.5,0.74"
-            options="--refu 0.07,0.55,0.12,0.50,0.17,0.45 --refv 0.42,0.93,0.47,0.88,0.52,0.83"
+            if [[ "$simraNesting" == 1 ]]
+            then
+                options="--cutu 0.17,0.45 --cutv 0.52,0.83"
+                nref=$((nref+3))
+            else
+                options="--refu 0.0,0.5,0.0,0.49,0.2,0.48 --refv 0.0,0.76,0.4,0.75,0.5,0.74"
+                options="--refu 0.07,0.55,0.12,0.50,0.17,0.45 --refv 0.42,0.93,0.47,0.88,0.52,0.83"
+            fi
         fi
         options="--nrefu $nref --nrefv $nref $options"
         pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
         simramesh ${caseName}${topoRes}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
         siso -f vts ${fileName}_3D.g2
         siso -f dat ${fileName}_3D.g2 mesh.dat
+        cp mesh.dat mesh_M${M}.dat
         #paraview ${fileName}_3D.vts & # View mesh (optional)
     fi
     noObsPoints=$(head -n 1 POINT_FILE | grep -oP '^[^0-9]*\K[0-9]+')
     if [[ $2 == 1 ]]
     then
-        ##cp mesh_converted.dat mesh.dat
         logsimra=${fileName}_simra.log
         #rm $resultsFolder/yplus*.*
         if [[ $withMPI == 1 ]]
@@ -90,10 +115,13 @@ do
             $HOME/kode/simra/build_mpi/bin/cppe1
             $HOME/kode/simra/build_mpi/bin/simra_mpi simra.in | tee $logsimra
         else
-            #gfortran ic_bc.f90 -o ic_bc
-            #./ic_bc simra.in
+            gfortran ic_bc.f90 -o ic_bc
+            ./ic_bc simra.in
             #python3 convertBE.py
             #$SIMRASOLTRANSF Sula-transfer.xinp
+            cp mesh_converted.dat mesh.dat
+            cp boun_met.dat bound.dat
+            #cp init_met.dat init.dat
             $HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
             #$HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
             #simra simra.in | tee $logsimra
@@ -124,6 +152,6 @@ do
             #pvbatch paraviewScript.py
         done
     fi
-    tar -cvf ${fileName}.tar *.png *.log *.csv simra.in *.xinp ic_bc.f90 
+    tar -cf ${fileName}.tar *.png *.log *.csv simra.in *.xinp ic_bc.f90 
     popd > /dev/null
 done
