@@ -20,9 +20,9 @@ zeta=0.1
 zeta=0.05
 #zeta=0.01
 grading=1.116
-res=600
+#res=600
 #res=300
-res=150
+#res=150
 nz=51
 res=154
 #res=308
@@ -35,8 +35,8 @@ topoRes="50m"
 PHI=315
 U_A=27.783
 NSTEP=8000
-#NSTEP=2
-for M in 0 1 # 1 2 3 # 0 1 2 3
+NSTEP=1
+for M in 0 # 1 # 1 2 3 # 0 1 2 3
 do
     nref=0
     cp convertCoords.py ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
@@ -99,7 +99,7 @@ do
         simramesh ${caseName}${topoRes}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
         siso -f vts ${fileName}_3D.g2
         siso -f dat ${fileName}_3D.g2 mesh.dat
-        cp mesh.dat mesh_M${M}.dat
+        siso -f dat --out-endianness big ${fileName}_3D.g2 mesh_M0.dat
         #paraview ${fileName}_3D.vts & # View mesh (optional)
     fi
     noObsPoints=$(head -n 1 POINT_FILE | grep -oP '^[^0-9]*\K[0-9]+')
@@ -115,15 +115,14 @@ do
             $HOME/kode/simra/build_mpi/bin/cppe1
             $HOME/kode/simra/build_mpi/bin/simra_mpi simra.in | tee $logsimra
         else
-            gfortran ic_bc.f90 -o ic_bc
-            ./ic_bc simra.in
-            #python3 convertBE.py
-            #$SIMRASOLTRANSF Sula-transfer.xinp
-            cp mesh_converted.dat mesh.dat
-            cp boun_met.dat bound.dat
-            #cp init_met.dat init.dat
-            $HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
-            #$HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
+            #gfortran ic_bc.f90 -o ic_bc
+            #./ic_bc simra.in
+            python3 convertBE.py
+            $SIMRASOLTRANSF Sula-transfer.xinp
+            #cp mesh_converted.dat mesh.dat
+            #cp boun_met.dat bound.dat
+            #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
+            $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
             #simra simra.in | tee $logsimra
         fi
         $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
