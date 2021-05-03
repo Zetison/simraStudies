@@ -33,6 +33,7 @@ topographyFileName = outputPath+caseName+topoRes+'.vts'
 textureFileName_topo = outputPath+caseName+topoRes+'_topo.png'
 textureFileName_NIB = outputPath+caseName+topoRes+'.png'
 windCase = 2 
+velProfileMax_Z=120
 noSteps = 201
 finalTime = 11.7006
 sqrtTKE_max = 5.0
@@ -55,6 +56,7 @@ plotVolumeRendering      = 1
 plotIPPCmapsHorizontal   = 1 
 plotIPPCmapsVertical     = 1 
 plotOverTime             = 1
+plotVelocityProfiles     = 1
 
 makeVideo                = 0
 saveScreenShots          = 1
@@ -130,8 +132,8 @@ if plotUniverseBackground:
 timeKeeper1 = GetTimeKeeper()
 
 # create a new 'XML Unstructured Grid Reader'
-simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+fileName+'.pvd')
-#simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+'cont_met.pvd')
+#simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+fileName+'.pvd')
+simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+'cont_met.pvd')
 animationScene1.UpdateAnimationUsingDataTimeSteps()
 animationScene1.GoToLast()
 # update animation scene based on data timesteps
@@ -139,8 +141,14 @@ animationScene1.GoToLast()
 # get active view
 layout1 = GetLayoutByName("Layout #1")
 
+
 # create a new 'Calculator'
-calculator1 = Calculator(registrationName='Calculator1', Input=simraPVDresults)
+calculator0 = Calculator(registrationName='Calculator0', Input=simraPVDresults)
+calculator0.Function = 'u_x*'+str(runwayNormal[0])+'+u_y*'+str(runwayNormal[1])+'+u_z*'+str(runwayNormal[2])
+calculator0.ResultArrayName = 'dot(n,u)'
+
+# create a new 'Calculator'
+calculator1 = Calculator(registrationName='Calculator1', Input=calculator0)
 calculator1.Function = 'sqrt(tk)'
 calculator1.ResultArrayName = 'sqrtTKE'
 calculatorIPPC = Calculator(registrationName='CalculatorIPPC', Input=calculator1)
@@ -264,7 +272,7 @@ for i in range(noPoints):
     pointSources[i].Center = points[i]
     Hide3DWidgets(proxy=pointSources[i])
     if i < noPoints-2:
-        lineSource2[i] = Line(registrationName=labels[i])
+        lineSource2[i] = Line(registrationName=labels[i]+' - boom')
         lineSource2[i].Point1 = [mastLoc[idxMap[i]][0],mastLoc[idxMap[i]][1],points[i][2]]
         lineSource2[i].Point2 = points[i]
         lineSource2[i].Resolution = 1
@@ -276,6 +284,14 @@ for i in range(noBridges):
     splineSource[i].ParametricFunction.Points = [mastLoc[2*i,0],mastLoc[2*i,1],bridgeBaseHeight,points[i-2,0],points[i-2,1],points[i-2,2],mastLoc[2*i+1,0],mastLoc[2*i+1,1],bridgeBaseHeight]
     Hide3DWidgets(proxy=splineSource[i])
 
+mastLine = [''] * noMasts
+for i in range(noMasts):
+    mastLine[i] = Line(registrationName=mastLabel[i]+' line')
+    mastLine[i].Point1 = [mastLoc[i][0],mastLoc[i][1],-100]
+    mastLine[i].Point2 = [mastLoc[i][0],mastLoc[i][1],velProfileMax_Z]
+    mastLine[i].Resolution = 1000
+    Hide3DWidgets(proxy=mastLine[i])
+    
 lineSource = [''] * noMasts
 for i in range(noMasts):
     lineSource[i] = Line(registrationName=mastLabel[i])
@@ -734,6 +750,55 @@ if plotOverTime:
         cpcsvDisplay[i].SeriesVisibility = ['TKE']
     
     saveScreenShot(quartileChartView1,outputPath+fileName+'TKE',saveScreenShots)
+    
+if plotVelocityProfiles:
+    CreateLayout('Layout #8')
+    layout8 = GetLayoutByName("Layout #8")
+    layout8.SplitHorizontal(0, 0.5)
+    layout8.SplitHorizontal(1, 0.5)
+    layout8.SplitHorizontal(2, 0.5)
+    vpcsv = [''] * noMasts
+    vpcsvDisplay = [''] * noMasts
+    resampledAtMast = [''] * noMasts
+    resampledAtMastDisplay = [''] * noMasts
+    quartileChartView2 = [''] * noMasts
+    colors = cm.jet(range(256))[0::256//noMasts]
+    mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
+    hints = [3,4,5,6]
+    for i in range(0,noMasts):
+        quartileChartView2[i] = CreateView('QuartileChartView')
+        quartileChartView2[i].BottomAxisTitle = '$u$ [m/s] (magnitude)'
+        quartileChartView2[i].LeftAxisTitle = '$z$ [m]'
+        quartileChartView2[i].ChartTitle = mastLabel[i]
+        quartileChartView2[i].LeftAxisUseCustomRange = 1
+        quartileChartView2[i].LeftAxisRangeMinimum = 0.0
+        quartileChartView2[i].LeftAxisRangeMaximum = velProfileMax_Z
+        quartileChartView2[i].BottomAxisUseCustomRange = 1
+        quartileChartView2[i].BottomAxisRangeMinimum = 0.0
+        quartileChartView2[i].BottomAxisRangeMaximum = 25.0
+        quartileChartView2[i].LegendLocation = 'TopLeft'
+        AssignViewToLayout(view=quartileChartView2[i], layout=layout8, hint=hints[i])
+
+        vpcsv[i] = CSVReader(registrationName=mastNames[i], FileName=[outputPath+'VelocityProfile_'+mastNames[i]+'.csv'])
+        vpcsvDisplay[i] = Show(vpcsv[i], quartileChartView2[i], 'XYChartRepresentation')
+        vpcsvDisplay[i].UseIndexForXAxis = 0
+        vpcsvDisplay[i].XArrayName = 'u_mag'
+        vpcsvDisplay[i].SeriesLineStyle = ['coordsZ', '1']
+        vpcsvDisplay[i].SeriesMarkerSize = ['coordsZ', '8']
+        vpcsvDisplay[i].SeriesMarkerStyle = ['coordsZ', '4']
+        vpcsvDisplay[i].SeriesColor = ['coordsZ', '0', '0', '0']
+        vpcsvDisplay[i].SeriesLabel = ['coordsZ', 'Experimental']
+        vpcsvDisplay[i].SeriesVisibility = ['coordsZ']
+        resampledAtMast[i] = ResampleWithDataset(registrationName='calculator1 resampled '+mastLabel[i], SourceDataArrays=calculator1, DestinationMesh=mastLine[i])
+        resampledAtMastDisplay[i] = Show(resampledAtMast[i], quartileChartView2[i], 'XYChartRepresentation')
+        resampledAtMastDisplay[i].UseIndexForXAxis = 0
+        resampledAtMastDisplay[i].XArrayName = 'u_Magnitude'
+        resampledAtMastDisplay[i].SeriesLineStyle = ['Points_Z', '1']
+        resampledAtMastDisplay[i].SeriesColor = ['Points_Z', '1', '0', '0']
+        resampledAtMastDisplay[i].SeriesLabel = ['Points_Z', 'SIMRA (Met)']
+        resampledAtMastDisplay[i].SeriesVisibility = ['Points_Z']
+    
+    saveScreenShot(layout8,outputPath+fileName+'velocityProfiles',saveScreenShots,saveAllViews=True)
     
 
 if plotIPPCmapsHorizontal:
