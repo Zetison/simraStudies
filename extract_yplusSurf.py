@@ -1,7 +1,6 @@
 from os.path import expanduser,exists
 import click
 import sys
-import numpy as np
 import vtk
 from splipy.io import G2
 import numpy as np

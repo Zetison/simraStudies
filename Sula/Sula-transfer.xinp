@@ -4,7 +4,7 @@
   <!-- General - geometry definitions !-->
   <simra_input>
     <geometry>
-      <patchfile>mesh_converted.dat</patchfile>
+      <patchfile>mesh.dat</patchfile>
       <topologysets>
         <set name="Bottom" type="face">
           <item patch="1">5</item>
@@ -13,9 +13,10 @@
     </geometry>
     <fluidproperties nu="1.5e-05"/>
     <scaling u="20" L="2000"/>
-            <!--<resultfile type="restart">cont_met.res</resultfile>-->
-    <resultfile type="history">hist_met.res</resultfile>
-    <boundaryfile type="parallel">boun_met.dat</boundaryfile> 
+        <!--<resultfile type="restart">cont_met.res</resultfile>-->
+    <!--<resultfile type="history" step="1">hist_met_rec.res</resultfile>-->
+    <resultfile type="history" step="1">hist.res</resultfile>
+    <boundaryfile type="parallel">boun.dat</boundaryfile> 
         <!--<origin x="-200" y="6899800"/> -->
   </simra_input>
 

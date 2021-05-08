@@ -13,10 +13,9 @@ def main(infile: IO):
     for oldName, newName in zip(['k','U'],['tk','u']): 
         data_tk = grid.GetPointData().GetArray(oldName)
         data_tk.SetName(newName)
-        grid.GetPointData().AddArray(data_tk)
     
     writer = vtk.vtkUnstructuredGridWriter()
-    writer.SetFileName(infile.name[:-4]+'_new.vtk')
+    writer.SetFileName(infile.name[:-4]+'.vtk')
     writer.SetInputData(grid)
     writer.Write()
 
