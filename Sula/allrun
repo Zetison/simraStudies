@@ -102,7 +102,7 @@ do
         simramesh ../Sula${topoRes}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
         siso -f vts ${fileName}_3D.g2
         siso -f dat ${fileName}_3D.g2 mesh.dat
-        #siso -f dat --out-endianness big ${fileName}_3D.g2 mesh_M0.dat
+        #siso -f dat --out-endianness big ${fileName}_3D.g2 mesh_M${M}.dat
         #paraview ${fileName}_3D.vts & # View mesh (optional)
     fi
     noObsPoints=$(head -n 1 ../POINT_FILE | grep -oP '^[^0-9]*\K[0-9]+')
@@ -126,10 +126,6 @@ do
                 cp mesh_ideal.dat mesh.dat
                 cp boun_ideal.dat bound.dat
                 cp hist_ideal.res hist.res
-            elif [ "$caseName" == "met" ]
-            then
-                cp mesh_converted.dat mesh.dat
-                cp boun_met.dat boun.dat
             fi
             $SIMRASOLTRANSF Sula-transfer_met.xinp
             #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
