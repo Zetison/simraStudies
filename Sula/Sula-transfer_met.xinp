@@ -13,9 +13,7 @@
     </geometry>
     <fluidproperties nu="1.5e-05"/>
     <scaling u="20" L="2000"/>
-        <!--<resultfile type="restart">cont_met.res</resultfile>-->
-    <!--<resultfile type="history" step="1">hist_met_rec.res</resultfile>-->
-    <resultfile type="history" step="1">hist.res</resultfile>
+    <resultfile type="restart">cont_met.res</resultfile>
     <boundaryfile type="parallel">boun.dat</boundaryfile> 
         <!--<origin x="-200" y="6899800"/> -->
   </simra_input>

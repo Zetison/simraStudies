@@ -2,10 +2,14 @@
 SIMRAPOSTPROC=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
 SIMRASOLTRANSF=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-SolutionTransfer
 caseName=Sula
-caseName=SulaMetReg
+#caseName=SulaMetReg
+caseName=met_new
+caseName=met
+#caseName=ideal
+#caseName=test
 simraNesting=1
 simraNesting=""
-simraresultsFolder=$HOME/results/simra
+simraresultsFolder=$HOME/results/simra/Sula
 resultsFolder=$simraresultsFolder/$caseName
 #withMPI=1
 withMPI=0
@@ -20,7 +24,7 @@ zeta=0.1
 zeta=0.05
 #zeta=0.01
 grading=1.116
-#res=600
+res=600
 #res=300
 #res=150
 nz=51
@@ -35,12 +39,12 @@ topoRes="50m"
 PHI=315
 U_A=27.783
 NSTEP=8000
-for M in 0 1 2 3 # 1 2 3 # 0 1 2 3
+NSTEP=2
+for M in 0 # 1 # 1 2 3 # 0 1 2 3
 do
     nref=0
-    cp convertCoords.py ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
+    cp ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer*.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
-    python convertCoords.py --originx $originx --originy $originy
     UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     LENREF=$(cat $simrainfile | grep -oP '(?<=LENREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     VIS=$(cat $simrainfile | grep -oP '(?<=VIS=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
@@ -50,13 +54,13 @@ do
     #siso -f dat mesh_converted.dat mesh.dat --in-coords local utm:33n --coords utm:33n
     if [ "$simraNesting" == 1 ] && ! [ "$M" == 0 ]
     then
-        fileName=${caseName}_nest_M${M}
+        fileName=nest_M${M}
     else
-        fileName=${caseName}_M${M}
+        fileName=M${M}
     fi
     logsimra=${fileName}_simra.log
     logsimramesh=${fileName}_simramesh.log
-    logIFEMmesh=${fileName}_simramesh.log
+    logIFEMmesh=${fileName}_IFEM.log
     if [[ $1 == 1 ]]
     then
         if [[ "$M" == 0 ]]
@@ -95,13 +99,13 @@ do
         fi
         options="--nrefu $nref --nrefv $nref $options"
         pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
-        simramesh ${caseName}${topoRes}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
+        simramesh ../Sula${topoRes}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
         siso -f vts ${fileName}_3D.g2
         siso -f dat ${fileName}_3D.g2 mesh.dat
-        siso -f dat --out-endianness big ${fileName}_3D.g2 mesh_M0.dat
+        #siso -f dat --out-endianness big ${fileName}_3D.g2 mesh_M0.dat
         #paraview ${fileName}_3D.vts & # View mesh (optional)
     fi
-    noObsPoints=$(head -n 1 POINT_FILE | grep -oP '^[^0-9]*\K[0-9]+')
+    noObsPoints=$(head -n 1 ../POINT_FILE | grep -oP '^[^0-9]*\K[0-9]+')
     if [[ $2 == 1 ]]
     then
         logsimra=${fileName}_simra.log
@@ -114,14 +118,23 @@ do
             $HOME/kode/simra/build_mpi/bin/cppe1
             $HOME/kode/simra/build_mpi/bin/simra_mpi simra.in | tee $logsimra
         else
+            #python3 convertBE.py
             #gfortran ic_bc.f90 -o ic_bc
             #./ic_bc simra.in
-            python3 convertBE.py
-            $SIMRASOLTRANSF Sula-transfer.xinp
-            #cp mesh_converted.dat mesh.dat
-            #cp boun_met.dat bound.dat
+            if [ "$caseName" == "ideal" ]
+            then
+                cp mesh_ideal.dat mesh.dat
+                cp boun_ideal.dat bound.dat
+                cp hist_ideal.res hist.res
+            elif [ "$caseName" == "met" ]
+            then
+                cp mesh_converted.dat mesh.dat
+                cp boun_met.dat boun.dat
+            fi
+            $SIMRASOLTRANSF Sula-transfer_met.xinp
             #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
             #$HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
+            #gdb $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
             simra simra.in | tee $logsimra
         fi
         $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 

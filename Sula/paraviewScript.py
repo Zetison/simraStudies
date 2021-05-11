@@ -3,6 +3,7 @@ import sys
 import numpy as np
 from scipy.spatial.transform import Rotation as Rot
 import copy
+from pathlib import Path
 #from pyproj import Transformer
 from matplotlib import cm
 #### import the simple module from the paraview
@@ -25,13 +26,14 @@ ImportPresets(filename=home+'/kode/colormaps/google.json')
 #LoadPlugin(pluginsPath+'/SurfaceLIC/SurfaceLIC.so', remote=False, ns=globals())
 fileName = 'SED_fileName'
 caseName = 'SED_caseName'
-outputPath = home+'/results/simra/'+caseName+'/'
+simraResultsFolder = home+'/results/simra/Sula/'
+outputPath = simraResultsFolder+caseName+'/'
 topoRes = 'SED_topoRes' 
 originx=-200.0
 originy=6899800.0
-topographyFileName = outputPath+caseName+topoRes+'.vts'
-textureFileName_topo = outputPath+caseName+topoRes+'_topo.png'
-textureFileName_NIB = outputPath+caseName+topoRes+'.png'
+topographyFileName   = simraResultsFolder+'Sula'+topoRes+'.vts'
+textureFileName_topo = simraResultsFolder+'Sula'+topoRes+'_topo.png'
+textureFileName_NIB  = simraResultsFolder+'Sula'+topoRes+'.png'
 windCase = 2 
 velProfileMax_Z=120
 noSteps = 201
@@ -50,12 +52,12 @@ plotTakeOffLines         = 0
 plotBridgeAndSensors     = 1 
 plotUniverseBackground   = 0 
 
-plotLIC                  = 1 
-plotStreamLines          = 1 
-plotVolumeRendering      = 1 
-plotIPPCmapsHorizontal   = 1 
-plotIPPCmapsVertical     = 1 
-plotOverTime             = 1
+plotLIC                  = 0 
+plotStreamLines          = 0 
+plotVolumeRendering      = 0 
+plotIPPCmapsHorizontal   = 0 
+plotIPPCmapsVertical     = 0 
+plotOverTime             = 0
 plotVelocityProfiles     = 1
 
 makeVideo                = 0
@@ -118,8 +120,6 @@ runwayCenter = (runwayEndEast+runwayEndWest)/2
 runwayLength = np.linalg.norm(runwayEndWest-runwayEndEast)
 runwayRotVector = np.array([0,0,np.degrees(np.arctan2(runwayDir[1],runwayDir[0]))])
 
-# get animation scene
-animationScene1 = GetAnimationScene()
 LoadPalette(paletteName='WhiteBackground')
 renderView1 = GetActiveViewOrCreate('RenderView')
 renderView1.OrientationAxesVisibility = 0
@@ -128,73 +128,6 @@ if plotUniverseBackground:
     #convert -crop 50%x100% lightBlueMarble2.jpg converted_lBM2.jpg
     import universeBackground 
 
-# get the time-keeper
-timeKeeper1 = GetTimeKeeper()
-
-# create a new 'XML Unstructured Grid Reader'
-#simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+fileName+'.pvd')
-simraPVDresults = PVDReader(registrationName=fileName, FileName=outputPath+'cont_met.pvd')
-animationScene1.UpdateAnimationUsingDataTimeSteps()
-animationScene1.GoToLast()
-# update animation scene based on data timesteps
-
-# get active view
-layout1 = GetLayoutByName("Layout #1")
-
-
-# create a new 'Calculator'
-calculator0 = Calculator(registrationName='Calculator0', Input=simraPVDresults)
-calculator0.Function = 'u_x*'+str(runwayNormal[0])+'+u_y*'+str(runwayNormal[1])+'+u_z*'+str(runwayNormal[2])
-calculator0.ResultArrayName = 'dot(n,u)'
-
-# create a new 'Calculator'
-calculator1 = Calculator(registrationName='Calculator1', Input=calculator0)
-calculator1.Function = 'sqrt(tk)'
-calculator1.ResultArrayName = 'sqrtTKE'
-calculatorIPPC = Calculator(registrationName='CalculatorIPPC', Input=calculator1)
-calculatorIPPC.Function = 'sqrt(tk)'
-calculatorIPPC.ResultArrayName = 'sqrtTKE_IPPC'
-
-sqrtTKELUT = GetColorTransferFunction('sqrtTKE')
-sqrtTKEPWF = GetOpacityTransferFunction('sqrtTKE')
-sqrtTKE_IPPCLUT = GetColorTransferFunction('sqrtTKE_IPPC')
-
-slice1 = Slice(registrationName='Slice1', Input=calculatorIPPC)
-slice1.SliceType = 'Plane'
-slice1.SliceType.Normal = runwayNormal 
-slice1.SliceType.Origin = runwayCenter
-Hide3DWidgets(proxy=slice1.SliceType)
-
-proj_u = Calculator(registrationName='Projected u', Input=calculatorIPPC)
-proj_u.Function = 'u_X*iHat+u_Y*jHat+u_Z*kHat-(u_X*'+str(runwayNormal[0])+'+u_Y*'+str(runwayNormal[1])+'+u_Z*'+str(runwayNormal[2])+')*('+str(runwayNormal[0])+'*iHat+'+str(runwayNormal[1])+'*jHat+'+str(runwayNormal[2])+'*kHat)'
-proj_u.ResultArrayName = 'u_proj'
-
-planeSlice = Plane(registrationName='Plane slice')
-planeSliceLength = 43e3
-planeSliceHeight = h_max
-planeSlice.Origin = np.append(runwayCenter[:2]-runwayDir[:2]*15e3,np.zeros(1))
-planeSlice.Point1 = planeSlice.Origin + planeSliceLength*np.append(runwayDir[:2],np.zeros(1))
-planeSlice.Point2 = planeSlice.Origin + planeSliceHeight*np.array([0,0,1])
-planeSlice.XResolution = np.round(planeSliceLength/1500).astype('int')
-planeSlice.YResolution = np.round(10*planeSliceHeight/1500).astype('int')
-resampledSlice = ResampleWithDataset(registrationName='proj_u Resampled', SourceDataArrays=proj_u, DestinationMesh=planeSlice)
-resampledSlice.CellLocator = 'Static Cell Locator'
-
-topography = XMLStructuredGridReader(registrationName='Topography',FileName=topographyFileName)
-topography.PointArrayStatus = ['TCoords_']
-layout1 = GetLayout()
-
-calculator2 = Calculator(registrationName='Calculator2', Input=topography)
-calculator2.Function = 'coordsZ'
-calculator2.ResultArrayName = 'height'
-heightLUT = GetColorTransferFunction('height')
-heightPWF = GetOpacityTransferFunction('height')
-
-sliceTopography = Slice(registrationName='Slice topography', Input=calculator2)
-sliceTopography.SliceType = 'Plane'
-sliceTopography.SliceType.Normal = runwayNormal 
-sliceTopography.SliceType.Origin = runwayCenter
-Hide3DWidgets(proxy=sliceTopography.SliceType)
 
 def rotTran(obj,rot,tran,regName='Intermediate transform',rotateFirst=True):
     if isinstance(obj,(list,np.ndarray)):
@@ -333,568 +266,680 @@ def showMasts(renderView):
             lineSourceDisplay[i].AmbientColor = [1.0, 0.0, 0.0]
             lineSourceDisplay[i].DiffuseColor = [1.0, 0.0, 0.0]
 
+topography = XMLStructuredGridReader(registrationName='Topography',FileName=topographyFileName)
+topography.PointArrayStatus = ['TCoords_']
+layout1 = GetLayout()
 
+calculator2 = Calculator(registrationName='Calculator2', Input=topography)
+calculator2.Function = 'coordsZ'
+calculator2.ResultArrayName = 'height'
+heightLUT = GetColorTransferFunction('height')
+heightPWF = GetOpacityTransferFunction('height')
 
-####################################################################################
-## Layout 1 - Surface LIC plots
-# create a new 'Clip'
-if plotLIC:
-    topographyDisplay = Show(topography, renderView1, 'StructuredGridRepresentation')
-    topographyDisplay.Representation = 'Surface'
-    topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
-    showRunway(renderView1)
-    showMasts(renderView1)
-    # current camera placement for renderView1
-    #renderView1.InteractionMode = '2D'
-    CreateLayout('Layout #2')
-    layout2 = GetLayoutByName("Layout #2")
+sliceTopography = Slice(registrationName='Slice topography', Input=calculator2)
+sliceTopography.SliceType = 'Plane'
+sliceTopography.SliceType.Normal = runwayNormal 
+sliceTopography.SliceType.Origin = runwayCenter
+Hide3DWidgets(proxy=sliceTopography.SliceType)
     
-    # Create a new 'Render View'
-    renderView2 = CreateView('RenderView')
-    renderView2.AxesGrid = 'GridAxes3DActor'
-    renderView2.StereoType = 'Crystal Eyes'
-    renderView2.CameraFocalDisk = 1.0
-    AssignViewToLayout(view=renderView2, layout=layout2, hint=0)
-    
-    # create a new 'Slice'
-    slice2 = Slice(registrationName='Slice2', Input=calculator1)
-    slice2.SliceType = 'Plane'
-    slice2.HyperTreeGridSlicer = 'Plane'
-    slice2.SliceOffsetValues = [0.0]
-    slice2.SliceType.Normal = [0.0, 0.0, 1.0]
-    slice2.SliceType.Origin = np.append(runwayCenter[:2],horizontalSlice_z)
-    Hide3DWidgets(proxy=slice2.SliceType)
-    
-    # show data in view
-    slice1Display = Show(slice1, renderView1, 'UnstructuredGridRepresentation')
-    ColorBy(slice1Display, ('POINTS', 'sqrtTKE'))
-    slice1Display.SetRepresentationType('Surface LIC')
-    slice1Display.ColorMode = 'Multiply'
-    slice1Display.EnhanceContrast = 'Color Only'
-    slice1Display.HighColorContrastEnhancementFactor = 0.3
-    slice1Display.LICIntensity = 0.8
-    slice1Display.MapModeBias = 0.2
-    slice1Display.RescaleTransferFunctionToDataRange(True, False)
-    slice1Display.SetScalarBarVisibility(renderView2, True)# set active source
+CreateLayout('Layout #8')
+mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
+hints = [3,4,5,6]
+layout8 = GetLayoutByName("Layout #8")
+layout8.SplitHorizontal(0, 0.5)
+layout8.SplitHorizontal(1, 0.5)
+layout8.SplitHorizontal(2, 0.5)
+quartileChartView2 = [''] * noMasts
+vpcsv = [''] * noMasts
+vpcsvDisplay = [''] * noMasts
+for i in range(0,noMasts):
+    quartileChartView2[i] = CreateView('QuartileChartView')
+    quartileChartView2[i].BottomAxisTitle = '$u$ [m/s] (magnitude)'
+    quartileChartView2[i].LeftAxisTitle = '$z$ [m]'
+    quartileChartView2[i].ChartTitle = mastLabel[i]
+    quartileChartView2[i].LeftAxisUseCustomRange = 1
+    quartileChartView2[i].LeftAxisRangeMinimum = 0.0
+    quartileChartView2[i].LeftAxisRangeMaximum = velProfileMax_Z
+    quartileChartView2[i].BottomAxisUseCustomRange = 1
+    quartileChartView2[i].BottomAxisRangeMinimum = 0.0
+    quartileChartView2[i].BottomAxisRangeMaximum = 25.0
+    quartileChartView2[i].LegendLocation = 'TopLeft'
+    AssignViewToLayout(view=quartileChartView2[i], layout=layout8, hint=hints[i])
+    vpcsv[i] = CSVReader(registrationName=mastNames[i], FileName=list(map(str,sorted(Path(simraResultsFolder).glob('VelocityProfile_'+mastNames[i]+'_*.csv')))))
+    #vpcsv[i] = CSVReader(registrationName=mastNames[i], FileName=[simraResultsFolder+'/VelocityProfile_'+mastNames[i]+'_0.csv'])
+    vpcsvDisplay[i] = Show(vpcsv[i], quartileChartView2[i], 'XYChartRepresentation')
+    vpcsvDisplay[i].UseIndexForXAxis = 0
+    vpcsvDisplay[i].XArrayName = 'u_mag'
+    vpcsvDisplay[i].SeriesLineStyle = ['coordsZ', '1']
+    vpcsvDisplay[i].SeriesMarkerSize = ['coordsZ', '8']
+    vpcsvDisplay[i].SeriesMarkerStyle = ['coordsZ', '4']
+    vpcsvDisplay[i].SeriesColor = ['coordsZ', '0', '0', '0']
+    vpcsvDisplay[i].SeriesLabel = ['coordsZ', 'Experimental']
+    vpcsvDisplay[i].SeriesVisibility = ['coordsZ']
 
-    sqrtTKELUTColorBar = GetScalarBar(sqrtTKELUT, renderView1)
-    sqrtTKELUTColorBar.WindowLocation = 'UpperRightCorner'
-    sqrtTKELUTColorBar.Title = 'Turbulence, $\sqrt{k}$'
-    sqrtTKELUTColorBar.ComponentTitle = ''
-    sqrtTKELUTColorBar.ScalarBarLength = scalarBarLength
+openFoamResultsFolder = home+'/results/openfoam/Sula/'
+fileNames = [outputFolder+'M0.pvd']
+#fileNames = [simraResultsFolder+'met_new/2020111906_M1.pvd']
+#fileNames = [simraResultsFolder+'met_new/2020111906_M0.pvd',
+#             simraResultsFolder+'met_new/2020111906_M1.pvd']
+#fileNames = [simraResultsFolder+'met_new/2020111906_M0.pvd',
+#             simraResultsFolder+'met_new/2020111906_M1.pvd',
+#             openFoamResultsFolder+'Finer_sola_steadyisothermal_new.vtk']
+#fileNames = [openFoamResultsFolder+'Finer_sola_steadyisothermal_new.vtk']
+#fileNames = [outputPath+caseName+'.pvd']
 
-    # show data in view
-    slice2Display = Show(slice2, renderView2, 'UnstructuredGridRepresentation')
-    ColorBy(slice2Display, ('POINTS', 'sqrtTKE'))
-    slice2Display.SetRepresentationType('Surface LIC')
-    slice2Display.ColorMode = 'Multiply'
-    slice2Display.EnhanceContrast = 'Color Only'
-    slice2Display.HighColorContrastEnhancementFactor = 0.3
-    slice2Display.LICIntensity = 0.8
-    slice2Display.MapModeBias = 0.2
-    slice2Display.RescaleTransferFunctionToDataRange(True, False)
-    slice2Display.SetScalarBarVisibility(renderView2, True)# set active source
+caseNames = ['SIMRA_M0','SIMRA_M1','Finer_sola_steadyisothermal','SolaSteady_Finer_9596']
+caseNames = ['SIMRA_M1']
+caseNames = ['SIMRA_M0']
+#caseNames = ['Finer_sola_steadyisothermal','SolaSteady_Finer_9596']
+noFiles = len(fileNames)
+colorsCases = cm.jet(range(256))[0::256//noFiles]
+pvdResults = [''] * noFiles
+calculator0 = [''] * noFiles
+calculator1 = [''] * noFiles
+calculatorIPPC = [''] * noFiles
+slice1 = [''] * noFiles
+proj_u = [''] * noFiles
+planeSlice = [''] * noFiles
+resampledSlice = [''] * noFiles
+resampledAtMast = [''] * noFiles
+resampledAtMastDisplay = [''] * noFiles
+for i_f in range(0,noFiles):
+    # get the time-keeper
+    fileName = caseNames[i_f]
+    timeKeeper1 = GetTimeKeeper()
     
-    sqrtTKELUTColorBar_2 = GetScalarBar(sqrtTKELUT, renderView2)
-    sqrtTKELUTColorBar_2.WindowLocation = 'UpperRightCorner'
-    sqrtTKELUTColorBar_2.Title = 'Turbulence, $\sqrt{k}$'
-    sqrtTKELUTColorBar_2.ComponentTitle = ''
-    sqrtTKELUTColorBar_2.ScalarBarLength = scalarBarLength
-
-    topographyDisplay = Show(topography, renderView2, 'UnstructuredGridRepresentation')
-    topographyDisplay.Representation = 'Surface'
-    topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
-
-    # current camera placement for renderView2
-    renderView2.OrientationAxesVisibility = 0
-    showRunway(renderView2)
-    showMasts(renderView2)
- 
-####################################################################################
-## Layout 3 - Stream lines
-if plotStreamLines:
-    CreateLayout('Layout #3')
-    layout3 = GetLayoutByName("Layout #3")
-    
-    # Create a new 'Render View'
-    renderView3 = CreateView('RenderView')
-    renderView3.AxesGrid = 'GridAxes3DActor'
-    renderView3.StereoType = 'Crystal Eyes'
-    renderView3.CameraFocalDisk = 1.0
-    renderView3.OrientationAxesVisibility = 0
-    AssignViewToLayout(view=renderView3, layout=layout3, hint=0)
-    
-    topographyDisplay = Show(topography, renderView3, 'UnstructuredGridRepresentation')
-    topographyDisplay.Representation = 'Surface'
-    topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
-    
-    # create a new 'Stream Tracer'
-    streamTracer1 = StreamTracer(registrationName='StreamTracer1', Input=calculator1, SeedType='Line')
-    streamTracer1.MaximumStreamlineLength = 100000.0
-    streamTracer1.SeedType.Point1 = streamTracerPoint1
-    streamTracer1.SeedType.Point2 = streamTracerPoint2
-    streamTracer1.SeedType.Resolution = 200
-    streamTracer1.MaximumStepLength = 0.5
-    streamTracer1.Vectors = ['POINTS', 'u']
-    renderView3.Update()
-
-    # show data in view
-    streamTracer1Display = Show(streamTracer1, renderView3, 'GeometryRepresentation')
-    streamTracer1Display.Representation = 'Surface'
-    streamTracer1Display.ColorArrayName = ['POINTS', 'sqrtTKE']
-    streamTracer1Display.RescaleTransferFunctionToDataRange(False, True)
-    streamTracer1Display.SetScalarBarVisibility(renderView3, True)
-    streamTracer1Display.SetRepresentationType('Wireframe')
-    streamTracer1Display.RenderLinesAsTubes = 1
-    streamTracer1Display.SetRepresentationType('Surface')
-    streamTracer1Display.LineWidth = 3.0
-    Hide3DWidgets(proxy=streamTracer1.SeedType)
-
-    sqrtTKELUTColorBar_3 = GetScalarBar(sqrtTKELUT, renderView3)
-    sqrtTKELUTColorBar_3.Title = 'Turbulence, $\sqrt{k}$'
-    sqrtTKELUTColorBar_3.Orientation = 'Vertical'
-    sqrtTKELUTColorBar_3.WindowLocation = 'UpperRightCorner'
-    sqrtTKELUTColorBar_3.ComponentTitle = ''
-    sqrtTKELUTColorBar_3.ScalarBarLength = scalarBarLength
-    
-    showRunway(renderView3)
-    showMasts(renderView3)
-    
-
-
-####################################################################################
-## Layout 4 - Volume rendering
-if plotVolumeRendering:
-    CreateLayout('Layout #4')
-    layout4 = GetLayoutByName("Layout #4")
-    
-    # Create a new 'Render View'
-    renderView4 = CreateView('RenderView')
-    renderView4.AxesGrid = 'GridAxes3DActor'
-    renderView4.StereoType = 'Crystal Eyes'
-    renderView4.CameraFocalDisk = 1.0
-    renderView4.OrientationAxesVisibility = 0
-    AssignViewToLayout(view=renderView4, layout=layout4, hint=0)
-    
-    topographyDisplay = Show(topography, renderView4, 'UnstructuredGridRepresentation')
-    topographyDisplay.Representation = 'Surface'
-    topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
-    
-    # create a new 'Stream Tracer'
-    calculator1Display = Show(calculator1, renderView4, 'UnstructuredGridRepresentation')
-    calculator1Display.Representation = 'Volume'
-    calculator1Display.ColorArrayName = ['POINTS', 'sqrtTKE']
-
-    showRunway(renderView4)
-    showMasts(renderView4)
-    
-    sqrtTKELUTColorBar_4 = GetScalarBar(sqrtTKELUT, renderView4)
-    sqrtTKELUTColorBar_4.Title = 'Turbulence, $\sqrt{k}$'
-    sqrtTKELUTColorBar_4.Orientation = 'Vertical'
-    sqrtTKELUTColorBar_4.WindowLocation = 'UpperRightCorner'
-    sqrtTKELUTColorBar_4.ComponentTitle = ''
-    sqrtTKELUTColorBar_4.ScalarBarLength = scalarBarLength
-    if timeStepAnnotation:
-        annotateTimeStep(calculator1,renderView4,location='UpperLeftCorner')
-
-
-if plotIPPCmapsHorizontal:
-    CreateLayout('Layout #5')
-    layout5 = GetLayoutByName("Layout #5")
-    
-    # Create a new 'Render View'
-    renderView5 = CreateView('RenderView')
-    renderView5.AxesGrid = 'GridAxes3DActor'
-    renderView5.StereoType = 'Crystal Eyes'
-    renderView5.CameraFocalDisk = 1.0
-    renderView5.OrientationAxesVisibility = 0
-    AssignViewToLayout(view=renderView5, layout=layout5, hint=0)
-
-    showRunway(renderView5)
-    
-    if plotTakeOffLines:
-        takeOffLineEastDisplay = Show(takeOffLineEast, renderView5, 'GeometryRepresentation')
-        takeOffLineEastDisplay.DiffuseColor = takeOffLineColor 
-        takeOffLineEastDisplay.LineWidth = 2.0
-        takeOffLineWestDisplay = Show(takeOffLineWest, renderView5, 'GeometryRepresentation')
-        takeOffLineWestDisplay.DiffuseColor = takeOffLineColor 
-        takeOffLineWestDisplay.LineWidth = 2.0
-
-    calculator2Display = Show(calculator2, renderView5, 'StructuredGridRepresentation')
-    calculator2Display.Representation = 'Surface'
-    calculator2Display.Texture = CreateTexture(textureFileName_topo)
-    HideScalarBarIfNotNeeded(heightLUT, renderView5)
-    
-    contour1 = Contour(Input=calculator2)
-    contour1.ContourBy = ['POINTS', 'height']
-    contour1.Isosurfaces = [0.0001]
-    contour1.PointMergeMethod = 'Uniform Binning'
-    contour1Display = Show(contour1, renderView5, 'GeometryRepresentation')
-    ColorBy(contour1Display, None)
-    contour1Display.DiffuseColor = [0.552941176470588, 0.149019607843137, 0.129411764705882]
-
-    # Create an extended cone at which to plot results
-    vtkName = outputPath+'temp'
-    coffeeFilter(runwayEndWest,runwayEndEast,h_max,phi1=angleOfAttack_West,phi2=angleOfAttack_East,n=400,name=vtkName)
-    extendedCone = LegacyVTKReader(registrationName='ExtendedCone', FileNames=[vtkName+'.vtk'])
-    extendedConeDisplay = Show(extendedCone, renderView5, 'StructuredGridRepresentation')
-    contour2 = Contour(Input=extendedCone)
-    Hide(extendedCone,renderView5)
-    contour2.ContourBy = ['POINTS', 'z']
-    contour2.Isosurfaces = np.array([500,1000,1500,2000,2500,3000,3500,4000,4500])*0.3048 #convert to meter
-    contour2.PointMergeMethod = 'Uniform Binning'
-    contour2Display = Show(contour2, renderView5, 'GeometryRepresentation')
-    ColorBy(contour2Display, None)
-    contour2Display.DiffuseColor = [0.286274509803922, 0.317647058823529, 0.968627450980392]
-    
-    resampleWithDataset1 = ResampleWithDataset(SourceDataArrays=calculatorIPPC, DestinationMesh=extendedCone)
-    resampleWithDataset1.CellLocator = 'Static Cell Locator'
-    resampleWithDataset1Display = Show(resampleWithDataset1, renderView5, 'StructuredGridRepresentation')
-    resampleWithDataset1Display.ColorArrayName = ['POINTS', 'sqrtTKE_IPPC']
-    resampleWithDataset1Display.Ambient = 1.0
-    resampleWithDataset1Display.Diffuse = 0.0
-
-    sqrtTKELUTColorBar_5 = GetScalarBar(sqrtTKE_IPPCLUT, renderView5)
-    sqrtTKELUTColorBar_5.Title = 'Turbulence, $\sqrt{k}$'
-    sqrtTKELUTColorBar_5.Orientation = 'Vertical'
-    sqrtTKELUTColorBar_5.WindowLocation = 'UpperRightCorner'
-    sqrtTKELUTColorBar_5.ComponentTitle = ''
-    sqrtTKELUTColorBar_5.ScalarBarLength = 0.13 
-    sqrtTKELUTColorBar_5.AutomaticLabelFormat = 1
-    sqrtTKELUTColorBar_5.UseCustomLabels = 1
-    sqrtTKELUTColorBar_5.CustomLabels = [2, 3, 4, 5]
-    sqrtTKELUTColorBar_5.AddRangeLabels = 0
-    
-    contour3 = Contour(Input=resampleWithDataset1)
-    contour3.ContourBy = ['POINTS', 'sqrtTKE_IPPC']
-    contour3.Isosurfaces = [2.0,3.0,4.0]
-    contour3.PointMergeMethod = 'Uniform Binning'
-    contour3Display = Show(contour3, renderView5, 'GeometryRepresentation')
-    try:
-        ColorBy(contour3Display, None)
-    except:
-        print('No turbulence above 2 to be shown')
-    
-    contour3Display.DiffuseColor = [0.0, 0.0, 0.0]
-
-    calculatorConeProj = Calculator(Input=resampleWithDataset1)
-    calculatorConeProj.ResultArrayName = 'projCone'
-    z_proj = 5000
-    calculatorConeProj.Function = 'coordsX*iHat+coordsY*jHat+'+str(z_proj)+'*kHat'
-    calculatorConeProj.CoordinateResults = 1
-    plane1 = Plane()
-    plane1.Origin = [P_sw[0],P_sw[1],z_proj]
-    plane1.Point1 = [P_se[0],P_se[1],z_proj]
-    plane1.Point2 = [P_nw[0],P_nw[1],z_proj]
-    plane1.XResolution = np.round(np.linalg.norm(P_sw[:2]-P_se[:2])/1000).astype('int')
-    plane1.YResolution = np.round(np.linalg.norm(P_sw[:2]-P_nw[:2])/1000).astype('int')
-    resampleWithDataset2 = ResampleWithDataset(SourceDataArrays=calculatorConeProj, DestinationMesh=plane1)
-    resampleWithDataset2.CellLocator = 'Static Cell Locator'
-    glyph1 = Glyph(Input=resampleWithDataset2, GlyphType='Arrow')
-    glyph1.OrientationArray = ['POINTS', 'u']
-    glyph1.ScaleArray = ['POINTS', 'u']
-    glyph1.ScaleFactor = glyphScale1
-    glyph1.GlyphTransform = 'Transform2'
-    glyph1.GlyphMode = 'Every Nth Point'
-    glyph1.Stride = 1
-    glyph1Display = Show(glyph1, renderView5, 'GeometryRepresentation')
-    glyph1Display.DiffuseColor = [0.0, 0.0, 0.0]
-    ColorBy(glyph1Display, None)
-
-    renderView5.InteractionMode = '2D'
-    renderView5.CameraPosition = [54279.27032496591-originx, 6950488.075249355-originy, 25242.965782087373]
-    renderView5.CameraFocalPoint = [51365.64987931158-originx, 6949878.21067271-originy, -393.12364711190645]
-    renderView5.CameraViewUp = [-0.0026685028441370807, 0.999720760110162, -0.023479371740545256]
-    renderView5.CameraParallelScale = 11840.135737817194
-    
-    
-if plotIPPCmapsVertical:
-    CreateLayout('Layout #6')
-    layout6 = GetLayoutByName("Layout #6")
-    # Create a new 'Render View'
-    renderView6 = CreateView('RenderView')
-    renderView6.AxesGrid = 'GridAxes3DActor'
-    renderView6.StereoType = 'Crystal Eyes'
-    renderView6.CameraFocalDisk = 1.0
-    renderView6.OrientationAxesVisibility = 0
-    AssignViewToLayout(view=renderView6, layout=layout6, hint=0)
-
-    def SItoFTvsNM(obj,regName='Intermediate calculator'):
-        rotObj = rotTran(obj,-runwayRotVector,-runwayCenter,rotateFirst=False)
-        if isinstance(rotObj,(list,np.ndarray)): 
-            return [rotObj[0]/1852, rotObj[1]/1852, 0.3048*rotObj[2]/100]
-        else:
-            result = Calculator(registrationName=regName, Input=rotObj)
-            result.Function = '(coordsX*iHat+coordsY*jHat)/1852 + 0.3048*coordsZ*kHat/100'
-            result.ResultArrayName = 'height'
-            result.CoordinateResults = 1
-        return result
-
-    sliceTopographyTransform = SItoFTvsNM(sliceTopography,regName='Slice topography transformed')
-    sliceTopographyTransformDisplay = Show(sliceTopographyTransform, renderView6, 'StructuredGridRepresentation')
-    sliceTopographyTransformDisplay.LineWidth = 3.0
-    if False:
-        ColorBy(sliceTopographyTransformDisplay, 'height')
+    openfoamVars = fileNames[i_f][-3:] == 'vtk' # True
+    if openfoamVars:
+        pvdResults[i_f] = LegacyVTKReader(registrationName=caseNames[i_f], FileNames=[fileNames[i_f]])
     else:
-        sliceTopographyTransformDisplay.DiffuseColor = [0.0, 0.0, 0.0]
-        ColorBy(sliceTopographyTransformDisplay, None)
-
-    resampledSliceTransform = SItoFTvsNM(resampledSlice,regName='Slice1 transformed')
-    slice1Transform = SItoFTvsNM(slice1,regName='Slice1 transformed')
-    slice1TransformDisplay = Show(slice1Transform, renderView6, 'StructuredGridRepresentation')
-    slice1TransformDisplay.ColorArrayName = ['POINTS', 'sqrtTKE_IPPC']
-    slice1TransformDisplay.Ambient = 1.0
-    slice1TransformDisplay.Diffuse = 0.0
-
-    glyph2 = Glyph(registrationName='Glyphs',Input=resampledSliceTransform, GlyphType='Arrow')
-    glyph2.OrientationArray = ['POINTS', 'u_proj']
-    glyph2.ScaleArray = ['POINTS', 'u_proj']
-    glyph2.ScaleFactor = glyphScale2
-    glyph2.GlyphTransform = 'Transform2'
-    glyph2.GlyphMode = 'Every Nth Point'
-    glyph2.Stride = 1
-    glyph2Display = Show(glyph2, renderView6, 'GeometryRepresentation')
-    glyph2Display.DiffuseColor = [0.0, 0.6, 0.0]
-    ColorBy(glyph2Display, None)
+        pvdResults[i_f] = PVDReader(registrationName=fileNames[i_f], FileName=fileNames[i_f])
     
-    sqrtTKELUTColorBar_6 = GetScalarBar(sqrtTKE_IPPCLUT, renderView6)
-    sqrtTKELUTColorBar_6.Title = 'Turbulence, $\sqrt{k}$'
-    sqrtTKELUTColorBar_6.Orientation = 'Vertical'
-    sqrtTKELUTColorBar_6.WindowLocation = 'UpperRightCorner'
-    sqrtTKELUTColorBar_6.ComponentTitle = ''
-    sqrtTKELUTColorBar_6.ScalarBarLength = 0.13 
-    sqrtTKELUTColorBar_6.AutomaticLabelFormat = 1
-    sqrtTKELUTColorBar_6.UseCustomLabels = 1
-    sqrtTKELUTColorBar_6.CustomLabels = [2, 3, 4, 5]
-    sqrtTKELUTColorBar_6.AddRangeLabels = 0
     
-    contour4 = Contour(registrationName='Contour IPPC vertical', Input=slice1Transform)
-    contour4.ContourBy = ['POINTS', 'sqrtTKE_IPPC']
-    contour4.Isosurfaces = [2.0,3.0,4.0]
-    contour4.PointMergeMethod = 'Uniform Binning'
-    contour4Display = Show(contour4, renderView6, 'GeometryRepresentation')
-    try:
-        ColorBy(contour4Display, None)
-    except:
-        print('No turbulence above 2 to be shown')
+    # get active view
+    layout1 = GetLayoutByName("Layout #1")
     
-    contour4Display.DiffuseColor = [0.0, 0.0, 0.0]
     
-    runwayTransform = SItoFTvsNM(runway,'Runway')
-    showRunway(renderView6,runwayTransform)
-
-    if plotTakeOffLines:
-        takeOffLineEastTransform = SItoFTvsNM(takeOffLineEast,'East take off')
-        takeOffLineEastDisplay = Show(takeOffLineEastTransform, renderView6, 'GeometryRepresentation')
-        takeOffLineEastDisplay.DiffuseColor = takeOffLineColor 
-        takeOffLineEastDisplay.LineWidth = 2.0
-        takeOffLineWestTransform = SItoFTvsNM(takeOffLineWest, 'West take off')
-        takeOffLineWestDisplay = Show(takeOffLineWestTransform, renderView6, 'GeometryRepresentation')
-        takeOffLineWestDisplay.DiffuseColor = takeOffLineColor 
-        takeOffLineWestDisplay.LineWidth = 2.0
+    # create a new 'Calculator'
+    calculator0[i_f] = Calculator(registrationName='Calculator0', Input=pvdResults[i_f])
+    calculator0[i_f].Function = 'u_X*'+str(runwayNormal[0])+'+u_Y*'+str(runwayNormal[1])+'+u_Z*'+str(runwayNormal[2])
+    calculator0[i_f].ResultArrayName = 'dot(n,u)'
     
-    # Add 2D axes
-    planeSliceTransform = SItoFTvsNM(planeSlice,'dummy')
-    axes1 = Axes()
-    Origin = SItoFTvsNM(np.array(planeSlice.Origin))
-    Point1 = SItoFTvsNM(np.array(planeSlice.Point1))
-    Point2 = SItoFTvsNM(np.array(planeSlice.Point2))
-    axes1.Origin = Origin
-    axes1.ScaleFactor = 10.0
-    axes1Display = Show(axes1, renderView6, 'GeometryRepresentation')
-    axes1Display.DataAxesGrid.GridAxesVisibility = 1
-    axes1Display.DataAxesGrid.XTitle = 'Distance in NM'
-    axes1Display.DataAxesGrid.YTitle = 'Distance in NM'
-    axes1Display.DataAxesGrid.ZTitle = 'Height in 1000ft'
-    axes1Display.DataAxesGrid.ShowGrid = 0
-    axes1Display.DataAxesGrid.UseCustomBounds = 1
-    axes1Display.DataAxesGrid.CustomBounds = [Origin[0], Point1[0], Origin[1], Origin[1], Origin[2], Point2[2]]
-    axes1Display.DataAxesGrid.XLabelFontSize = 14
-    axes1Display.DataAxesGrid.YLabelFontSize = 14
-    axes1Display.DataAxesGrid.ZLabelFontSize = 14
-    axes1Display.DataAxesGrid.XTitleFontSize = 16
-    axes1Display.DataAxesGrid.YTitleFontSize = 16
-    axes1Display.DataAxesGrid.ZTitleFontSize = 16
-    axes1Display.DataAxesGrid.FacesToRender = 63
-    axes1Display.DataAxesGrid.AxesToLabel = 5 # min-X and min-Z
-
-    renderView6.InteractionMode = '2D'
-    renderView6.CameraPosition = [3.081842464299491, -42.21395628114839, 5.605991802855324]
-    renderView6.CameraFocalPoint = [3.081842464299491, -2.4408295139118075e-06, 5.605991802855324]
-    renderView6.CameraViewUp = [0.0, 0.0, 1.0]
-    renderView6.CameraViewAngle = 29.0
-    renderView6.CameraParallelScale = 7.450788788748424 
+    # create a new 'Calculator'
+    calculator1[i_f] = Calculator(registrationName='Calculator1', Input=calculator0[i_f])
+    calculator1[i_f].Function = 'sqrt(tk)'
+    calculator1[i_f].ResultArrayName = 'sqrtTKE'
+    calculatorIPPC[i_f] = Calculator(registrationName='CalculatorIPPC', Input=calculator1[i_f])
+    calculatorIPPC[i_f].Function = 'sqrt(tk)'
+    calculatorIPPC[i_f].ResultArrayName = 'sqrtTKE_IPPC'
     
-if plotOverTime:
-    CreateLayout('Layout #7')
-    layout7 = GetLayoutByName("Layout #7")
-    quartileChartView1 = CreateView('QuartileChartView')
-    quartileChartView1.BottomAxisTitle = 'Iteration number'
-    quartileChartView1.LeftAxisTitle = 'TKE $[m^2/s^2]$'
-    AssignViewToLayout(view=quartileChartView1, layout=layout7, hint=0)
-
-    cpcsv = [''] * noPoints
-    cpcsvDisplay = [''] * noPoints
-    colors = cm.jet(range(256))[0::256//noPoints]
-    for i in range(0,noPoints):
-
-        cpcsv[i] = CSVReader(registrationName=labels[i], FileName=[outputPath+fileName+'_Point'+str(i+1)+'.csv'])
-        cpcsvDisplay[i] = Show(cpcsv[i], quartileChartView1, 'XYChartRepresentation')
-        cpcsvDisplay[i].UseIndexForXAxis = 1
-        #cpcsvDisplay.XArrayName = ''
-        #cpcsvDisplay.SeriesLineStyle = ['TKE', '0']
-        #cpcsvDisplay[i].SeriesMarkerSize = ['TKE', '8']
-        #cpcsvDisplay[i].SeriesMarkerStyle = ['TKE', '4']
-        cpcsvDisplay[i].SeriesColor = ['TKE', str(colors[i][0]), str(colors[i][1]), str(colors[i][2])]
-        cpcsvDisplay[i].SeriesLabel = ['TKE', labels[i]]
-        cpcsvDisplay[i].SeriesVisibility = ['TKE']
+    sqrtTKELUT = GetColorTransferFunction('sqrtTKE')
+    sqrtTKEPWF = GetOpacityTransferFunction('sqrtTKE')
+    sqrtTKE_IPPCLUT = GetColorTransferFunction('sqrtTKE_IPPC')
     
-    saveScreenShot(quartileChartView1,outputPath+fileName+'TKE',saveScreenShots)
+    slice1[i_f] = Slice(registrationName='Slice1', Input=calculatorIPPC[i_f])
+    slice1[i_f].SliceType = 'Plane'
+    slice1[i_f].SliceType.Normal = runwayNormal 
+    slice1[i_f].SliceType.Origin = runwayCenter
+    Hide3DWidgets(proxy=slice1[i_f].SliceType)
     
-if plotVelocityProfiles:
-    CreateLayout('Layout #8')
-    layout8 = GetLayoutByName("Layout #8")
-    layout8.SplitHorizontal(0, 0.5)
-    layout8.SplitHorizontal(1, 0.5)
-    layout8.SplitHorizontal(2, 0.5)
-    vpcsv = [''] * noMasts
-    vpcsvDisplay = [''] * noMasts
-    resampledAtMast = [''] * noMasts
-    resampledAtMastDisplay = [''] * noMasts
-    quartileChartView2 = [''] * noMasts
-    colors = cm.jet(range(256))[0::256//noMasts]
-    mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
-    hints = [3,4,5,6]
-    for i in range(0,noMasts):
-        quartileChartView2[i] = CreateView('QuartileChartView')
-        quartileChartView2[i].BottomAxisTitle = '$u$ [m/s] (magnitude)'
-        quartileChartView2[i].LeftAxisTitle = '$z$ [m]'
-        quartileChartView2[i].ChartTitle = mastLabel[i]
-        quartileChartView2[i].LeftAxisUseCustomRange = 1
-        quartileChartView2[i].LeftAxisRangeMinimum = 0.0
-        quartileChartView2[i].LeftAxisRangeMaximum = velProfileMax_Z
-        quartileChartView2[i].BottomAxisUseCustomRange = 1
-        quartileChartView2[i].BottomAxisRangeMinimum = 0.0
-        quartileChartView2[i].BottomAxisRangeMaximum = 25.0
-        quartileChartView2[i].LegendLocation = 'TopLeft'
-        AssignViewToLayout(view=quartileChartView2[i], layout=layout8, hint=hints[i])
-
-        vpcsv[i] = CSVReader(registrationName=mastNames[i], FileName=[outputPath+'VelocityProfile_'+mastNames[i]+'.csv'])
-        vpcsvDisplay[i] = Show(vpcsv[i], quartileChartView2[i], 'XYChartRepresentation')
-        vpcsvDisplay[i].UseIndexForXAxis = 0
-        vpcsvDisplay[i].XArrayName = 'u_mag'
-        vpcsvDisplay[i].SeriesLineStyle = ['coordsZ', '1']
-        vpcsvDisplay[i].SeriesMarkerSize = ['coordsZ', '8']
-        vpcsvDisplay[i].SeriesMarkerStyle = ['coordsZ', '4']
-        vpcsvDisplay[i].SeriesColor = ['coordsZ', '0', '0', '0']
-        vpcsvDisplay[i].SeriesLabel = ['coordsZ', 'Experimental']
-        vpcsvDisplay[i].SeriesVisibility = ['coordsZ']
-        resampledAtMast[i] = ResampleWithDataset(registrationName='calculator1 resampled '+mastLabel[i], SourceDataArrays=calculator1, DestinationMesh=mastLine[i])
-        resampledAtMastDisplay[i] = Show(resampledAtMast[i], quartileChartView2[i], 'XYChartRepresentation')
-        resampledAtMastDisplay[i].UseIndexForXAxis = 0
-        resampledAtMastDisplay[i].XArrayName = 'u_Magnitude'
-        resampledAtMastDisplay[i].SeriesLineStyle = ['Points_Z', '1']
-        resampledAtMastDisplay[i].SeriesColor = ['Points_Z', '1', '0', '0']
-        resampledAtMastDisplay[i].SeriesLabel = ['Points_Z', 'SIMRA (Met)']
-        resampledAtMastDisplay[i].SeriesVisibility = ['Points_Z']
+    proj_u[i_f] = Calculator(registrationName='Projected u', Input=calculatorIPPC[i_f])
+    proj_u[i_f].Function = 'u_X*iHat+u_Y*jHat+u_Z*kHat-(u_X*'+str(runwayNormal[0])+'+u_Y*'+str(runwayNormal[1])+'+u_Z*'+str(runwayNormal[2])+')*('+str(runwayNormal[0])+'*iHat+'+str(runwayNormal[1])+'*jHat+'+str(runwayNormal[2])+'*kHat)'
+    proj_u[i_f].ResultArrayName = 'u_proj'
     
-    saveScreenShot(layout8,outputPath+fileName+'velocityProfiles',saveScreenShots,saveAllViews=True)
+    planeSlice[i_f] = Plane(registrationName='Plane slice')
+    planeSliceLength = 43e3
+    planeSliceHeight = h_max
+    planeSlice[i_f].Origin = np.append(runwayCenter[:2]-runwayDir[:2]*15e3,np.zeros(1))
+    planeSlice[i_f].Point1 = planeSlice[i_f].Origin + planeSliceLength*np.append(runwayDir[:2],np.zeros(1))
+    planeSlice[i_f].Point2 = planeSlice[i_f].Origin + planeSliceHeight*np.array([0,0,1])
+    planeSlice[i_f].XResolution = np.round(planeSliceLength/1500).astype('int')
+    planeSlice[i_f].YResolution = np.round(10*planeSliceHeight/1500).astype('int')
+    resampledSlice[i_f] = ResampleWithDataset(registrationName='proj_u[i_f] Resampled', SourceDataArrays=proj_u[i_f], DestinationMesh=planeSlice[i_f])
+    resampledSlice[i_f].CellLocator = 'Static Cell Locator'
     
-
-if plotIPPCmapsHorizontal:
-    heightLUT.AutomaticRescaleRangeMode = "Never"
-    heightLUT.RescaleOnVisibilityChange = 0
-    heightLUT.EnableOpacityMapping = 0
-    heightLUT.RescaleTransferFunction(0.0, height_max)
-    heightLUT.ApplyPreset('google', True)
-
-# get color transfer function/color map for 'sqrtTKE'
-sqrtTKELUT.AutomaticRescaleRangeMode = "Never"
-sqrtTKELUT.RescaleOnVisibilityChange = 0
-sqrtTKELUT.EnableOpacityMapping = 0
-sqrtTKELUT.RescaleTransferFunction(0.0, sqrtTKE_max)
-sqrtTKELUT.ApplyPreset('SINTEF1', True)
-
-if plotIPPCmapsHorizontal or plotIPPCmapsVertical:
-    # get color transfer function/color map for 'sqrtTKE'
-    sqrtTKE_IPPCLUT.AutomaticRescaleRangeMode = "Never"
-    sqrtTKE_IPPCLUT.RescaleOnVisibilityChange = 0
-    sqrtTKE_IPPCLUT.EnableOpacityMapping = 1
-    sqrtTKE_IPPCLUT.ApplyPreset('IPPC', True)
-    sqrtTKE_IPPCLUT.RescaleTransferFunction(2.0, sqrtTKE_max)
-    sqrtTKE_IPPCPWF = GetOpacityTransferFunction('sqrtTKE_IPPC')
-    sqrtTKE_IPPCPWF.ApplyPreset('IPPC', True)
-    sqrtTKE_IPPCPWF.RescaleTransferFunction(2.0, sqrtTKE_max)
-
-# get opacity transfer function/opacity map for 'sqrtTKE'
-sqrtTKEPWF.AllowDuplicateScalars = 1
-sqrtTKEPWF.ScalarRangeInitialized = 1
-sqrtTKEPWF.RescaleTransferFunction(0.0, sqrtTKE_max)
-sqrtTKEPWF.Points = [0.0, 0.0, 0.5, 0.0, 1.6, 0.0, 0.5, 0.0, 4.0, 1.0, 0.5, 0.0]
-
-renderView1.InteractionMode = '3D'
-renderView1.CameraPosition = [42315.178435332025-originx, 6913455.09641479-originy, 39925.03392197488]
-renderView1.CameraFocalPoint = [47321.88134561954-originx, 6944851.971259325-originy, -590.056714551883]
-renderView1.CameraViewUp = [0.10754399354149799, 0.7793741712263841, 0.6172602293023044]
-renderView1.CameraParallelScale = 34572.810251475086
-renderView1.CameraViewAngle = 30.0
-
-color = 'white'
-RenderAllViews()
-
-if plotLIC:
-    insertSINTEFlogo(renderView1,color)
-    saveScreenShot(renderView1,outputPath+fileName+'surfaceLICside_bridge'+str(bridge),saveScreenShots)
-    
-    copyCamera(renderView1,renderView2)
-    insertSINTEFlogo(renderView2,color)
-    saveScreenShot(renderView2,outputPath+fileName+'surfaceLICtop_bridge'+str(bridge),saveScreenShots)
-
-if plotStreamLines:
-    insertSINTEFlogo(renderView3,color)
-    copyCamera(renderView1,renderView3)
-    saveScreenShot(renderView3,outputPath+fileName+'streamTracer_bridge'+str(bridge),saveScreenShots)
+    ####################################################################################
+    ## Layout 1 - Surface LIC plots
+    # create a new 'Clip'
+    if plotLIC:
+        if i_f == 0:
+            topographyDisplay = Show(topography, renderView1, 'StructuredGridRepresentation')
+            topographyDisplay.Representation = 'Surface'
+            topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
+            showRunway(renderView1)
+            showMasts(renderView1)
+            
+            sqrtTKELUTColorBar = GetScalarBar(sqrtTKELUT, renderView1)
+            sqrtTKELUTColorBar.WindowLocation = 'UpperRightCorner'
+            sqrtTKELUTColorBar.Title = 'Turbulence, $\sqrt{k}$'
+            sqrtTKELUTColorBar.ComponentTitle = ''
+            sqrtTKELUTColorBar.ScalarBarLength = scalarBarLength
+            # current camera placement for renderView1
+            #renderView1.InteractionMode = '2D'
+            CreateLayout('Layout #2')
+            layout2 = GetLayoutByName("Layout #2")
         
-if plotVolumeRendering:
-    insertSINTEFlogo(renderView4,color)
-    copyCamera(renderView1,renderView4)
-    saveScreenShot(renderView4,outputPath+fileName+'volumeRendering_bridge'+str(bridge),saveScreenShots)
-    saveAnimation(renderView4,outputPath+fileName+'volumeRendering_bridge'+str(bridge),noSteps,makeVideo)
+            # Create a new 'Render View'
+            renderView2 = CreateView('RenderView')
+            renderView2.AxesGrid = 'GridAxes3DActor'
+            renderView2.StereoType = 'Crystal Eyes'
+            renderView2.CameraFocalDisk = 1.0
+            AssignViewToLayout(view=renderView2, layout=layout2, hint=0)
+        
+            sqrtTKELUTColorBar_2 = GetScalarBar(sqrtTKELUT, renderView2)
+            sqrtTKELUTColorBar_2.WindowLocation = 'UpperRightCorner'
+            sqrtTKELUTColorBar_2.Title = 'Turbulence, $\sqrt{k}$'
+            sqrtTKELUTColorBar_2.ComponentTitle = ''
+            sqrtTKELUTColorBar_2.ScalarBarLength = scalarBarLength
+        
+            topographyDisplay = Show(topography, renderView2, 'UnstructuredGridRepresentation')
+            topographyDisplay.Representation = 'Surface'
+            topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
+        
+            # current camera placement for renderView2
+            renderView2.OrientationAxesVisibility = 0
+            showRunway(renderView2)
+            showMasts(renderView2)
+     
+        # create a new 'Slice'
+        slice2[i_f] = Slice(registrationName='Slice2', Input=calculator1[i_f])
+        slice2[i_f].SliceType = 'Plane'
+        slice2[i_f].HyperTreeGridSlicer = 'Plane'
+        slice2[i_f].SliceOffsetValues = [0.0]
+        slice2[i_f].SliceType.Normal = [0.0, 0.0, 1.0]
+        slice2[i_f].SliceType.Origin = np.append(runwayCenter[:2],horizontalSlice_z)
+        Hide3DWidgets(proxy=slice2[i_f].SliceType)
+        
+        # show data in view
+        slice1Display[i_f] = Show(slice1[i_f], renderView1, 'UnstructuredGridRepresentation')
+        ColorBy(slice1Display[i_f], ('POINTS', 'sqrtTKE'))
+        slice1Display[i_f].SetRepresentationType('Surface LIC')
+        slice1Display[i_f].ColorMode = 'Multiply'
+        slice1Display[i_f].EnhanceContrast = 'Color Only'
+        slice1Display[i_f].HighColorContrastEnhancementFactor = 0.3
+        slice1Display[i_f].LICIntensity = 0.8
+        slice1Display[i_f].MapModeBias = 0.2
+        slice1Display[i_f].RescaleTransferFunctionToDataRange(True, False)
+        slice1Display[i_f].SetScalarBarVisibility(renderView2, True)# set active source
+    
+    
+        # show data in view
+        slice2Display[i_f] = Show(slice2[i_f], renderView2, 'UnstructuredGridRepresentation')
+        ColorBy(slice2Display[i_f], ('POINTS', 'sqrtTKE'))
+        slice2Display[i_f].SetRepresentationType('Surface LIC')
+        slice2Display[i_f].ColorMode = 'Multiply'
+        slice2Display[i_f].EnhanceContrast = 'Color Only'
+        slice2Display[i_f].HighColorContrastEnhancementFactor = 0.3
+        slice2Display[i_f].LICIntensity = 0.8
+        slice2Display[i_f].MapModeBias = 0.2
+        slice2Display[i_f].RescaleTransferFunctionToDataRange(True, False)
+        slice2Display[i_f].SetScalarBarVisibility(renderView2, True)# set active source
+        
+    ####################################################################################
+    ## Layout 3 - Stream lines
+    if plotStreamLines:
+        if i_f == 0:
+            CreateLayout('Layout #3')
+            layout3 = GetLayoutByName("Layout #3")
+            
+            # Create a new 'Render View'
+            renderView3 = CreateView('RenderView')
+            renderView3.AxesGrid = 'GridAxes3DActor'
+            renderView3.StereoType = 'Crystal Eyes'
+            renderView3.CameraFocalDisk = 1.0
+            renderView3.OrientationAxesVisibility = 0
+            AssignViewToLayout(view=renderView3, layout=layout3, hint=0)
+            
+            topographyDisplay = Show(topography, renderView3, 'UnstructuredGridRepresentation')
+            topographyDisplay.Representation = 'Surface'
+            topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
+        
+            sqrtTKELUTColorBar_3 = GetScalarBar(sqrtTKELUT, renderView3)
+            sqrtTKELUTColorBar_3.Title = 'Turbulence, $\sqrt{k}$'
+            sqrtTKELUTColorBar_3.Orientation = 'Vertical'
+            sqrtTKELUTColorBar_3.WindowLocation = 'UpperRightCorner'
+            sqrtTKELUTColorBar_3.ComponentTitle = ''
+            sqrtTKELUTColorBar_3.ScalarBarLength = scalarBarLength
+            
+            showRunway(renderView3)
+            showMasts(renderView3)
+        
+    
+        # create a new 'Stream Tracer'
+        streamTracer1[i_f] = StreamTracer(registrationName='StreamTracer1', Input=calculator1[i_f], SeedType='Line')
+        streamTracer1[i_f].MaximumStreamlineLength = 100000.0
+        streamTracer1[i_f].SeedType.Point1 = streamTracerPoint1
+        streamTracer1[i_f].SeedType.Point2 = streamTracerPoint2
+        streamTracer1[i_f].SeedType.Resolution = 200
+        streamTracer1[i_f].MaximumStepLength = 0.5
+        streamTracer1[i_f].Vectors = ['POINTS', 'u']
+        renderView3.Update()
+    
+        # show data in view
+        streamTracer1Display[i_f] = Show(streamTracer1[i_f], renderView3, 'GeometryRepresentation')
+        streamTracer1Display[i_f].Representation = 'Surface'
+        streamTracer1Display[i_f].ColorArrayName = ['POINTS', 'sqrtTKE']
+        streamTracer1Display[i_f].RescaleTransferFunctionToDataRange(False, True)
+        streamTracer1Display[i_f].SetScalarBarVisibility(renderView3, True)
+        streamTracer1Display[i_f].SetRepresentationType('Wireframe')
+        streamTracer1Display[i_f].RenderLinesAsTubes = 1
+        streamTracer1Display[i_f].SetRepresentationType('Surface')
+        streamTracer1Display[i_f].LineWidth = 3.0
+        Hide3DWidgets(proxy=streamTracer1[i_f].SeedType)
+    
+    
+    ####################################################################################
+    ## Layout 4 - Volume rendering
+    if plotVolumeRendering:
+        if i_f == 0:
+            CreateLayout('Layout #4')
+            layout4 = GetLayoutByName("Layout #4")
+            
+            # Create a new 'Render View'
+            renderView4 = CreateView('RenderView')
+            renderView4.AxesGrid = 'GridAxes3DActor'
+            renderView4.StereoType = 'Crystal Eyes'
+            renderView4.CameraFocalDisk = 1.0
+            renderView4.OrientationAxesVisibility = 0
+            AssignViewToLayout(view=renderView4, layout=layout4, hint=0)
+            
+            topographyDisplay = Show(topography, renderView4, 'UnstructuredGridRepresentation')
+            topographyDisplay.Representation = 'Surface'
+            topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
+            
+            showRunway(renderView4)
+            showMasts(renderView4)
+            
+            sqrtTKELUTColorBar_4 = GetScalarBar(sqrtTKELUT, renderView4)
+            sqrtTKELUTColorBar_4.Title = 'Turbulence, $\sqrt{k}$'
+            sqrtTKELUTColorBar_4.Orientation = 'Vertical'
+            sqrtTKELUTColorBar_4.WindowLocation = 'UpperRightCorner'
+            sqrtTKELUTColorBar_4.ComponentTitle = ''
+            sqrtTKELUTColorBar_4.ScalarBarLength = scalarBarLength
+        
+        # create a new 'Stream Tracer'
+        calculator1Display[i_f] = Show(calculator1[i_f], renderView4, 'UnstructuredGridRepresentation')
+        calculator1Display[i_f].Representation = 'Volume'
+        calculator1Display[i_f].ColorArrayName = ['POINTS', 'sqrtTKE']
+    
+        if timeStepAnnotation and i_f == 0:
+            annotateTimeStep(calculator1[i_f],renderView4,location='UpperLeftCorner')
+    
+    
+    if plotIPPCmapsHorizontal:
+        if i_f == 0:
+            CreateLayout('Layout #5')
+            layout5 = GetLayoutByName("Layout #5")
+            
+            # Create a new 'Render View'
+            renderView5 = CreateView('RenderView')
+            renderView5.AxesGrid = 'GridAxes3DActor'
+            renderView5.StereoType = 'Crystal Eyes'
+            renderView5.CameraFocalDisk = 1.0
+            renderView5.OrientationAxesVisibility = 0
+            AssignViewToLayout(view=renderView5, layout=layout5, hint=0)
+    
+            showRunway(renderView5)
+        
+            if plotTakeOffLines:
+                takeOffLineEastDisplay = Show(takeOffLineEast, renderView5, 'GeometryRepresentation')
+                takeOffLineEastDisplay.DiffuseColor = takeOffLineColor 
+                takeOffLineEastDisplay.LineWidth = 2.0
+                takeOffLineWestDisplay = Show(takeOffLineWest, renderView5, 'GeometryRepresentation')
+                takeOffLineWestDisplay.DiffuseColor = takeOffLineColor 
+                takeOffLineWestDisplay.LineWidth = 2.0
+    
+            calculator2Display = Show(calculator2, renderView5, 'StructuredGridRepresentation')
+            calculator2Display.Representation = 'Surface'
+            calculator2Display.Texture = CreateTexture(textureFileName_topo)
+            HideScalarBarIfNotNeeded(heightLUT, renderView5)
 
-if plotIPPCmapsHorizontal:
-    insertSINTEFlogo(renderView5,'white')
-    saveScreenShot(renderView5,outputPath+fileName+'IPPC_horizontal_bridge'+str(bridge),saveScreenShots)
-    ColorBy(calculator2Display, None)
-    Hide(contour1, renderView5)
-    saveScreenShot(renderView5,outputPath+fileName+'IPPC_horizontal_topo4_bridge'+str(bridge),saveScreenShots)
+            # Create an extended cone at which to plot results
+            vtkName = outputPath+'temp'
+            coffeeFilter(runwayEndWest,runwayEndEast,h_max,phi1=angleOfAttack_West,phi2=angleOfAttack_East,n=400,name=vtkName)
+            extendedCone = LegacyVTKReader(registrationName='ExtendedCone', FileNames=[vtkName+'.vtk'])
+        
+            sqrtTKELUTColorBar_5 = GetScalarBar(sqrtTKE_IPPCLUT, renderView5)
+            sqrtTKELUTColorBar_5.Title = 'Turbulence, $\sqrt{k}$'
+            sqrtTKELUTColorBar_5.Orientation = 'Vertical'
+            sqrtTKELUTColorBar_5.WindowLocation = 'UpperRightCorner'
+            sqrtTKELUTColorBar_5.ComponentTitle = ''
+            sqrtTKELUTColorBar_5.ScalarBarLength = 0.13 
+            sqrtTKELUTColorBar_5.AutomaticLabelFormat = 1
+            sqrtTKELUTColorBar_5.UseCustomLabels = 1
+            sqrtTKELUTColorBar_5.CustomLabels = [2, 3, 4, 5]
+            sqrtTKELUTColorBar_5.AddRangeLabels = 0
 
-if plotIPPCmapsVertical:
-    insertSINTEFlogo(renderView6,'blue')
-    saveScreenShot(renderView6,outputPath+fileName+'IPPC_vertical_bridge'+str(bridge),saveScreenShots)
+            plane1 = Plane()
+            plane1.Origin = [P_sw[0],P_sw[1],z_proj]
+            plane1.Point1 = [P_se[0],P_se[1],z_proj]
+            plane1.Point2 = [P_nw[0],P_nw[1],z_proj]
+            plane1.XResolution = np.round(np.linalg.norm(P_sw[:2]-P_se[:2])/1000).astype('int')
+            plane1.YResolution = np.round(np.linalg.norm(P_sw[:2]-P_nw[:2])/1000).astype('int')
+        
+            renderView5.InteractionMode = '2D'
+            renderView5.CameraPosition = [54279.27032496591-originx, 6950488.075249355-originy, 25242.965782087373]
+            renderView5.CameraFocalPoint = [51365.64987931158-originx, 6949878.21067271-originy, -393.12364711190645]
+            renderView5.CameraViewUp = [-0.0026685028441370807, 0.999720760110162, -0.023479371740545256]
+            renderView5.CameraParallelScale = 11840.135737817194
+        
+        countour1[i_f] = Contour(Input=calculator2)
+        countour1[i_f].ContourBy = ['POINTS', 'height']
+        countour1[i_f].Isosurfaces = [0.0001]
+        countour1[i_f].PointMergeMethod = 'Uniform Binning'
+        countour1Display[i_f] = Show(countour1[i_f], renderView5, 'GeometryRepresentation')
+        ColorBy(countour1Display[i_f], None)
+        countour1Display[i_f].DiffuseColor = [0.552941176470588, 0.149019607843137, 0.129411764705882]
+    
+        countour2[i_f] = Contour(Input=extendedCone)
+        countour2[i_f].ContourBy = ['POINTS', 'z']
+        countour2[i_f].Isosurfaces = np.array([500,1000,1500,2000,2500,3000,3500,4000,4500])*0.3048 #convert to meter
+        countour2[i_f].PointMergeMethod = 'Uniform Binning'
+        countour2Display[i_f] = Show(countour2[i_f], renderView5, 'GeometryRepresentation')
+        ColorBy(countour2Display[i_f], None)
+        countour2Display[i_f].DiffuseColor = [0.286274509803922, 0.317647058823529, 0.968627450980392]
+        
+        resampleWithDataset1[i_f] = ResampleWithDataset(SourceDataArrays=calculatorIPPC[i_f], DestinationMesh=extendedCone)
+        resampleWithDataset1[i_f].CellLocator = 'Static Cell Locator'
+        resampleWithDataset1Display[i_f] = Show(resampleWithDataset1[i_f], renderView5, 'StructuredGridRepresentation')
+        resampleWithDataset1Display[i_f].ColorArrayName = ['POINTS', 'sqrtTKE_IPPC']
+        resampleWithDataset1Display[i_f].Ambient = 1.0
+        resampleWithDataset1Display[i_f].Diffuse = 0.0
+    
+        countour3[i_f] = Contour(Input=resampleWithDataset1[i_f])
+        countour3[i_f].ContourBy = ['POINTS', 'sqrtTKE_IPPC']
+        countour3[i_f].Isosurfaces = [2.0,3.0,4.0]
+        countour3[i_f].PointMergeMethod = 'Uniform Binning'
+        countour3Display[i_f] = Show(countour3[i_f], renderView5, 'GeometryRepresentation')
+        try:
+            ColorBy(countour3Display[i_f], None)
+        except:
+            print('No turbulence above 2 to be shown')
+        
+        countour3Display[i_f].DiffuseColor = [0.0, 0.0, 0.0]
+    
+        calculatorConeProj[i_f] = Calculator(Input=resampleWithDataset1[i_f])
+        calculatorConeProj[i_f].ResultArrayName = 'projCone'
+        z_proj = 5000
+        calculatorConeProj[i_f].Function = 'coordsX*iHat+coordsY*jHat+'+str(z_proj)+'*kHat'
+        calculatorConeProj[i_f].CoordinateResults = 1
+        resampleWithDataset2[i_f] = ResampleWithDataset(SourceDataArrays=calculatorConeProj[i_f], DestinationMesh=plane1)
+        resampleWithDataset2[i_f].CellLocator = 'Static Cell Locator'
+        glyph1[i_f] = Glyph(Input=resampleWithDataset2[i_f], GlyphType='Arrow')
+        glyph1[i_f].OrientationArray = ['POINTS', 'u']
+        glyph1[i_f].ScaleArray = ['POINTS', 'u']
+        glyph1[i_f].ScaleFactor = glyphScale1
+        glyph1[i_f].GlyphTransform = 'Transform2'
+        glyph1[i_f].GlyphMode = 'Every Nth Point'
+        glyph1[i_f].Stride = 1
+        glyph1Display[i_f] = Show(glyph1[i_f], renderView5, 'GeometryRepresentation')
+        glyph1Display[i_f].DiffuseColor = [0.0, 0.0, 0.0]
+        ColorBy(glyph1Display[i_f], None)
+    
+        
+    if plotIPPCmapsVertical:
+        if i_f == 0:
+            CreateLayout('Layout #6')
+            layout6 = GetLayoutByName("Layout #6")
+            # Create a new 'Render View'
+            renderView6 = CreateView('RenderView')
+            renderView6.AxesGrid = 'GridAxes3DActor'
+            renderView6.StereoType = 'Crystal Eyes'
+            renderView6.CameraFocalDisk = 1.0
+            renderView6.OrientationAxesVisibility = 0
+            AssignViewToLayout(view=renderView6, layout=layout6, hint=0)
+        
+            def SItoFTvsNM(obj,regName='Intermediate calculator'):
+                rotObj = rotTran(obj,-runwayRotVector,-runwayCenter,rotateFirst=False)
+                if isinstance(rotObj,(list,np.ndarray)): 
+                    return [rotObj[0]/1852, rotObj[1]/1852, 0.3048*rotObj[2]/100]
+                else:
+                    result = Calculator(registrationName=regName, Input=rotObj)
+                    result.Function = '(coordsX*iHat+coordsY*jHat)/1852 + 0.3048*coordsZ*kHat/100'
+                    result.ResultArrayName = 'height'
+                    result.CoordinateResults = 1
+                return result
+        
+            sliceTopographyTransform = SItoFTvsNM(sliceTopography,regName='Slice topography transformed')
+            sliceTopographyTransformDisplay = Show(sliceTopographyTransform, renderView6, 'StructuredGridRepresentation')
+            sliceTopographyTransformDisplay.LineWidth = 3.0
+            if False:
+                ColorBy(sliceTopographyTransformDisplay, 'height')
+            else:
+                sliceTopographyTransformDisplay.DiffuseColor = [0.0, 0.0, 0.0]
+                ColorBy(sliceTopographyTransformDisplay, None)
 
-if plotError:
-    slice1Display.Representation = 'Surface'
-    ColorBy(slice1Display, ('CELLS', 'Continuous global L2-projection |u^*-u^h|_H1'))
-    HideScalarBarIfNotNeeded(sqrtTKELUT, renderView1)
-    continuousglobalL2projectionuuh_H1PWF = GetOpacityTransferFunction('ContinuousglobalL2projectionuuh_H1')
-    continuousglobalL2projectionuuh_H1LUT = GetColorTransferFunction('ContinuousglobalL2projectionuuh_H1')
-    continuousglobalL2projectionuuh_H1LUT.AutomaticRescaleRangeMode = "Never"
-    continuousglobalL2projectionuuh_H1LUT.RescaleOnVisibilityChange = 0
-    continuousglobalL2projectionuuh_H1LUT.EnableOpacityMapping = 0
-    slice1Display.RescaleTransferFunctionToDataRange(False, True)
-    continuousglobalL2projectionuuh_H1LUTColorBar = GetScalarBar(continuousglobalL2projectionuuh_H1LUT, renderView1)
-    continuousglobalL2projectionuuh_H1LUTColorBar.WindowLocation = 'AnyLocation'
-    continuousglobalL2projectionuuh_H1LUTColorBar.ScalarBarLength = 0.33000000000000007
-    continuousglobalL2projectionuuh_H1LUTColorBar.Position = [0.9340269406943105, 0.09444444444444428]
-    continuousglobalL2projectionuuh_H1LUTColorBar.ScalarBarLength = 0.3300000000000001
-    continuousglobalL2projectionuuh_H1LUTColorBar.TitleColor = [1.0, 1.0, 1.0]
-    continuousglobalL2projectionuuh_H1LUTColorBar.LabelColor = [1.0, 1.0, 1.0]
-    continuousglobalL2projectionuuh_H1LUTColorBar.Title = 'Continuous global $L^2$-projection $|u^*-u^h|_{H^1}$'
-    continuousglobalL2projectionuuh_H1LUT.RescaleTransferFunction(0.0, 100.0)
-    continuousglobalL2projectionuuh_H1PWF.RescaleTransferFunction(0.0, 100.0)
-    continuousglobalL2projectionuuh_H1LUT.ApplyPreset('SINTEF1', True)
-    renderView1.CameraPosition = [39953.1497599849-originx, 6936202.267042985-originy, 2614.4419848900225]
-    renderView1.CameraFocalPoint = [39143.54568842529-originx, 6947093.529147031-originy, 516.8749792426419]
-    renderView1.CameraViewUp = [-0.012278300117821047, 0.18822195283001805, 0.9820497644310452]
-    renderView1.CameraParallelScale = 28350.540722069076
-    saveScreenShot(renderView1,outputPath+fileName+'surfaceLICside_bridge'+str(bridge)+'_Error',saveScreenShots)
+            sqrtTKELUTColorBar_6 = GetScalarBar(sqrtTKE_IPPCLUT, renderView6)
+            sqrtTKELUTColorBar_6.Title = 'Turbulence, $\sqrt{k}$'
+            sqrtTKELUTColorBar_6.Orientation = 'Vertical'
+            sqrtTKELUTColorBar_6.WindowLocation = 'UpperRightCorner'
+            sqrtTKELUTColorBar_6.ComponentTitle = ''
+            sqrtTKELUTColorBar_6.ScalarBarLength = 0.13 
+            sqrtTKELUTColorBar_6.AutomaticLabelFormat = 1
+            sqrtTKELUTColorBar_6.UseCustomLabels = 1
+            sqrtTKELUTColorBar_6.CustomLabels = [2, 3, 4, 5]
+            sqrtTKELUTColorBar_6.AddRangeLabels = 0
+            
+            runwayTransform = SItoFTvsNM(runway,'Runway')
+            showRunway(renderView6,runwayTransform)
+    
+            if plotTakeOffLines:
+                takeOffLineEastTransform = SItoFTvsNM(takeOffLineEast,'East take off')
+                takeOffLineEastDisplay = Show(takeOffLineEastTransform, renderView6, 'GeometryRepresentation')
+                takeOffLineEastDisplay.DiffuseColor = takeOffLineColor 
+                takeOffLineEastDisplay.LineWidth = 2.0
+                takeOffLineWestTransform = SItoFTvsNM(takeOffLineWest, 'West take off')
+                takeOffLineWestDisplay = Show(takeOffLineWestTransform, renderView6, 'GeometryRepresentation')
+                takeOffLineWestDisplay.DiffuseColor = takeOffLineColor 
+                takeOffLineWestDisplay.LineWidth = 2.0
+        
+            # Add 2D axes
+            planeSliceTransform[i_f] = SItoFTvsNM(planeSlice[i_f],'dummy')
+            axes1 = Axes()
+            Origin = SItoFTvsNM(np.array(planeSlice[i_f].Origin))
+            Point1 = SItoFTvsNM(np.array(planeSlice[i_f].Point1))
+            Point2 = SItoFTvsNM(np.array(planeSlice[i_f].Point2))
+            axes1.Origin = Origin
+            axes1.ScaleFactor = 10.0
+            axes1Display = Show(axes1, renderView6, 'GeometryRepresentation')
+            axes1Display.DataAxesGrid.GridAxesVisibility = 1
+            axes1Display.DataAxesGrid.XTitle = 'Distance in NM'
+            axes1Display.DataAxesGrid.YTitle = 'Distance in NM'
+            axes1Display.DataAxesGrid.ZTitle = 'Height in 1000ft'
+            axes1Display.DataAxesGrid.ShowGrid = 0
+            axes1Display.DataAxesGrid.UseCustomBounds = 1
+            axes1Display.DataAxesGrid.CustomBounds = [Origin[0], Point1[0], Origin[1], Origin[1], Origin[2], Point2[2]]
+            axes1Display.DataAxesGrid.XLabelFontSize = 14
+            axes1Display.DataAxesGrid.YLabelFontSize = 14
+            axes1Display.DataAxesGrid.ZLabelFontSize = 14
+            axes1Display.DataAxesGrid.XTitleFontSize = 16
+            axes1Display.DataAxesGrid.YTitleFontSize = 16
+            axes1Display.DataAxesGrid.ZTitleFontSize = 16
+            axes1Display.DataAxesGrid.FacesToRender = 63
+            axes1Display.DataAxesGrid.AxesToLabel = 5 # min-X and min-Z
+    
+            renderView6.InteractionMode = '2D'
+            renderView6.CameraPosition = [3.081842464299491, -42.21395628114839, 5.605991802855324]
+            renderView6.CameraFocalPoint = [3.081842464299491, -2.4408295139118075e-06, 5.605991802855324]
+            renderView6.CameraViewUp = [0.0, 0.0, 1.0]
+            renderView6.CameraViewAngle = 29.0
+            renderView6.CameraParallelScale = 7.450788788748424 
+
+        resampledSliceTransform[i_f] = SItoFTvsNM(resampledSlice[i_f],regName='Slice1 transformed')
+        slice1Transform[i_f] = SItoFTvsNM(slice1[i_f],regName='Slice1 transformed')
+        slice1TransformDisplay[i_f] = Show(slice1Transform[i_f], renderView6, 'StructuredGridRepresentation')
+        slice1TransformDisplay[i_f].ColorArrayName = ['POINTS', 'sqrtTKE_IPPC']
+        slice1TransformDisplay[i_f].Ambient = 1.0
+        slice1TransformDisplay[i_f].Diffuse = 0.0
+    
+        glyph2[i_f] = Glyph(registrationName='Glyphs',Input=resampledSliceTransform[i_f], GlyphType='Arrow')
+        glyph2[i_f].OrientationArray = ['POINTS', 'u_proj']
+        glyph2[i_f].ScaleArray = ['POINTS', 'u_proj']
+        glyph2[i_f].ScaleFactor = glyphScale2
+        glyph2[i_f].GlyphTransform = 'Transform2'
+        glyph2[i_f].GlyphMode = 'Every Nth Point'
+        glyph2[i_f].Stride = 1
+        glyph2Display[i_f] = Show(glyph2[i_f], renderView6, 'GeometryRepresentation')
+        glyph2Display[i_f].DiffuseColor = [0.0, 0.6, 0.0]
+        ColorBy(glyph2Display[i_f], None)
+        
+        contour4[i_f] = Contour(registrationName='Contour IPPC vertical', Input=slice1Transform[i_f])
+        contour4[i_f].ContourBy = ['POINTS', 'sqrtTKE_IPPC']
+        contour4[i_f].Isosurfaces = [2.0,3.0,4.0]
+        contour4[i_f].PointMergeMethod = 'Uniform Binning'
+        contour4Display[i_f] = Show(contour4[i_f], renderView6, 'GeometryRepresentation')
+        try:
+            ColorBy(contour4Display[i_f], None)
+        except:
+            print('No turbulence above 2 to be shown')
+        
+        contour4Display[i_f].DiffuseColor = [0.0, 0.0, 0.0]
+        
+        
+    if plotOverTime:
+        if i_f == 0:
+            CreateLayout('Layout #7')
+            layout7 = GetLayoutByName("Layout #7")
+            quartileChartView1 = CreateView('QuartileChartView')
+            quartileChartView1.BottomAxisTitle = 'Iteration number'
+            quartileChartView1.LeftAxisTitle = 'TKE $[m^2/s^2]$'
+            AssignViewToLayout(view=quartileChartView1, layout=layout7, hint=0)
+            colors = cm.jet(range(256))[0::256//noPoints]
+        
+        cpcsv[i_f] = [''] * noPoints
+        cpcsvDisplay[i_f] = [''] * noPoints
+        
+        for i in range(0,noPoints):
+            cpcsv[i_f][i] = CSVReader(registrationName=labels[i], FileName=[outputPath+fileName+'_Point'+str(i+1)+'.csv'])
+            cpcsvDisplay[i_f][i] = Show(cpcsv[i_f][i], quartileChartView1, 'XYChartRepresentation')
+            cpcsvDisplay[i_f][i].UseIndexForXAxis = 1
+            cpcsvDisplay[i_f][i].SeriesColor = ['TKE', str(colors[i][0]), str(colors[i][1]), str(colors[i][2])]
+            cpcsvDisplay[i_f][i].SeriesLabel = ['TKE', labels[i]]
+            cpcsvDisplay[i_f][i].SeriesVisibility = ['TKE']
+        
+        saveScreenShot(quartileChartView1,outputPath+fileName+'TKE',saveScreenShots)
+        
+    if plotVelocityProfiles:
+        resampledAtMast[i_f] = [''] * noMasts
+        resampledAtMastDisplay[i_f] = [''] * noMasts
+        for i in range(0,noMasts):
+            resampledAtMast[i_f][i] = ResampleWithDataset(registrationName='calculator1 resampled '+mastLabel[i], SourceDataArrays=calculator1[i_f], DestinationMesh=mastLine[i])
+            resampledAtMastDisplay[i_f][i] = Show(resampledAtMast[i_f][i], quartileChartView2[i], 'XYChartRepresentation')
+            resampledAtMastDisplay[i_f][i].UseIndexForXAxis = 0
+            resampledAtMastDisplay[i_f][i].XArrayName = 'u_Magnitude'
+            resampledAtMastDisplay[i_f][i].SeriesLineStyle = ['Points_Z', '1']
+            resampledAtMastDisplay[i_f][i].SeriesColor = ['Points_Z', str(colorsCases[i_f][0]), str(colorsCases[i_f][1]), str(colorsCases[i_f][2])]
+            resampledAtMastDisplay[i_f][i].SeriesLabel = ['Points_Z', caseNames[i_f]]
+            resampledAtMastDisplay[i_f][i].SeriesVisibility = ['Points_Z']
+        
+        
+    
+    if plotIPPCmapsHorizontal:
+        heightLUT.AutomaticRescaleRangeMode = "Never"
+        heightLUT.RescaleOnVisibilityChange = 0
+        heightLUT.EnableOpacityMapping = 0
+        heightLUT.RescaleTransferFunction(0.0, height_max)
+        heightLUT.ApplyPreset('google', True)
+    
+    # get color transfer function/color map for 'sqrtTKE'
+    sqrtTKELUT.AutomaticRescaleRangeMode = "Never"
+    sqrtTKELUT.RescaleOnVisibilityChange = 0
+    sqrtTKELUT.EnableOpacityMapping = 0
+    sqrtTKELUT.RescaleTransferFunction(0.0, sqrtTKE_max)
+    sqrtTKELUT.ApplyPreset('SINTEF1', True)
+    
+    if plotIPPCmapsHorizontal or plotIPPCmapsVertical:
+        # get color transfer function/color map for 'sqrtTKE'
+        sqrtTKE_IPPCLUT.AutomaticRescaleRangeMode = "Never"
+        sqrtTKE_IPPCLUT.RescaleOnVisibilityChange = 0
+        sqrtTKE_IPPCLUT.EnableOpacityMapping = 1
+        sqrtTKE_IPPCLUT.ApplyPreset('IPPC', True)
+        sqrtTKE_IPPCLUT.RescaleTransferFunction(2.0, sqrtTKE_max)
+        sqrtTKE_IPPCPWF = GetOpacityTransferFunction('sqrtTKE_IPPC')
+        sqrtTKE_IPPCPWF.ApplyPreset('IPPC', True)
+        sqrtTKE_IPPCPWF.RescaleTransferFunction(2.0, sqrtTKE_max)
+    
+    # get opacity transfer function/opacity map for 'sqrtTKE'
+    sqrtTKEPWF.AllowDuplicateScalars = 1
+    sqrtTKEPWF.ScalarRangeInitialized = 1
+    sqrtTKEPWF.RescaleTransferFunction(0.0, sqrtTKE_max)
+    sqrtTKEPWF.Points = [0.0, 0.0, 0.5, 0.0, 1.6, 0.0, 0.5, 0.0, 4.0, 1.0, 0.5, 0.0]
+    
+    renderView1.InteractionMode = '3D'
+    renderView1.CameraPosition = [42315.178435332025-originx, 6913455.09641479-originy, 39925.03392197488]
+    renderView1.CameraFocalPoint = [47321.88134561954-originx, 6944851.971259325-originy, -590.056714551883]
+    renderView1.CameraViewUp = [0.10754399354149799, 0.7793741712263841, 0.6172602293023044]
+    renderView1.CameraParallelScale = 34572.810251475086
+    renderView1.CameraViewAngle = 30.0
+    
+    color = 'white'
+    RenderAllViews()
+    # get animation scene
+    animationScene1 = GetAnimationScene()
+    animationScene1.UpdateAnimationUsingDataTimeSteps()
+    animationScene1.GoToFirst()
+    # update animation scene based on data timesteps
+    for i in range(0,3):
+        fileNameT = fileName+'_'+str(i)
+
+        if plotLIC:
+            insertSINTEFlogo(renderView1,color)
+            saveScreenShot(renderView1,outputPath+fileNameT+'surfaceLICside_bridge'+str(bridge),saveScreenShots)
+            
+            copyCamera(renderView1,renderView2)
+            insertSINTEFlogo(renderView2,color)
+            saveScreenShot(renderView2,outputPath+fileNameT+'surfaceLICtop_bridge'+str(bridge),saveScreenShots)
+        
+        if plotStreamLines:
+            insertSINTEFlogo(renderView3,color)
+            copyCamera(renderView1,renderView3)
+            saveScreenShot(renderView3,outputPath+fileNameT+'streamTracer_bridge'+str(bridge),saveScreenShots)
+                
+        if plotVolumeRendering:
+            insertSINTEFlogo(renderView4,color)
+            copyCamera(renderView1,renderView4)
+            saveScreenShot(renderView4,outputPath+fileNameT+'volumeRendering_bridge'+str(bridge),saveScreenShots)
+            #saveAnimation(renderView4,outputPath+fileNameT+'volumeRendering_bridge'+str(bridge),noSteps,makeVideo)
+        
+        if plotIPPCmapsHorizontal:
+            insertSINTEFlogo(renderView5,'white')
+            saveScreenShot(renderView5,outputPath+fileNameT+'IPPC_horizontal_bridge'+str(bridge),saveScreenShots)
+            ColorBy(calculator2Display, None)
+            Hide(countour1[i_f], renderView5)
+            saveScreenShot(renderView5,outputPath+fileNameT+'IPPC_horizontal_topo4_bridge'+str(bridge),saveScreenShots)
+        
+        if plotIPPCmapsVertical:
+            insertSINTEFlogo(renderView6,'blue')
+            saveScreenShot(renderView6,outputPath+fileNameT+'IPPC_vertical_bridge'+str(bridge),saveScreenShots)
+        
+        if plotVelocityProfiles:
+            saveScreenShot(layout8,outputPath+fileNameT+'velocityProfiles',saveScreenShots,saveAllViews=True)
+
+        if plotError:
+            slice1Display[i_f].Representation = 'Surface'
+            ColorBy(slice1Display[i_f], ('CELLS', 'Continuous global L2-projection |u^*-u^h|_H1'))
+            HideScalarBarIfNotNeeded(sqrtTKELUT, renderView1)
+            continuousglobalL2projectionuuh_H1PWF = GetOpacityTransferFunction('ContinuousglobalL2projectionuuh_H1')
+            continuousglobalL2projectionuuh_H1LUT = GetColorTransferFunction('ContinuousglobalL2projectionuuh_H1')
+            continuousglobalL2projectionuuh_H1LUT.AutomaticRescaleRangeMode = "Never"
+            continuousglobalL2projectionuuh_H1LUT.RescaleOnVisibilityChange = 0
+            continuousglobalL2projectionuuh_H1LUT.EnableOpacityMapping = 0
+            slice1Display[i_f].RescaleTransferFunctionToDataRange(False, True)
+            continuousglobalL2projectionuuh_H1LUTColorBar = GetScalarBar(continuousglobalL2projectionuuh_H1LUT, renderView1)
+            continuousglobalL2projectionuuh_H1LUTColorBar.WindowLocation = 'AnyLocation'
+            continuousglobalL2projectionuuh_H1LUTColorBar.ScalarBarLength = 0.33000000000000007
+            continuousglobalL2projectionuuh_H1LUTColorBar.Position = [0.9340269406943105, 0.09444444444444428]
+            continuousglobalL2projectionuuh_H1LUTColorBar.ScalarBarLength = 0.3300000000000001
+            continuousglobalL2projectionuuh_H1LUTColorBar.TitleColor = [1.0, 1.0, 1.0]
+            continuousglobalL2projectionuuh_H1LUTColorBar.LabelColor = [1.0, 1.0, 1.0]
+            continuousglobalL2projectionuuh_H1LUTColorBar.Title = 'Continuous global $L^2$-projection $|u^*-u^h|_{H^1}$'
+            continuousglobalL2projectionuuh_H1LUT.RescaleTransferFunction(0.0, 100.0)
+            continuousglobalL2projectionuuh_H1PWF.RescaleTransferFunction(0.0, 100.0)
+            continuousglobalL2projectionuuh_H1LUT.ApplyPreset('SINTEF1', True)
+            renderView1.CameraPosition = [39953.1497599849-originx, 6936202.267042985-originy, 2614.4419848900225]
+            renderView1.CameraFocalPoint = [39143.54568842529-originx, 6947093.529147031-originy, 516.8749792426419]
+            renderView1.CameraViewUp = [-0.012278300117821047, 0.18822195283001805, 0.9820497644310452]
+            renderView1.CameraParallelScale = 28350.540722069076
+            saveScreenShot(renderView1,outputPath+fileNameT+'surfaceLICside_bridge'+str(bridge)+'_Error',saveScreenShots)
+
+        animationScene1.GoToNext()

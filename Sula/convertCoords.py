@@ -5,7 +5,8 @@ import numpy as np
 @click.command()
 @click.option('--originx', default=0.0, type=float, help='x-coordinate of origin')
 @click.option('--originy', default=0.0, type=float, help='y-coordinate of origin')
-def main(originx,originy):
+@click.option('--date', default='2020-11-19 06:00', type=str, help='Date for data extraction')
+def main(originx,originy,date):
     proj32 = "+proj=utm +zone=32K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
     proj33 = "+proj=utm +zone=33K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
     transformer = Transformer.from_crs(proj32,proj33)
@@ -51,10 +52,13 @@ def main(originx,originy):
             z = np.floor(Sensorh[i][j]).astype(int)
             filename = 'measurements/'+'10hz_'+mastNames[i]+'_60mnturbulence_statistics_'+str(z)+'_202011.csv'
             df_all = pd.read_csv(filename)
-            df = df.append(df_all[df_all.date=='2020-11-19 06:00'])
+            df = df.append(df_all[df_all.date==date])
         df = df.reset_index()
         df['coordsZ'] = mastb[i]+Sensorh[i]
-        df.to_csv('VelocityProfile_'+mastNames[i]+'.csv')
+        csvName = 'VelocityProfile_'+mastNames[i]+'_'+str(round(float(date[12])-6))+'.csv'
+        print(csvName)
+        print(date)
+        df.to_csv(csvName)
 
 
 
