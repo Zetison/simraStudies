@@ -29,6 +29,30 @@ caseName = 'SED_caseName'
 simraResultsFolder = home+'/results/simra/Sula/'
 outputPath = simraResultsFolder+caseName+'/'
 topoRes = 'SED_topoRes' 
+
+# Set the time
+#t = 9
+t = -1
+csvindices = slice(0,9)
+openFoamResultsFolder = home+'/results/openfoam/Sula/'
+#fileNames = [outputPath+'M0.pvd']
+#fileNames = [simraResultsFolder+'met_new/2020111906_M1.pvd']
+#fileNames = [simraResultsFolder+'met_new/2020111906_M0.pvd',
+#             simraResultsFolder+'met_new/2020111906_M1.pvd']
+fileNames = [simraResultsFolder+'met_new/2020111900_M0.pvd',
+             simraResultsFolder+'met_new/2020111900_M1.pvd']
+#fileNames = [simraResultsFolder+'met_new/2020111906_M0.pvd',
+#             simraResultsFolder+'met_new/2020111906_M1.pvd',
+#             openFoamResultsFolder+'SolaSteady_Finer_9596.vtk']
+#fileNames = [openFoamResultsFolder+'SolaSteady_Finer_9596.vtk',
+#             openFoamResultsFolder+'5May_Unsteady_Boussinesq_Finer_sola.vtk']
+#fileNames = [outputPath+caseName+'.pvd']
+
+caseNames = ['SIMRA_M0','SIMRA_M1','Finer_sola_steadyisothermal','SolaSteady_Finer_9596']
+caseNames = ['SIMRA_M1']
+caseNames = ['SIMRA_M0','Simra_M1']
+#caseNames = ['5May_Unsteady_Boussinesq_Finer_sola','SolaSteady_Finer_9596']
+
 originx=-200.0
 originy=6899800.0
 topographyFileName   = simraResultsFolder+'Sula'+topoRes+'.vts'
@@ -53,7 +77,7 @@ plotBridgeAndSensors     = 1
 plotUniverseBackground   = 0 
 
 plotLIC                  = 0 
-plotStreamLines          = 0 
+plotStreamLines          = 1 
 plotVolumeRendering      = 0 
 plotIPPCmapsHorizontal   = 0 
 plotIPPCmapsVertical     = 0 
@@ -305,8 +329,11 @@ for i in range(0,noMasts):
     quartileChartView2[i].BottomAxisRangeMaximum = 25.0
     quartileChartView2[i].LegendLocation = 'TopLeft'
     AssignViewToLayout(view=quartileChartView2[i], layout=layout8, hint=hints[i])
-    vpcsv[i] = CSVReader(registrationName=mastNames[i], FileName=list(map(str,sorted(Path(simraResultsFolder).glob('VelocityProfile_'+mastNames[i]+'_*.csv')))))
-    #vpcsv[i] = CSVReader(registrationName=mastNames[i], FileName=[simraResultsFolder+'/VelocityProfile_'+mastNames[i]+'_0.csv'])
+    if t < 0:
+        csvFileNames = list(map(str,sorted(Path(simraResultsFolder).glob('VelocityProfile_'+mastNames[i]+'_*.csv'))))
+        vpcsv[i] = CSVReader(registrationName=mastNames[i], FileName=csvFileNames[csvindices])
+    else:
+        vpcsv[i] = CSVReader(registrationName=mastNames[i], FileName=[simraResultsFolder+'/VelocityProfile_'+mastNames[i]+'_'+str(t)+'.csv'])
     vpcsvDisplay[i] = Show(vpcsv[i], quartileChartView2[i], 'XYChartRepresentation')
     vpcsvDisplay[i].UseIndexForXAxis = 0
     vpcsvDisplay[i].XArrayName = 'u_mag'
@@ -317,21 +344,6 @@ for i in range(0,noMasts):
     vpcsvDisplay[i].SeriesLabel = ['coordsZ', 'Experimental']
     vpcsvDisplay[i].SeriesVisibility = ['coordsZ']
 
-openFoamResultsFolder = home+'/results/openfoam/Sula/'
-fileNames = [outputFolder+'M0.pvd']
-#fileNames = [simraResultsFolder+'met_new/2020111906_M1.pvd']
-#fileNames = [simraResultsFolder+'met_new/2020111906_M0.pvd',
-#             simraResultsFolder+'met_new/2020111906_M1.pvd']
-#fileNames = [simraResultsFolder+'met_new/2020111906_M0.pvd',
-#             simraResultsFolder+'met_new/2020111906_M1.pvd',
-#             openFoamResultsFolder+'Finer_sola_steadyisothermal_new.vtk']
-#fileNames = [openFoamResultsFolder+'Finer_sola_steadyisothermal_new.vtk']
-#fileNames = [outputPath+caseName+'.pvd']
-
-caseNames = ['SIMRA_M0','SIMRA_M1','Finer_sola_steadyisothermal','SolaSteady_Finer_9596']
-caseNames = ['SIMRA_M1']
-caseNames = ['SIMRA_M0']
-#caseNames = ['Finer_sola_steadyisothermal','SolaSteady_Finer_9596']
 noFiles = len(fileNames)
 colorsCases = cm.jet(range(256))[0::256//noFiles]
 pvdResults = [''] * noFiles
@@ -339,9 +351,13 @@ calculator0 = [''] * noFiles
 calculator1 = [''] * noFiles
 calculatorIPPC = [''] * noFiles
 slice1 = [''] * noFiles
+slice1Display = [''] * noFiles
+slice2Display = [''] * noFiles
 proj_u = [''] * noFiles
 planeSlice = [''] * noFiles
 resampledSlice = [''] * noFiles
+streamTracer1 = [''] * noFiles
+streamTracer1Display = [''] * noFiles
 resampledAtMast = [''] * noFiles
 resampledAtMastDisplay = [''] * noFiles
 for i_f in range(0,noFiles):
@@ -880,7 +896,7 @@ for i_f in range(0,noFiles):
     animationScene1.GoToFirst()
     # update animation scene based on data timesteps
     for i in range(0,3):
-        fileNameT = fileName+'_'+str(i)
+        fileNameT = fileName+'_'+str(i)+'_'
 
         if plotLIC:
             insertSINTEFlogo(renderView1,color)

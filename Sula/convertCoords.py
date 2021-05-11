@@ -52,13 +52,19 @@ def main(originx,originy,date):
             z = np.floor(Sensorh[i][j]).astype(int)
             filename = 'measurements/'+'10hz_'+mastNames[i]+'_60mnturbulence_statistics_'+str(z)+'_202011.csv'
             df_all = pd.read_csv(filename)
-            df = df.append(df_all[df_all.date==date])
+            if j == 0:
+                df = df.append(df_all[df_all.date==0])
+
+            if df_all[df_all.date==date].empty:
+                df = df.append(pd.Series(dtype='object'), ignore_index=True)
+            else:
+                df = df.append(df_all[df_all.date==date])
         df = df.reset_index()
         df['coordsZ'] = mastb[i]+Sensorh[i]
-        csvName = 'VelocityProfile_'+mastNames[i]+'_'+str(round(float(date[12])-6))+'.csv'
+        csvName = 'VelocityProfile_'+mastNames[i]+'_'+str(round(float(date[11:13])))+'.csv'
         print(csvName)
         print(date)
-        df.to_csv(csvName)
+        df.to_csv(csvName, na_rep='NaN')
 
 
 
