@@ -14,8 +14,8 @@ def main(infile: IO):
         data_tk = grid.GetPointData().GetArray(oldName)
         data_tk.SetName(newName)
     
-    writer = vtk.vtkUnstructuredGridWriter()
-    writer.SetFileName(infile.name[:-4]+'.vtk')
+    writer = vtk.vtkXMLUnstructuredGridWriter()
+    writer.SetFileName(infile.name[:-4]+'.vtu')
     writer.SetInputData(grid)
     writer.Write()
 

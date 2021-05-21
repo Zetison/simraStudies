@@ -33,26 +33,42 @@ topoRes = 'SED_topoRes'
 # Set the time
 #t = 9
 t = -1
-csvindices = slice(0,9)
 openFoamResultsFolder = home+'/results/openfoam/Sula/'
 #fileNames = [outputPath+'M0.pvd']
-#fileNames = [simraResultsFolder+'met_new/2020111906_M1.pvd']
-#fileNames = [simraResultsFolder+'met_new/2020111906_M0.pvd',
-#             simraResultsFolder+'met_new/2020111906_M1.pvd']
-fileNames = [simraResultsFolder+'met_new/2020111900_M0.pvd',
-             simraResultsFolder+'met_new/2020111900_M1.pvd']
-#fileNames = [simraResultsFolder+'met_new/2020111906_M0.pvd',
-#             simraResultsFolder+'met_new/2020111906_M1.pvd',
+#fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd']
+#fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M0.pvd',
+#             simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd']
+fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M0.pvd',
+             simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd']
+#fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M0.pvd',
+#             simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd',
 #             openFoamResultsFolder+'SolaSteady_Finer_9596.vtk']
 #fileNames = [openFoamResultsFolder+'SolaSteady_Finer_9596.vtk',
 #             openFoamResultsFolder+'5May_Unsteady_Boussinesq_Finer_sola.vtk']
 #fileNames = [outputPath+caseName+'.pvd']
+fileNames = [
+simraResultsFolder+'met_new/2020111900_M0.pvd',
+simraResultsFolder+'met_new/2020111900_M1.pvd',
+simraResultsFolder+'met_new/2020111906_M0.pvd',
+openFoamResultsFolder+'2020111906_OF_unStdy.pvd',
+openFoamResultsFolder+'2020111906_OF_stdy.pvd',
+openFoamResultsFolder+'2020111906_OF_stdyIso.pvd',
+]
 
 caseNames = ['SIMRA_M0','SIMRA_M1','Finer_sola_steadyisothermal','SolaSteady_Finer_9596']
 caseNames = ['SIMRA_M1']
-caseNames = ['SIMRA_M0','Simra_M1']
+caseNames = ['SED_TIMESTAMP_Simra_M0','SED_TIMESTAMP_Simra_M1']
+caseNames = [
+'2020111900_M0',
+'2020111900_M1',
+'2020111906_M0',
+'2020111906_OF_unStdy',
+'2020111906_OF_stdy',
+'2020111906_OF_tdyIso',
+]
 #caseNames = ['5May_Unsteady_Boussinesq_Finer_sola','SolaSteady_Finer_9596']
 
+colorLogo = 'white' # Default color of SINTEF logo
 originx=-200.0
 originy=6899800.0
 topographyFileName   = simraResultsFolder+'Sula'+topoRes+'.vts'
@@ -60,6 +76,7 @@ textureFileName_topo = simraResultsFolder+'Sula'+topoRes+'_topo.png'
 textureFileName_NIB  = simraResultsFolder+'Sula'+topoRes+'.png'
 windCase = 2 
 velProfileMax_Z=120
+z_proj = 5000 # Project cone to this height
 noSteps = 201
 finalTime = 11.7006
 sqrtTKE_max = 5.0
@@ -70,31 +87,31 @@ angleOfAttack_East = 3.0
 runwayWidth = 150.0
 runwayHeight = 30.0
 runwayHeight = 10.0
-bridgeBaseHeight=50.0
+bridgeBaseHeight = 50.0
 plotRunway               = 0 
 plotTakeOffLines         = 0 
 plotBridgeAndSensors     = 1 
 plotUniverseBackground   = 0 
 
 plotLIC                  = 0 
-plotStreamLines          = 1 
+plotStreamLines          = 0 
 plotVolumeRendering      = 0 
 plotIPPCmapsHorizontal   = 0 
 plotIPPCmapsVertical     = 0 
-plotOverTime             = 0
-plotVelocityProfiles     = 1
+plotOverTime             = 0 
+plotVelocityProfiles     = 1 
 
 makeVideo                = 0
-saveScreenShots          = 1
+saveScreenShots          = 1 
 useTransparentBackground = 0
+plotError                = 0 
 
-plotError                = plotLIC 
 bridge = SED_BRIDGE
 bridgeHeight = 20
 # Use i.e. norgeskart.no and "Vis koordinater" to get UTM coordinates (NORD,ØST,height)
 #runwayEndWest = latLonUTM("623323.41","0060532.89",35.3)
 #runwayEndEast = latLonUTM("623351.26","0060740.31",49.2)
-mastLoc = np.genfromtxt('mastLoc.csv', delimiter=',')
+mastLoc = np.genfromtxt('../mastLoc.csv', delimiter=',')
 if bridge == 1:
     runwayEndWest = mastLoc[0][:3]
     runwayEndEast = mastLoc[1][:3]
@@ -203,6 +220,13 @@ def showRunway(renderView,runway=runway):
         runwayDisplay.Representation = 'Surface'
         runwayDisplay.DiffuseColor = runwayColor 
 
+def annotateDateStep(obj,renderview,RegistrationName,location='LowerRightCorner'):
+    annotateTimeFilter1 = AnnotateTimeFilter(registrationName=RegistrationName, Input=obj)
+    annotateTimeFilter1.Format = '2020-11-19 %02.0f:00'
+    annotateTimeFilter1Display = Show(annotateTimeFilter1, renderview, 'ChartTextRepresentation')
+    annotateTimeFilter1Display.FontSize = 8 
+    return annotateTimeFilter1Display
+
 def annotateTimeStep(obj,renderview,location='UpperLeftCorner'):
     pythonAnnotation = PythonAnnotation(registrationName='Time annotation', Input=obj)
     pythonAnnotation.ArrayAssociation = 'Point Data'
@@ -217,7 +241,7 @@ labels = ['SulaNW (Kvitneset) - 1','SulaNW (Kvitneset) - 2','SulaNW (Kvitneset) 
           'SulaSE (Kårsteinen) - 1','SulaSE (Kårsteinen) - 2','SulaSE (Kårsteinen) - 3',
           'Midspan bridge 1', 'Midspan bridge 2']
 mastLabel = ['SulaNW (Kvitneset)', 'SulaNE (Trælboneset)', 'SulaSW (Langeneset)', 'SulaSE (Kårsteinen)']
-points = np.genfromtxt('POINT_FILE', delimiter=' ', skip_header=True)
+points = np.genfromtxt('../POINT_FILE', delimiter=' ', skip_header=True)
 noMasts = mastLoc.shape[0]
 noPoints = points.shape[0]
 noBridges = 2
@@ -315,6 +339,7 @@ layout8.SplitHorizontal(1, 0.5)
 layout8.SplitHorizontal(2, 0.5)
 quartileChartView2 = [''] * noMasts
 vpcsv = [''] * noMasts
+plotData1 = [''] * noMasts
 vpcsvDisplay = [''] * noMasts
 for i in range(0,noMasts):
     quartileChartView2[i] = CreateView('QuartileChartView')
@@ -326,31 +351,37 @@ for i in range(0,noMasts):
     quartileChartView2[i].LeftAxisRangeMaximum = velProfileMax_Z
     quartileChartView2[i].BottomAxisUseCustomRange = 1
     quartileChartView2[i].BottomAxisRangeMinimum = 0.0
-    quartileChartView2[i].BottomAxisRangeMaximum = 25.0
-    quartileChartView2[i].LegendLocation = 'TopLeft'
+    quartileChartView2[i].BottomAxisRangeMaximum = 30.0
+    quartileChartView2[i].LegendLocation = 'TopRight'
+    quartileChartView2[i].LegendFontSize = 8 
     AssignViewToLayout(view=quartileChartView2[i], layout=layout8, hint=hints[i])
-    if t < 0:
-        csvFileNames = list(map(str,sorted(Path(simraResultsFolder).glob('VelocityProfile_'+mastNames[i]+'_*.csv'))))
-        vpcsv[i] = CSVReader(registrationName=mastNames[i], FileName=csvFileNames[csvindices])
-    else:
-        vpcsv[i] = CSVReader(registrationName=mastNames[i], FileName=[simraResultsFolder+'/VelocityProfile_'+mastNames[i]+'_'+str(t)+'.csv'])
-    vpcsvDisplay[i] = Show(vpcsv[i], quartileChartView2[i], 'XYChartRepresentation')
-    vpcsvDisplay[i].UseIndexForXAxis = 0
-    vpcsvDisplay[i].XArrayName = 'u_mag'
-    vpcsvDisplay[i].SeriesLineStyle = ['coordsZ', '1']
-    vpcsvDisplay[i].SeriesMarkerSize = ['coordsZ', '8']
-    vpcsvDisplay[i].SeriesMarkerStyle = ['coordsZ', '4']
-    vpcsvDisplay[i].SeriesColor = ['coordsZ', '0', '0', '0']
-    vpcsvDisplay[i].SeriesLabel = ['coordsZ', 'Experimental']
-    vpcsvDisplay[i].SeriesVisibility = ['coordsZ']
+    vpcsv[i] = [''] * 3
+    vpcsvDisplay[i] = [''] * 3
+    plotData1[i] = [''] * 3
+    dataTypes = ['filtered','raw','rawMid']
+    colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.8,0.8]] 
+    for j in range(3):
+        vpcsv[i][j] = PVDReader(registrationName=mastNames[i], FileName=simraResultsFolder+'/'+mastNames[i]+'_'+dataTypes[j]+'.pvd')
+        plotData1[i][j] = PlotData(registrationName=mastNames[i]+'_'+dataTypes[j], Input=vpcsv[i][j])
+        vpcsvDisplay[i][j] = Show(plotData1[i][j], quartileChartView2[i], 'XYChartRepresentation')
+        vpcsvDisplay[i][j].UseIndexForXAxis = 0
+        vpcsvDisplay[i][j].XArrayName = 'u_mag'
+        vpcsvDisplay[i][j].SeriesLineStyle = ['coordsZ', '1']
+        vpcsvDisplay[i][j].SeriesMarkerSize = ['coordsZ', '8']
+        vpcsvDisplay[i][j].SeriesMarkerStyle = ['coordsZ', '4']
+        vpcsvDisplay[i][j].SeriesColor = ['coordsZ', str(colorsData[j][0]), str(colorsData[j][1]), str(colorsData[j][2])]
+        vpcsvDisplay[i][j].SeriesLabel = ['coordsZ', 'Exp. '+dataTypes[j]]
+        vpcsvDisplay[i][j].SeriesVisibility = ['coordsZ']
 
 noFiles = len(fileNames)
 colorsCases = cm.jet(range(256))[0::256//noFiles]
 pvdResults = [''] * noFiles
 calculator0 = [''] * noFiles
 calculator1 = [''] * noFiles
+calculator1Display = [''] * noFiles
 calculatorIPPC = [''] * noFiles
 slice1 = [''] * noFiles
+slice2 = [''] * noFiles
 slice1Display = [''] * noFiles
 slice2Display = [''] * noFiles
 proj_u = [''] * noFiles
@@ -360,12 +391,36 @@ streamTracer1 = [''] * noFiles
 streamTracer1Display = [''] * noFiles
 resampledAtMast = [''] * noFiles
 resampledAtMastDisplay = [''] * noFiles
+contour1 = [''] * noFiles
+contour1Display = [''] * noFiles
+contour2 = [''] * noFiles
+contour2Display = [''] * noFiles
+contour3 = [''] * noFiles
+contour3Display = [''] * noFiles
+contour4 = [''] * noFiles
+contour4Display = [''] * noFiles
+glyph1 = [''] * noFiles
+glyph1Display = [''] * noFiles
+glyph2 = [''] * noFiles
+glyph2Display = [''] * noFiles
+resampleWithDataset1 = [''] * noFiles
+resampleWithDataset1Display = [''] * noFiles
+annotateTimeFilter1Display = [''] * noFiles
+resampleWithDataset2 = [''] * noFiles
+calculatorConeProj = [''] * noFiles
+planeSliceTransform = [''] * noFiles
+slice1Transform = [''] * noFiles
+slice1TransformDisplay = [''] * noFiles
+resampledSliceTransform = [''] * noFiles
+annotateTimeFilter1 = [''] * noFiles
+cpcsv = [''] * noFiles
+cpcsvDisplay = [''] * noFiles
 for i_f in range(0,noFiles):
     # get the time-keeper
     fileName = caseNames[i_f]
     timeKeeper1 = GetTimeKeeper()
     
-    openfoamVars = fileNames[i_f][-3:] == 'vtk' # True
+    openfoamVars = fileNames[i_f][-3:] == 'vtk'
     if openfoamVars:
         pvdResults[i_f] = LegacyVTKReader(registrationName=caseNames[i_f], FileNames=[fileNames[i_f]])
     else:
@@ -448,7 +503,7 @@ for i_f in range(0,noFiles):
             sqrtTKELUTColorBar_2.ComponentTitle = ''
             sqrtTKELUTColorBar_2.ScalarBarLength = scalarBarLength
         
-            topographyDisplay = Show(topography, renderView2, 'UnstructuredGridRepresentation')
+            topographyDisplay = Show(topography, renderView2, 'StructuredGridRepresentation')
             topographyDisplay.Representation = 'Surface'
             topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
         
@@ -467,7 +522,7 @@ for i_f in range(0,noFiles):
         Hide3DWidgets(proxy=slice2[i_f].SliceType)
         
         # show data in view
-        slice1Display[i_f] = Show(slice1[i_f], renderView1, 'UnstructuredGridRepresentation')
+        slice1Display[i_f] = Show(slice1[i_f], renderView1, 'GeometryRepresentation')
         ColorBy(slice1Display[i_f], ('POINTS', 'sqrtTKE'))
         slice1Display[i_f].SetRepresentationType('Surface LIC')
         slice1Display[i_f].ColorMode = 'Multiply'
@@ -480,7 +535,7 @@ for i_f in range(0,noFiles):
     
     
         # show data in view
-        slice2Display[i_f] = Show(slice2[i_f], renderView2, 'UnstructuredGridRepresentation')
+        slice2Display[i_f] = Show(slice2[i_f], renderView2, 'GeometryRepresentation')
         ColorBy(slice2Display[i_f], ('POINTS', 'sqrtTKE'))
         slice2Display[i_f].SetRepresentationType('Surface LIC')
         slice2Display[i_f].ColorMode = 'Multiply'
@@ -491,6 +546,9 @@ for i_f in range(0,noFiles):
         slice2Display[i_f].RescaleTransferFunctionToDataRange(True, False)
         slice2Display[i_f].SetScalarBarVisibility(renderView2, True)# set active source
         
+        if i_f == 0:
+            insertSINTEFlogo(renderView1,colorLogo)
+            insertSINTEFlogo(renderView2,colorLogo)
     ####################################################################################
     ## Layout 3 - Stream lines
     if plotStreamLines:
@@ -506,7 +564,7 @@ for i_f in range(0,noFiles):
             renderView3.OrientationAxesVisibility = 0
             AssignViewToLayout(view=renderView3, layout=layout3, hint=0)
             
-            topographyDisplay = Show(topography, renderView3, 'UnstructuredGridRepresentation')
+            topographyDisplay = Show(topography, renderView3, 'StructuredGridRepresentation')
             topographyDisplay.Representation = 'Surface'
             topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
         
@@ -543,6 +601,8 @@ for i_f in range(0,noFiles):
         streamTracer1Display[i_f].LineWidth = 3.0
         Hide3DWidgets(proxy=streamTracer1[i_f].SeedType)
     
+        if i_f == 0:
+            insertSINTEFlogo(renderView3,colorLogo)
     
     ####################################################################################
     ## Layout 4 - Volume rendering
@@ -559,7 +619,7 @@ for i_f in range(0,noFiles):
             renderView4.OrientationAxesVisibility = 0
             AssignViewToLayout(view=renderView4, layout=layout4, hint=0)
             
-            topographyDisplay = Show(topography, renderView4, 'UnstructuredGridRepresentation')
+            topographyDisplay = Show(topography, renderView4, 'StructuredGridRepresentation')
             topographyDisplay.Representation = 'Surface'
             topographyDisplay.Texture = CreateTexture(textureFileName_NIB)
             
@@ -574,13 +634,17 @@ for i_f in range(0,noFiles):
             sqrtTKELUTColorBar_4.ScalarBarLength = scalarBarLength
         
         # create a new 'Stream Tracer'
-        calculator1Display[i_f] = Show(calculator1[i_f], renderView4, 'UnstructuredGridRepresentation')
-        calculator1Display[i_f].Representation = 'Volume'
-        calculator1Display[i_f].ColorArrayName = ['POINTS', 'sqrtTKE']
+        calculator1Display[i_f] = Show(calculator1[i_f], renderView4, 'StructuredGridRepresentation')
+        #calculator1Display[i_f].Representation = 'Volume'
+        #calculator1Display.ColorArrayName = ['POINTS', 'sqrtTKE']
+        ColorBy(calculator1Display[i_f], ('POINTS', 'sqrtTKE'))
+        calculator1Display[i_f].SetRepresentationType('Volume')
     
         if timeStepAnnotation and i_f == 0:
             annotateTimeStep(calculator1[i_f],renderView4,location='UpperLeftCorner')
     
+        if i_f == 0:
+            insertSINTEFlogo(renderView4,colorLogo)
     
     if plotIPPCmapsHorizontal:
         if i_f == 0:
@@ -632,28 +696,27 @@ for i_f in range(0,noFiles):
             plane1.Point2 = [P_nw[0],P_nw[1],z_proj]
             plane1.XResolution = np.round(np.linalg.norm(P_sw[:2]-P_se[:2])/1000).astype('int')
             plane1.YResolution = np.round(np.linalg.norm(P_sw[:2]-P_nw[:2])/1000).astype('int')
-        
             renderView5.InteractionMode = '2D'
-            renderView5.CameraPosition = [54279.27032496591-originx, 6950488.075249355-originy, 25242.965782087373]
-            renderView5.CameraFocalPoint = [51365.64987931158-originx, 6949878.21067271-originy, -393.12364711190645]
-            renderView5.CameraViewUp = [-0.0026685028441370807, 0.999720760110162, -0.023479371740545256]
+            renderView5.CameraPosition = [49425.69655934961, 50403.11453917931, 25824.099005668097]
+            renderView5.CameraFocalPoint = [46512.076113695286, 49793.249962534115, 188.00957646880653]
+            renderView5.CameraViewUp = [-0.002668502844137075, 0.999720760110162, -0.023479371740545246]
             renderView5.CameraParallelScale = 11840.135737817194
-        
-        countour1[i_f] = Contour(Input=calculator2)
-        countour1[i_f].ContourBy = ['POINTS', 'height']
-        countour1[i_f].Isosurfaces = [0.0001]
-        countour1[i_f].PointMergeMethod = 'Uniform Binning'
-        countour1Display[i_f] = Show(countour1[i_f], renderView5, 'GeometryRepresentation')
-        ColorBy(countour1Display[i_f], None)
-        countour1Display[i_f].DiffuseColor = [0.552941176470588, 0.149019607843137, 0.129411764705882]
+            
+        contour1[i_f] = Contour(Input=calculator2)
+        contour1[i_f].ContourBy = ['POINTS', 'height']
+        contour1[i_f].Isosurfaces = [0.0001]
+        contour1[i_f].PointMergeMethod = 'Uniform Binning'
+        contour1Display[i_f] = Show(contour1[i_f], renderView5, 'GeometryRepresentation')
+        ColorBy(contour1Display[i_f], None)
+        contour1Display[i_f].DiffuseColor = [0.552941176470588, 0.149019607843137, 0.129411764705882]
     
-        countour2[i_f] = Contour(Input=extendedCone)
-        countour2[i_f].ContourBy = ['POINTS', 'z']
-        countour2[i_f].Isosurfaces = np.array([500,1000,1500,2000,2500,3000,3500,4000,4500])*0.3048 #convert to meter
-        countour2[i_f].PointMergeMethod = 'Uniform Binning'
-        countour2Display[i_f] = Show(countour2[i_f], renderView5, 'GeometryRepresentation')
-        ColorBy(countour2Display[i_f], None)
-        countour2Display[i_f].DiffuseColor = [0.286274509803922, 0.317647058823529, 0.968627450980392]
+        contour2[i_f] = Contour(Input=extendedCone)
+        contour2[i_f].ContourBy = ['POINTS', 'z']
+        contour2[i_f].Isosurfaces = np.array([500,1000,1500,2000,2500,3000,3500,4000,4500])*0.3048 #convert to meter
+        contour2[i_f].PointMergeMethod = 'Uniform Binning'
+        contour2Display[i_f] = Show(contour2[i_f], renderView5, 'GeometryRepresentation')
+        ColorBy(contour2Display[i_f], None)
+        contour2Display[i_f].DiffuseColor = [0.286274509803922, 0.317647058823529, 0.968627450980392]
         
         resampleWithDataset1[i_f] = ResampleWithDataset(SourceDataArrays=calculatorIPPC[i_f], DestinationMesh=extendedCone)
         resampleWithDataset1[i_f].CellLocator = 'Static Cell Locator'
@@ -662,21 +725,20 @@ for i_f in range(0,noFiles):
         resampleWithDataset1Display[i_f].Ambient = 1.0
         resampleWithDataset1Display[i_f].Diffuse = 0.0
     
-        countour3[i_f] = Contour(Input=resampleWithDataset1[i_f])
-        countour3[i_f].ContourBy = ['POINTS', 'sqrtTKE_IPPC']
-        countour3[i_f].Isosurfaces = [2.0,3.0,4.0]
-        countour3[i_f].PointMergeMethod = 'Uniform Binning'
-        countour3Display[i_f] = Show(countour3[i_f], renderView5, 'GeometryRepresentation')
+        contour3[i_f] = Contour(Input=resampleWithDataset1[i_f])
+        contour3[i_f].ContourBy = ['POINTS', 'sqrtTKE_IPPC']
+        contour3[i_f].Isosurfaces = [2.0,3.0,4.0]
+        contour3[i_f].PointMergeMethod = 'Uniform Binning'
+        contour3Display[i_f] = Show(contour3[i_f], renderView5, 'GeometryRepresentation')
         try:
-            ColorBy(countour3Display[i_f], None)
+            ColorBy(contour3Display[i_f], None)
         except:
             print('No turbulence above 2 to be shown')
         
-        countour3Display[i_f].DiffuseColor = [0.0, 0.0, 0.0]
+        contour3Display[i_f].DiffuseColor = [0.0, 0.0, 0.0]
     
         calculatorConeProj[i_f] = Calculator(Input=resampleWithDataset1[i_f])
         calculatorConeProj[i_f].ResultArrayName = 'projCone'
-        z_proj = 5000
         calculatorConeProj[i_f].Function = 'coordsX*iHat+coordsY*jHat+'+str(z_proj)+'*kHat'
         calculatorConeProj[i_f].CoordinateResults = 1
         resampleWithDataset2[i_f] = ResampleWithDataset(SourceDataArrays=calculatorConeProj[i_f], DestinationMesh=plane1)
@@ -692,6 +754,8 @@ for i_f in range(0,noFiles):
         glyph1Display[i_f].DiffuseColor = [0.0, 0.0, 0.0]
         ColorBy(glyph1Display[i_f], None)
     
+        if i_f == 0:
+            insertSINTEFlogo(renderView5,'blue')
         
     if plotIPPCmapsVertical:
         if i_f == 0:
@@ -811,6 +875,8 @@ for i_f in range(0,noFiles):
         
         contour4Display[i_f].DiffuseColor = [0.0, 0.0, 0.0]
         
+        if i_f == 0:
+            insertSINTEFlogo(renderView6,'blue')
         
     if plotOverTime:
         if i_f == 0:
@@ -838,6 +904,7 @@ for i_f in range(0,noFiles):
     if plotVelocityProfiles:
         resampledAtMast[i_f] = [''] * noMasts
         resampledAtMastDisplay[i_f] = [''] * noMasts
+        annotateTimeFilter1Display[i_f] = [''] * noMasts
         for i in range(0,noMasts):
             resampledAtMast[i_f][i] = ResampleWithDataset(registrationName='calculator1 resampled '+mastLabel[i], SourceDataArrays=calculator1[i_f], DestinationMesh=mastLine[i])
             resampledAtMastDisplay[i_f][i] = Show(resampledAtMast[i_f][i], quartileChartView2[i], 'XYChartRepresentation')
@@ -847,6 +914,7 @@ for i_f in range(0,noFiles):
             resampledAtMastDisplay[i_f][i].SeriesColor = ['Points_Z', str(colorsCases[i_f][0]), str(colorsCases[i_f][1]), str(colorsCases[i_f][2])]
             resampledAtMastDisplay[i_f][i].SeriesLabel = ['Points_Z', caseNames[i_f]]
             resampledAtMastDisplay[i_f][i].SeriesVisibility = ['Points_Z']
+            annotateTimeFilter1Display[i_f][i] = annotateDateStep(resampledAtMast[i_f][i],quartileChartView2[i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
         
         
     
@@ -888,47 +956,44 @@ for i_f in range(0,noFiles):
     renderView1.CameraParallelScale = 34572.810251475086
     renderView1.CameraViewAngle = 30.0
     
-    color = 'white'
     RenderAllViews()
     # get animation scene
     animationScene1 = GetAnimationScene()
     animationScene1.UpdateAnimationUsingDataTimeSteps()
     animationScene1.GoToFirst()
     # update animation scene based on data timesteps
-    for i in range(0,3):
+    for i in range(0,5):
         fileNameT = fileName+'_'+str(i)+'_'
 
         if plotLIC:
-            insertSINTEFlogo(renderView1,color)
             saveScreenShot(renderView1,outputPath+fileNameT+'surfaceLICside_bridge'+str(bridge),saveScreenShots)
             
             copyCamera(renderView1,renderView2)
-            insertSINTEFlogo(renderView2,color)
             saveScreenShot(renderView2,outputPath+fileNameT+'surfaceLICtop_bridge'+str(bridge),saveScreenShots)
         
         if plotStreamLines:
-            insertSINTEFlogo(renderView3,color)
             copyCamera(renderView1,renderView3)
             saveScreenShot(renderView3,outputPath+fileNameT+'streamTracer_bridge'+str(bridge),saveScreenShots)
                 
         if plotVolumeRendering:
-            insertSINTEFlogo(renderView4,color)
             copyCamera(renderView1,renderView4)
             saveScreenShot(renderView4,outputPath+fileNameT+'volumeRendering_bridge'+str(bridge),saveScreenShots)
             #saveAnimation(renderView4,outputPath+fileNameT+'volumeRendering_bridge'+str(bridge),noSteps,makeVideo)
         
         if plotIPPCmapsHorizontal:
-            insertSINTEFlogo(renderView5,'white')
+            contour1Display[i_f] = Show(contour1[i_f], renderView5)
+            ColorBy(calculator2Display, ('POINTS', 'height'))
+            heightLUT.RescaleTransferFunction(0.0, height_max)
             saveScreenShot(renderView5,outputPath+fileNameT+'IPPC_horizontal_bridge'+str(bridge),saveScreenShots)
+            
+            Hide(contour1[i_f], renderView5)
             ColorBy(calculator2Display, None)
-            Hide(countour1[i_f], renderView5)
             saveScreenShot(renderView5,outputPath+fileNameT+'IPPC_horizontal_topo4_bridge'+str(bridge),saveScreenShots)
         
         if plotIPPCmapsVertical:
-            insertSINTEFlogo(renderView6,'blue')
             saveScreenShot(renderView6,outputPath+fileNameT+'IPPC_vertical_bridge'+str(bridge),saveScreenShots)
         
-        if plotVelocityProfiles:
+        if plotVelocityProfiles and i_f == noFiles-1:
             saveScreenShot(layout8,outputPath+fileNameT+'velocityProfiles',saveScreenShots,saveAllViews=True)
 
         if plotError:
@@ -959,3 +1024,29 @@ for i_f in range(0,noFiles):
             saveScreenShot(renderView1,outputPath+fileNameT+'surfaceLICside_bridge'+str(bridge)+'_Error',saveScreenShots)
 
         animationScene1.GoToNext()
+
+    if plotLIC:
+        if not i_f == noFiles-1: 
+            Hide(slice1[i_f], renderView1)
+            Hide(slice2[i_f], renderView2)
+    if plotStreamLines:
+        if not i_f == noFiles-1: 
+            Hide(streamTracer1[i_f], renderView3)
+    if plotVolumeRendering:
+        if not i_f == noFiles-1: 
+            Hide(calculator1[i_f], renderView4)
+    if plotIPPCmapsHorizontal:
+        if not i_f == noFiles-1: 
+            Hide(resampleWithDataset1[i_f], renderView5)
+            Hide(contour1[i_f], renderView5)
+            Hide(contour2[i_f], renderView5)
+            Hide(contour3[i_f], renderView5)
+            Hide(glyph1[i_f], renderView5)
+    if plotIPPCmapsVertical:
+        if not i_f == noFiles-1: 
+            Hide(slice1Transform[i_f], renderView6)
+            Hide(contour4[i_f], renderView6)
+            Hide(glyph2[i_f], renderView6)
+    if plotError:
+        if not i_f == noFiles-1: 
+            Hide(slice1[i_f], renderView1)
