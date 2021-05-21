@@ -4,8 +4,8 @@ SIMRASOLTRANSF=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-SolutionTransfer
 caseName=Sula
 #caseName=SulaMetReg
 caseName=met_new
-caseName=met
-#caseName=ideal
+#caseName=met
+caseName=ideal
 #caseName=test
 simraNesting=1
 simraNesting=""
@@ -37,9 +37,11 @@ height=3888.51
 topoRes="50m"
 #topoRes="10m"
 PHI=315
-U_A=27.783
+U_A=28.284271247461902 # Yields u_x = 20 and u_y = -20 for PHI=315
 NSTEP=8000
-NSTEP=2
+#NSTEP=100
+TIMESTAMP=2020111900
+#TIMESTAMP=2020111906
 for M in 0 # 1 # 1 2 3 # 0 1 2 3
 do
     nref=0
@@ -119,15 +121,15 @@ do
             $HOME/kode/simra/build_mpi/bin/simra_mpi simra.in | tee $logsimra
         else
             #python3 convertBE.py
-            #gfortran ic_bc.f90 -o ic_bc
-            #./ic_bc simra.in
-            if [ "$caseName" == "ideal" ]
-            then
-                cp mesh_ideal.dat mesh.dat
-                cp boun_ideal.dat bound.dat
-                cp hist_ideal.res hist.res
-            fi
-            $SIMRASOLTRANSF Sula-transfer_met.xinp
+            gfortran ic_bc.f90 -o ic_bc
+            ./ic_bc simra.in
+            #if [ "$caseName" == "ideal" ]
+            #then
+            #    cp mesh_ideal.dat mesh.dat
+            #    cp boun_ideal.dat bound.dat
+            #    cp hist_ideal.res hist.res
+            #fi
+            #$SIMRASOLTRANSF Sula-transfer_met.xinp
             #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
             #$HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
             #gdb $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
@@ -150,7 +152,7 @@ do
         for ((i=1; i<2; i++))
         do
             BRIDGE=$i
-            SED_VARIABLES="BRIDGE caseName fileName topoRes noObsPoints"
+            SED_VARIABLES="BRIDGE caseName fileName topoRes noObsPoints TIMESTAMP"
             DICTS="paraviewScript.py"
             source $HOME/kode/bashScripts/sedFiles
             #paraview --script=paraviewScript.py &
