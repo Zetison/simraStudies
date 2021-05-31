@@ -35,12 +35,12 @@ color = 'blue' # color of SINTEF logo
 frameRate = 5
 printLogo           = 0
 plotLIC             = 1
-plot1Dcurves        = 1 
-plotStreamLines     = 1 
+plot1Dcurves        = 0 
+plotStreamLines     = 0 
 plotVolumeRendering = 1 
-plotyplus           = 1 
-plotOverTime        = 1
-plotMesh            = 1
+plotyplus           = 0 
+plotOverTime        = 0 
+plotMesh            = 0 
 makeVideo           = 0
 viewSizeSlice=[1920,520]
 viewSizeSlice2=[2*1920,2*520]
@@ -48,7 +48,7 @@ scalarBarLength = 0.2
 scalarBarLength2 = 0.92
 # get animation scene
 animationScene1 = GetAnimationScene()
-LoadPlugin(home+'/programs/paraview_build/lib/paraview-5.8/plugins/SurfaceLIC/SurfaceLIC.so', remote=False, ns=globals())
+#LoadPlugin(home+'/programs/paraview_build/lib/paraview-5.8/plugins/SurfaceLIC/SurfaceLIC.so', remote=False, ns=globals())
 # get the time-keeper
 timeKeeper1 = GetTimeKeeper()
 fileName = outputPath+'SED_FILENAME.pvd'
@@ -125,8 +125,8 @@ LoadPalette(paletteName='WhiteBackground')
 renderView1.OrientationAxesVisibility = 0
 
 # create a new 'XML Unstructured Grid Reader'
-topology = XMLStructuredGridReader(registrationName='Topology', FileName=[outputPath+'SED_FILENAME.vts'])
-topology.TimeArray = 'None'
+topography = XMLStructuredGridReader(registrationName='Topography', FileName=[outputPath+'SED_FILENAME.vts'])
+topography.TimeArray = 'None'
 
 ####################################################################################
 ## Layout 1 - Surface LIC plots
@@ -318,7 +318,7 @@ if plot1Dcurves:
     plotOverLine1Display.SeriesMarkerStyle = ['Cp', '0']
     plotOverLine1Display.SeriesMarkerSize = ['Cp', '4']
 
-    calculatorTop = Calculator(registrationName='Elevated topology', Input=topology)
+    calculatorTop = Calculator(registrationName='Elevated topography', Input=topography)
     calculatorTop.Function = 'coordsX*iHat+coordsY*jHat+(coordsZ+0.002)*kHat'
     calculatorTop.CoordinateResults = 1
 
@@ -423,10 +423,10 @@ if plotStreamLines:
     renderView3.OrientationAxesVisibility = 0
     AssignViewToLayout(view=renderView3, layout=layout3, hint=0)
     
-    topologyDisplay = Show(topology, renderView3, 'UnstructuredGridRepresentation')
-    topologyDisplay.Representation = 'Surface'
-    topologyDisplay.AmbientColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
-    topologyDisplay.DiffuseColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
+    topographyDisplay = Show(topography, renderView3, 'UnstructuredGridRepresentation')
+    topographyDisplay.Representation = 'Surface'
+    topographyDisplay.AmbientColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
+    topographyDisplay.DiffuseColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
     
     # create a new 'Stream Tracer'
     streamTracer1 = StreamTracer(registrationName='StreamTracer1', Input=calculator0, SeedType='Point Cloud')
@@ -473,10 +473,10 @@ if plotVolumeRendering:
     renderView4.OrientationAxesVisibility = 0
     AssignViewToLayout(view=renderView4, layout=layout4, hint=0)
     
-    topologyDisplay = Show(topology, renderView4, 'UnstructuredGridRepresentation')
-    topologyDisplay.Representation = 'Surface'
-    topologyDisplay.AmbientColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
-    topologyDisplay.DiffuseColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
+    topographyDisplay = Show(topography, renderView4, 'UnstructuredGridRepresentation')
+    topographyDisplay.Representation = 'Surface'
+    topographyDisplay.AmbientColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
+    topographyDisplay.DiffuseColor = [0.6196078431372549, 0.6549019607843137, 0.7137254901960784]
     
     # create a new 'Stream Tracer'
     calculator0Display = Show(calculator0, renderView4, 'UnstructuredGridRepresentation')

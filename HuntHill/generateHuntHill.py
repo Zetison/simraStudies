@@ -26,6 +26,7 @@ def main(height: float, ny: int, filename: str, plotdistr: bool, stretch: bool, 
     ymax = 5*height
     xmin = -6*height
     xmax = 7*height
+    #xmax = 2*height
     x0 = 0
     y0 = 0
     

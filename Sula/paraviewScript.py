@@ -31,43 +31,60 @@ outputPath = simraResultsFolder+caseName+'/'
 topoRes = 'SED_topoRes' 
 
 # Set the time
-#t = 9
-t = -1
 openFoamResultsFolder = home+'/results/openfoam/Sula/'
-#fileNames = [outputPath+'M0.pvd']
-#fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd']
-#fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M0.pvd',
-#             simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd']
-fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M0.pvd',
-             simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd']
-#fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M0.pvd',
-#             simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd',
-#             openFoamResultsFolder+'SolaSteady_Finer_9596.vtk']
-#fileNames = [openFoamResultsFolder+'SolaSteady_Finer_9596.vtk',
-#             openFoamResultsFolder+'5May_Unsteady_Boussinesq_Finer_sola.vtk']
-#fileNames = [outputPath+caseName+'.pvd']
-fileNames = [
+fileNamesOrg = [
 simraResultsFolder+'met_new/2020111900_M0.pvd',
 simraResultsFolder+'met_new/2020111900_M1.pvd',
 simraResultsFolder+'met_new/2020111906_M0.pvd',
+simraResultsFolder+'met_new/2020111912_M0.pvd',
+simraResultsFolder+'met_new/2020111912_M1.pvd',
 openFoamResultsFolder+'2020111906_OF_unStdy.pvd',
 openFoamResultsFolder+'2020111906_OF_stdy.pvd',
 openFoamResultsFolder+'2020111906_OF_stdyIso.pvd',
+simraResultsFolder+'met/cont_met.pvd',
 ]
 
-caseNames = ['SIMRA_M0','SIMRA_M1','Finer_sola_steadyisothermal','SolaSteady_Finer_9596']
-caseNames = ['SIMRA_M1']
-caseNames = ['SED_TIMESTAMP_Simra_M0','SED_TIMESTAMP_Simra_M1']
-caseNames = [
+caseNamesOrg = [
 '2020111900_M0',
 '2020111900_M1',
 '2020111906_M0',
+'2020111912_M0',
+'2020111912_M1',
 '2020111906_OF_unStdy',
 '2020111906_OF_stdy',
-'2020111906_OF_tdyIso',
+'2020111906_OF_stdyIso',
+'2020111906_met',
 ]
-#caseNames = ['5May_Unsteady_Boussinesq_Finer_sola','SolaSteady_Finer_9596']
+startStepsOrg = [
+0,
+0,
+6,
+12,
+12,
+9,
+9,
+9,
+9,
+]
+noStepsOrg = [
+8,
+8,
+8,
+5,
+8,
+0,
+0,
+0,
+0,
+]
+indices = [2,5,6,7,8]
+#indices = range(8) 
+fileNames = [fileNamesOrg[i] for i in indices]
+caseNames = [caseNamesOrg[i] for i in indices]
+startSteps = [startStepsOrg[i] for i in indices]
+noSteps = [noStepsOrg[i] for i in indices]
 
+totSteps = 23
 colorLogo = 'white' # Default color of SINTEF logo
 originx=-200.0
 originy=6899800.0
@@ -77,7 +94,6 @@ textureFileName_NIB  = simraResultsFolder+'Sula'+topoRes+'.png'
 windCase = 2 
 velProfileMax_Z=120
 z_proj = 5000 # Project cone to this height
-noSteps = 201
 finalTime = 11.7006
 sqrtTKE_max = 5.0
 h_max = 4000
@@ -93,11 +109,11 @@ plotTakeOffLines         = 0
 plotBridgeAndSensors     = 1 
 plotUniverseBackground   = 0 
 
-plotLIC                  = 0 
-plotStreamLines          = 0 
-plotVolumeRendering      = 0 
-plotIPPCmapsHorizontal   = 0 
-plotIPPCmapsVertical     = 0 
+plotLIC                  = 1 
+plotStreamLines          = 1 
+plotVolumeRendering      = 1 
+plotIPPCmapsHorizontal   = 1 
+plotIPPCmapsVertical     = 1 
 plotOverTime             = 0 
 plotVelocityProfiles     = 1 
 
@@ -313,6 +329,28 @@ def showMasts(renderView):
             lineSourceDisplay[i].LineWidth = 5.0 
             lineSourceDisplay[i].AmbientColor = [1.0, 0.0, 0.0]
             lineSourceDisplay[i].DiffuseColor = [1.0, 0.0, 0.0]
+
+def setVisibility(startStep,noStep,totSteps):
+    #visibilityTrack = GetAnimationTrack('Visibility',proxy=reader1)
+    visibilityTrack = GetAnimationTrack('Visibility')
+    endStep = startStep+noStep+1
+    timeStart = startStep/totSteps
+    timeEnd = endStep/totSteps
+    keyframe0 = CompositeKeyFrame()
+    keyframe0.Interpolation = 'Boolean'
+    keyframe0.KeyTime = 0
+    keyframe0.KeyValues = [0]
+    keyframe1 = CompositeKeyFrame()
+    keyframe1.Interpolation = 'Boolean'
+    keyframe1.KeyTime = timeStart
+    keyframe1.KeyValues = [1]
+    keyframe2 = CompositeKeyFrame()
+    keyframe2.KeyTime = timeEnd 
+    keyframe2.KeyValues = [0]
+    if startStep == 0:
+        visibilityTrack.KeyFrames = [keyframe1, keyframe2]
+    else:
+        visibilityTrack.KeyFrames = [keyframe0, keyframe1, keyframe2]
 
 topography = XMLStructuredGridReader(registrationName='Topography',FileName=topographyFileName)
 topography.PointArrayStatus = ['TCoords_']
@@ -904,7 +942,8 @@ for i_f in range(0,noFiles):
     if plotVelocityProfiles:
         resampledAtMast[i_f] = [''] * noMasts
         resampledAtMastDisplay[i_f] = [''] * noMasts
-        annotateTimeFilter1Display[i_f] = [''] * noMasts
+        if i_f == 0:
+            annotateTimeFilter1Display = [''] * noMasts
         for i in range(0,noMasts):
             resampledAtMast[i_f][i] = ResampleWithDataset(registrationName='calculator1 resampled '+mastLabel[i], SourceDataArrays=calculator1[i_f], DestinationMesh=mastLine[i])
             resampledAtMastDisplay[i_f][i] = Show(resampledAtMast[i_f][i], quartileChartView2[i], 'XYChartRepresentation')
@@ -914,7 +953,9 @@ for i_f in range(0,noFiles):
             resampledAtMastDisplay[i_f][i].SeriesColor = ['Points_Z', str(colorsCases[i_f][0]), str(colorsCases[i_f][1]), str(colorsCases[i_f][2])]
             resampledAtMastDisplay[i_f][i].SeriesLabel = ['Points_Z', caseNames[i_f]]
             resampledAtMastDisplay[i_f][i].SeriesVisibility = ['Points_Z']
-            annotateTimeFilter1Display[i_f][i] = annotateDateStep(resampledAtMast[i_f][i],quartileChartView2[i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
+            setVisibility(startSteps[i_f],noSteps[i_f],totSteps)
+            if i_f == 0:
+                annotateTimeFilter1Display[i] = annotateDateStep(resampledAtMast[i_f][i],quartileChartView2[i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
         
         
     
@@ -962,7 +1003,7 @@ for i_f in range(0,noFiles):
     animationScene1.UpdateAnimationUsingDataTimeSteps()
     animationScene1.GoToFirst()
     # update animation scene based on data timesteps
-    for i in range(0,5):
+    for i in range(totSteps+1):
         fileNameT = fileName+'_'+str(i)+'_'
 
         if plotLIC:
@@ -994,7 +1035,7 @@ for i_f in range(0,noFiles):
             saveScreenShot(renderView6,outputPath+fileNameT+'IPPC_vertical_bridge'+str(bridge),saveScreenShots)
         
         if plotVelocityProfiles and i_f == noFiles-1:
-            saveScreenShot(layout8,outputPath+fileNameT+'velocityProfiles',saveScreenShots,saveAllViews=True)
+            saveScreenShot(layout8,outputPath+'velocityProfiles_'+str(i),saveScreenShots,saveAllViews=True)
 
         if plotError:
             slice1Display[i_f].Representation = 'Surface'

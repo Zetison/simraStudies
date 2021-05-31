@@ -1,6 +1,7 @@
 #!/bin/bash
 
-PHI=270
+#PHI=270
+PHI=315
 U_A=0.4366
 U_A=10.0
 zeta=0.1
@@ -9,8 +10,11 @@ grading=1.1585
 gend=0.5
 nz=31
 noitrs=1
+NSTEP=1
+#NSTEP=150
 pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
 NAVIERSTOKES=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
+SIMRASOLTRANSF=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-SolutionTransfer
 #for NAME in HuntHill_Sula HuntHill HuntHill_test
 #for NAME in HuntHill_Sula
 for NAME in HuntHill_test
@@ -38,14 +42,14 @@ do
     
             for ((i=0; i<$noitrs; i++))
             do
-                cp simra.in ../ic_bc.f90 generateHuntHill.py ../extract_yplusSurf.py main.py HuntHill.xinp POINT_FILE $resultsFolder
+                cp simra.in ../ic_bc.f90 generateHuntHill.py HuntHill-transfer.xinp ../extract_yplusSurf.py main.py HuntHill.xinp POINT_FILE $resultsFolder
                 pushd $resultsFolder > /dev/null
                 logsimramesh="log.simramesh_$i"
                 fileName=${caseName}_itr${i}
                 echo "Running "$fileName
                 FILENAME=$fileName
-                SED_VARIABLES="PHI U_A resultsFolder FILENAME"
-                DICTS="ic_bc.f90 main.py extract_yplusSurf.py"
+                SED_VARIABLES="PHI U_A resultsFolder FILENAME NSTEP"
+                DICTS="ic_bc.f90 main.py extract_yplusSurf.py simra.in"
                 source $HOME/kode/bashScripts/sedFiles
                 if [[ $1 == 1 ]]
         	    then
@@ -60,7 +64,7 @@ do
                         options="--refu 0.3,0.9,0.35,1.0 --refv 0.33,0.67,0.35,0.65 --refw 0.04,0.217,0.05,0.15"
                     fi
                     
-                    if [[ $NAME == "HuntHill_test" ]]
+                    if [ $NAME == "HuntHill_test" ] || [ $NAME == "HuntHill_test2" ] || [ $NAME == "HuntHill_test3" ]
                     then
                         res=0.058
                         #options="${options} --delta 0.03"
@@ -92,10 +96,11 @@ do
                     gfortran ic_bc.f90 -o ic_bc
                     ./ic_bc $simrainfile
                     logsimra="log.simra_$i"
-                    #simra simra.in | tee $logsimra 
-                    #$NAVIERSTOKES HuntHill.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc_$i
-                    #siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
-                    NSTEP=$(cat $simrainfile | grep -oP '(?<=NSTEP=)[+-]?[0-9]+([.][0-9]+)?')
+                    $SIMRASOLTRANSF HuntHill-transfer.xinp
+                    #cp M0/boun.dat boun.dat
+                    $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
+                    $NAVIERSTOKES HuntHill.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc_$i
+                    siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
                     SAVE_HIST=$(cat $simrainfile | grep -oP '(?<=SAVE_HIST=)[+-]?[0-9]+([.][0-9]+)?')
                     #SAVE_HIST=$NSTEP
                     nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
@@ -114,9 +119,9 @@ do
                     paraview --script=main.py &
                     #pvbatch main.py
                     tarName=${caseName}_itr${i}
-                    tar -cvf ${fileName}.tar *.png *.ogv log.* *.csv simra.in HuntHill.xinp ic_bc.f90
+                    tar -cf ${fileName}.tar *.png *.ogv log.* *.csv simra.in HuntHill.xinp ic_bc.f90
                     mkdir -p $tarName
-                    tar -xvf ${fileName}.tar -C ./${fileName}
+                    tar -xf ${fileName}.tar -C ./${fileName}
                     #paraview --script=paraviewCompareMesh.py & # View mesh (optional)
                 fi
                 popd > /dev/null

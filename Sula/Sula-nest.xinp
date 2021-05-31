@@ -4,20 +4,24 @@
   <!-- General - geometry definitions !-->
   <simra_input>
     <geometry>
-      <patchfile>M0/SulaMetReg_nest_M0.dat</patchfile>
+      <patchfile>M0/nest_M0.dat</patchfile>
     </geometry>
     <resultfile type="history">M0/hist.res</resultfile>
     <boundaryfile>M0/boun.dat</boundaryfile>
     <nesting tol="1e-6"/>
-    <!-- <nesting start="20 114 1" end="147 249 51"/> -->
+    <nesting start="20 114 1" end="147 249 51"/>
+    <fluidproperties nu="1.5e-05"/>
+    <scaling u="20" L="2000"/>
   </simra_input>
 
   <simra_output>
     <geometry>
-      <patchfile>M1/SulaMetReg_nest_M1.dat</patchfile>
+      <patchfile>mesh.dat</patchfile>
     </geometry>
-    <resultfile type="init">M1/init.dat</resultfile>
-    <boundaryfile>M1/boun.dat</boundaryfile>
+    <fluidproperties nu="1.5e-05"/>
+    <scaling u="20" L="2000"/>
+    <resultfile type="init">init.dat</resultfile>
+    <boundaryfile>boun.dat</boundaryfile>
   </simra_output>
 
 </simulation>

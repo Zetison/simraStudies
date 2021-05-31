@@ -5,7 +5,7 @@ caseName=Sula
 #caseName=SulaMetReg
 caseName=met_new
 #caseName=met
-caseName=ideal
+#caseName=ideal
 #caseName=test
 simraNesting=1
 simraNesting=""
@@ -39,13 +39,14 @@ topoRes="50m"
 PHI=315
 U_A=28.284271247461902 # Yields u_x = 20 and u_y = -20 for PHI=315
 NSTEP=8000
-#NSTEP=100
+NSTEP=100
+NSTEP=1
 TIMESTAMP=2020111900
 #TIMESTAMP=2020111906
 for M in 0 # 1 # 1 2 3 # 0 1 2 3
 do
     nref=0
-    cp ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-transfer*.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
+    cp ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-nest.xinp Sula-transfer*.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
     UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     LENREF=$(cat $simrainfile | grep -oP '(?<=LENREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
@@ -73,7 +74,7 @@ do
             if [[ "$simraNesting" == 1 ]]
             then
                 options="--cutu 0.07,0.55 --cutv 0.42,0.93"
-                nref=$((nref+1))
+                #nref=$((nref+1))
             else
                 options="--refu 0.0,0.5 --refv 0.0,0.76"
                 options="--refu 0.07,0.55 --refv 0.42,0.93"
@@ -121,15 +122,27 @@ do
             $HOME/kode/simra/build_mpi/bin/simra_mpi simra.in | tee $logsimra
         else
             #python3 convertBE.py
-            gfortran ic_bc.f90 -o ic_bc
-            ./ic_bc simra.in
-            #if [ "$caseName" == "ideal" ]
-            #then
-            #    cp mesh_ideal.dat mesh.dat
-            #    cp boun_ideal.dat bound.dat
-            #    cp hist_ideal.res hist.res
-            #fi
+            #gfortran ic_bc.f90 -o ic_bc
+            #./ic_bc simra.in
+            if [ "$caseName" == "ideal" ]
+            then
+                if [[ "$M" == 0 ]]
+                then
+                    if [[ "$simraNesting" == 1 ]]
+                    then
+                        gfortran ic_bc.f90 -o ic_bc
+                        ./ic_bc simra.in
+                    else
+                        cp M0/mesh.dat mesh.dat
+                        cp M0/boun.dat bound.dat
+                        cp M0/hist.res hist.res
+                    fi
+                else
+                    $SIMRASOLTRANSF Sula-nest.xinp
+                fi
+            fi
             #$SIMRASOLTRANSF Sula-transfer_met.xinp
+            $SIMRASOLTRANSF Sula-transfer.xinp
             #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
             $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
             #gdb $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
@@ -158,7 +171,7 @@ do
             paraview --script=paraviewScript.py &
             #/usr/lib/ParaView-5.8.1-osmesa-MPI-Linux-Python3.7-64bit/bin/pvbatch paraviewScript.py
             #$HOME/programs/paraview_build/bin/pvbatch paraviewScript.py
-            #pvbatch paraviewScript.py
+            #pvbatch paraviewScript.py &
         done
     fi
     tar -cf ${fileName}.tar *.png *.log *.csv simra.in *.xinp ic_bc.f90 
