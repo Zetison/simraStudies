@@ -29,8 +29,8 @@
       <fluidproperties nu="0.00001"/>
     <scaling u="10" L="0.0687"/>
     <no_stratification/>
-    <resultfile type="history">hist.res</resultfile>
-            <!--<resultfile>cont.res</resultfile>-->
+   <resultfile type="history">hist.res</resultfile>
+       <!-- <resultfile>cont.res</resultfile>-->
     <linearsolver class="petsc" l2class="petsc">
       <type>bcgs</type>
       <pc>ilu</pc>

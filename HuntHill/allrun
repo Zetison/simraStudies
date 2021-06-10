@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#PHI=270
+PHI=270
 PHI=315
 U_A=0.4366
 U_A=10.0
@@ -10,8 +10,9 @@ grading=1.1585
 gend=0.5
 nz=31
 noitrs=1
-NSTEP=1
-#NSTEP=150
+NSTEP=2
+#NSTEP=500
+#NSTEP=500
 pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
 NAVIERSTOKES=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
 SIMRASOLTRANSF=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-SolutionTransfer
@@ -42,7 +43,8 @@ do
     
             for ((i=0; i<$noitrs; i++))
             do
-                cp simra.in ../ic_bc.f90 generateHuntHill.py HuntHill-transfer.xinp ../extract_yplusSurf.py main.py HuntHill.xinp POINT_FILE $resultsFolder
+                cp simra.in ../ic_bc.f90 generateHuntHill.py HuntHill-transfer.xinp ../extract_yplusSurf.py main.py HuntHill.xinp $resultsFolder
+                cp POINT_FILE_DIAG $resultsFolder/POINT_FILE
                 pushd $resultsFolder > /dev/null
                 logsimramesh="log.simramesh_$i"
                 fileName=${caseName}_itr${i}
@@ -97,6 +99,7 @@ do
                     ./ic_bc $simrainfile
                     logsimra="log.simra_$i"
                     $SIMRASOLTRANSF HuntHill-transfer.xinp
+                    siso -f vts boun.dat
                     #cp M0/boun.dat boun.dat
                     $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
                     $NAVIERSTOKES HuntHill.xinp -hdf5 ${fileName}.hdf5 | tee log.SIMRA-PostProc_$i

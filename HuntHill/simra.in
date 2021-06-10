@@ -19,9 +19,9 @@
 
 &EXTRA_DATA
  TURB=1,            ! = 1: turbulence model included
- SAVE_HIST=SED_NSTEP,      ! time-steps between saved output
  WRITE_NORMS=.TRUE.,! print absolute norm of updates
  LOG_ADJUST=.FALSE.,
+ SAVE_HIST=SED_NSTEP,      ! time-steps between saved output
  POINT_FILE='POINT_FILE', ! File containing list of points at which to evaluate solution (closest node)
  SOURCE=0/          ! Source function flag
 

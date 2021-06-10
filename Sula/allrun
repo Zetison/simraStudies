@@ -3,12 +3,12 @@ SIMRAPOSTPROC=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
 SIMRASOLTRANSF=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-SolutionTransfer
 caseName=Sula
 #caseName=SulaMetReg
-caseName=met_new
+#caseName=met_new
 #caseName=met
-#caseName=ideal
+caseName=ideal
 #caseName=test
 simraNesting=1
-simraNesting=""
+#simraNesting=""
 simraresultsFolder=$HOME/results/simra/Sula
 resultsFolder=$simraresultsFolder/$caseName
 #withMPI=1
@@ -40,7 +40,8 @@ PHI=315
 U_A=28.284271247461902 # Yields u_x = 20 and u_y = -20 for PHI=315
 NSTEP=8000
 NSTEP=100
-NSTEP=1
+NSTEP=3
+
 TIMESTAMP=2020111900
 #TIMESTAMP=2020111906
 for M in 0 # 1 # 1 2 3 # 0 1 2 3
@@ -142,7 +143,8 @@ do
                 fi
             fi
             #$SIMRASOLTRANSF Sula-transfer_met.xinp
-            $SIMRASOLTRANSF Sula-transfer.xinp
+            #$SIMRASOLTRANSF Sula-transfer.xinp
+            $SIMRASOLTRANSF Sula-nest.xinp
             #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
             $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
             #gdb $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
