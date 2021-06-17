@@ -1,5 +1,6 @@
 from os.path import expanduser
 import sys
+from glob import glob
 import numpy as np
 from scipy.spatial.transform import Rotation as Rot
 import copy
@@ -35,31 +36,25 @@ openFoamResultsFolder = home+'/results/openfoam/Sula/'
 runAll = True 
 if runAll:
     fileNamesOrg = [
-    simraResultsFolder+'met_new/2020111900_M0.pvd',
-    simraResultsFolder+'met_new/2020111900_M1.pvd',
-    simraResultsFolder+'met_new/2020111906_M0.pvd',
-    simraResultsFolder+'met_new/2020111912_M0.pvd',
-    simraResultsFolder+'met_new/2020111912_M1.pvd',
     openFoamResultsFolder+'2020111906_OF_unStdy.pvd',
     openFoamResultsFolder+'2020111906_OF_stdy.pvd',
     openFoamResultsFolder+'2020111906_OF_stdyIso.pvd',
     simraResultsFolder+'met/cont_met.pvd',
     ]
+    metFiles = glob(simraResultsFolder+"met_new/2*.pvd")
+
+    fileNamesOrg.extend(metFiles)
 
     caseNamesOrg = [
-    '2020111900_M0',
-    '2020111900_M1',
-    '2020111906_M0',
-    '2020111912_M0',
-    '2020111912_M1',
     '2020111906_OF_unStdy',
     '2020111906_OF_stdy',
     '2020111906_OF_stdyIso',
     '2020111906_met',
     ]
+    caseNamesOrg.extend([f[-17:-3] for f in metFiles])
     #indices = [2,5,6,7,8]
     indices = range(9) 
-    indices = [0]
+    #indices = [0]
     fileNames = [fileNamesOrg[i] for i in indices]
     caseNames = [caseNamesOrg[i] for i in indices]
 else:
@@ -230,7 +225,7 @@ def annotateTimeStep(obj,renderview,RegistrationName='Time annotation', location
     pythonAnnotation.Expression = '"%10d" % time_value'
  #   pythonAnnotationDisplay = Show(pythonAnnotation, renderview, 'TextSourceRepresentation')
     pythonAnnotationDisplay = Show(pythonAnnotation, renderview, 'ChartTextRepresentation')
-    pythonAnnotationDisplay.WindowLocation = location 
+    #pythonAnnotationDisplay.WindowLocation = location 
     pythonAnnotationDisplay.FontSize = 5
 
 labels = ['SulaNW (Kvitneset) - 1','SulaNW (Kvitneset) - 2','SulaNW (Kvitneset) - 3',
