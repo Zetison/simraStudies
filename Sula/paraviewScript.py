@@ -59,7 +59,7 @@ if runAll:
     ]
     #indices = [2,5,6,7,8]
     indices = range(9) 
-    #indices = [0]
+    indices = [0]
     fileNames = [fileNamesOrg[i] for i in indices]
     caseNames = [caseNamesOrg[i] for i in indices]
 else:
@@ -394,6 +394,8 @@ if plotVelocityProfiles:
         quartileChartView2[i].BottomAxisRangeMaximum = 30.0
         quartileChartView2[i].LegendLocation = 'TopRight'
         quartileChartView2[i].LegendFontSize = 8 
+        quartileChartView2[i].ViewSize = [viewSize[0]//4, viewSize[1]]
+        #quartileChartView1.ViewSize = [345, 704]
         AssignViewToLayout(view=quartileChartView2[i], layout=layout8, hint=hints[i])
         vpcsv[i] = [''] * 3
         vpcsvDisplay[i] = [''] * 3
