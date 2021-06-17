@@ -32,7 +32,7 @@ topoRes = 'SED_topoRes'
 
 # Set the time
 openFoamResultsFolder = home+'/results/openfoam/Sula/'
-runAll = False
+runAll = True 
 if runAll:
     fileNamesOrg = [
     simraResultsFolder+'met_new/2020111900_M0.pvd',
@@ -59,7 +59,7 @@ if runAll:
     ]
     #indices = [2,5,6,7,8]
     indices = range(9) 
-    #indices = [2,3]
+    #indices = [0]
     fileNames = [fileNamesOrg[i] for i in indices]
     caseNames = [caseNamesOrg[i] for i in indices]
 else:
@@ -90,7 +90,7 @@ plotTakeOffLines         = 0
 plotBridgeAndSensors     = 1 
 plotUniverseBackground   = 0 
 
-plotLIC                  = 1 
+plotLIC                  = 0  
 plotStreamLines          = 0
 plotVolumeRendering      = 0 
 plotIPPCmapsHorizontal   = 0
@@ -311,7 +311,7 @@ def showMasts(renderView):
             lineSourceDisplay[i].AmbientColor = [1.0, 0.0, 0.0]
             lineSourceDisplay[i].DiffuseColor = [1.0, 0.0, 0.0]
 
-def setVisibility(timestamps,visibility,totSteps):
+def setVisibility(timestepvalues,visibility,totSteps):
     #visibilityTrack = GetAnimationTrack('Visibility',proxy=reader1)
     visibilityTrack = GetAnimationTrack('Visibility')
     #endStep = startStep+noStep+1
@@ -321,7 +321,7 @@ def setVisibility(timestamps,visibility,totSteps):
     for i in range(totSteps):
         keyframe0 = CompositeKeyFrame()
         keyframe0.Interpolation = 'Boolean'
-        keyframe0.KeyTime = timestamps[i] 
+        keyframe0.KeyTime = timestepValues[i] 
         keyframe0.KeyValues = [visibility[i]]
         keyframeArr.append(keyframe0)
     #keyframe1 = CompositeKeyFrame()
@@ -367,6 +367,7 @@ totSteps = len(timestepValues)
 visibility = [''] * noFiles
 for i_f in range(noFiles):
     visibility[i_f] = np.isin(timestepValues,pvdResults[i_f].TimestepValues)
+
 
 if plotVelocityProfiles:
     CreateLayout('Layout #8')
@@ -937,6 +938,7 @@ for i_f in range(noFiles):
         resampledAtMastDisplay[i_f] = [''] * noMasts
         if i_f == 0:
             annotateTimeFilter1Display = [''] * noMasts
+
         for i in range(0,noMasts):
             resampledAtMast[i_f][i] = ResampleWithDataset(registrationName='calculator1 resampled '+mastLabel[i], SourceDataArrays=calculator1[i_f], DestinationMesh=mastLine[i])
             resampledAtMastDisplay[i_f][i] = Show(resampledAtMast[i_f][i], quartileChartView2[i], 'XYChartRepresentation')
@@ -946,7 +948,7 @@ for i_f in range(noFiles):
             resampledAtMastDisplay[i_f][i].SeriesColor = ['Points_Z', str(colorsCases[i_f][0]), str(colorsCases[i_f][1]), str(colorsCases[i_f][2])]
             resampledAtMastDisplay[i_f][i].SeriesLabel = ['Points_Z', caseNames[i_f]]
             resampledAtMastDisplay[i_f][i].SeriesVisibility = ['Points_Z']
-            setVisibility(timeStamps[i_f],visibility[i_f],totSteps)
+            setVisibility(timestepValues,visibility[i_f],totSteps)
             if i_f == 0:
                 annotateTimeFilter1Display[i] = annotateDateStep(resampledAtMast[i_f][i],quartileChartView2[i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
         
@@ -1031,7 +1033,7 @@ for i_f in range(noFiles):
             saveScreenShot(renderView6,outputPath+fileNameT+'IPPC_vertical_bridge'+str(bridge),saveScreenShots)
         
         if plotVelocityProfiles and i_f == noFiles-1:
-            saveScreenShot(layout8,outputPath+'velocityProfiles_'+str(i),saveScreenShots,saveAllViews=True)
+            saveScreenShot(layout8,outputPath+'velocityProfiles_'+str(timestepValues[i]),saveScreenShots,saveAllViews=True)
 
         if plotError:
             slice1Display[i_f].Representation = 'Surface'
