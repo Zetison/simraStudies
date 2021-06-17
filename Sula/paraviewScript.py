@@ -224,11 +224,12 @@ def annotateDateStep(obj,renderview,RegistrationName,location='LowerRightCorner'
     annotateTimeFilter1Display.FontSize = 8 
     return annotateTimeFilter1Display
 
-def annotateTimeStep(obj,renderview,location='UpperLeftCorner'):
-    pythonAnnotation = PythonAnnotation(registrationName='Time annotation', Input=obj)
+def annotateTimeStep(obj,renderview,RegistrationName='Time annotation', location='UpperLeftCorner'):
+    pythonAnnotation = PythonAnnotation(registrationName=RegistrationName, Input=obj)
     pythonAnnotation.ArrayAssociation = 'Point Data'
-    pythonAnnotation.Expression = '"Step: %d\\nTime: %0.2fs" % ((time_index+1)*'+str(SAVE_HIST)+', time_value)'
-    pythonAnnotationDisplay = Show(pythonAnnotation, renderview, 'TextSourceRepresentation')
+    pythonAnnotation.Expression = '"%10d" % time_value'
+ #   pythonAnnotationDisplay = Show(pythonAnnotation, renderview, 'TextSourceRepresentation')
+    pythonAnnotationDisplay = Show(pythonAnnotation, renderview, 'ChartTextRepresentation')
     pythonAnnotationDisplay.WindowLocation = location 
     pythonAnnotationDisplay.FontSize = 5
 
@@ -952,7 +953,7 @@ for i_f in range(noFiles):
             resampledAtMastDisplay[i_f][i].SeriesVisibility = ['Points_Z']
             setVisibility(timestepValues,visibility[i_f],totSteps)
             if i_f == 0:
-                annotateTimeFilter1Display[i] = annotateDateStep(resampledAtMast[i_f][i],quartileChartView2[i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
+                annotateTimeFilter1Display[i] = annotateTimeStep(resampledAtMast[i_f][i],quartileChartView2[i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
         
         
     
