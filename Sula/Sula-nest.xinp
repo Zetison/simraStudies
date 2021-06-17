@@ -4,12 +4,16 @@
   <!-- General - geometry definitions !-->
   <simra_input>
     <geometry>
-        <patchfile>M0/mesh.dat</patchfile>
+      <patchfile>M0/mesh.dat</patchfile>
+      <topologysets>
+        <set name="Bottom" type="face">
+          <item patch="1">5</item>
+        </set>
+      </topologysets>
     </geometry>
     <resultfile type="history">M0/hist.res</resultfile>
     <boundaryfile>M0/boun.dat</boundaryfile>
     <nesting tol="1e-6"/>
-            <!--<nesting start="20 114 1" end="147 249 51"/>-->
     <fluidproperties nu="1.5e-05"/>
     <scaling u="20" L="2000"/>
   </simra_input>

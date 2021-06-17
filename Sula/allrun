@@ -4,8 +4,8 @@ SIMRASOLTRANSF=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-SolutionTransfer
 caseName=Sula
 #caseName=SulaMetReg
 #caseName=met_new
-#caseName=met
-caseName=ideal
+caseName=met
+#caseName=ideal
 #caseName=test
 simraNesting=1
 #simraNesting=""
@@ -39,14 +39,13 @@ topoRes="50m"
 PHI=315
 U_A=28.284271247461902 # Yields u_x = 20 and u_y = -20 for PHI=315
 NSTEP=8000
-NSTEP=100
-NSTEP=3
+#NSTEP=1000
+#NSTEP=10
+#NSTEP=1
 
-TIMESTAMP=2020111900
-#TIMESTAMP=2020111906
-for M in 0 # 1 # 1 2 3 # 0 1 2 3
+for M in 1 # 1 # 1 2 3 # 0 1 2 3
 do
-    nref=0
+    nref=1
     cp ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-nest.xinp Sula-transfer*.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
     pushd $resultsFolder > /dev/null
     UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
@@ -142,9 +141,10 @@ do
                     $SIMRASOLTRANSF Sula-nest.xinp
                 fi
             fi
-            #$SIMRASOLTRANSF Sula-transfer_met.xinp
+            $SIMRASOLTRANSF Sula-transfer_M0.xinp
             #$SIMRASOLTRANSF Sula-transfer.xinp
-            $SIMRASOLTRANSF Sula-nest.xinp
+            #$SIMRASOLTRANSF Sula-nest.xinp
+            siso -f vts init.dat
             #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
             $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
             #gdb $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
@@ -167,7 +167,7 @@ do
         for ((i=1; i<2; i++))
         do
             BRIDGE=$i
-            SED_VARIABLES="BRIDGE caseName fileName topoRes noObsPoints TIMESTAMP"
+            SED_VARIABLES="BRIDGE caseName fileName topoRes noObsPoints"
             DICTS="paraviewScript.py"
             source $HOME/kode/bashScripts/sedFiles
             paraview --script=paraviewScript.py &
