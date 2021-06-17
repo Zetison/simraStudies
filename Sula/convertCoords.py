@@ -6,6 +6,7 @@ from vtk.util.numpy_support import vtk_to_numpy
 import vtk.util.numpy_support as vtknp
 import click
 import numpy as np
+from datetime import datetime
 @click.command()
 @click.option('--originx', default=0.0, type=float, help='x-coordinate of origin')
 @click.option('--originy', default=0.0, type=float, help='y-coordinate of origin')
@@ -70,28 +71,13 @@ def main(originx,originy,date,measurementfolder,resultsfolder):
             df_all = pd.read_csv(filename)
             if j == 0:
                 df = df.append(df_all[df_all.date==0])
-
-            if df_all[df_all.date==date].empty:
+            indices = np.array(df_all.date,dtype='datetime64[m]') == np.array(date,dtype='datetime64[m]')
+            if df_all[indices].empty:
                 df = df.append(pd.Series(dtype='object'), ignore_index=True)
             else:
-                df = df.append(df_all[df_all.date==date])
+                df = df.append(df_all[indices])
         df['coordsZ'] = mastb[i]+Sensorh[i]
         print(date)
-        #grid = vtk.vtkStructuredGrid()
-        #grid.SetDimensions(noSensors,1,1)
-        #points = vtk.vtkPoints()
-        #points.SetData(vtknp.numpy_to_vtk(sensorLoc[i]))
-        #grid.SetPoints(points)
-        #for column in df:
-        #    if not column == 'index' and not column == 'date':
-        #        data = vtknp.numpy_to_vtk(df[column])
-        #        data.SetName(column)
-        #        grid.GetPointData().AddArray(data)
-
-        #writer = vtk.vtkStructuredGridWriter()# or vtkXMLStructuredGridReader, or vtkUnstructuredReader, or vtkStructuredReader
-        #writer.SetFileName('measurements/VelocityProfile_'+mastNames[i]+'_'+date[11:13]+'.vtk')
-        #writer.SetInputData(grid)
-        #writer.Write()
         X = np.array(sensorLoc[i][:,0])
         Y = np.array(sensorLoc[i][:,1])
         Z = np.array(sensorLoc[i][:,2])
@@ -99,7 +85,7 @@ def main(originx,originy,date,measurementfolder,resultsfolder):
         for column in data:
             data[column] = np.array(data[column])
 
-        pointsToVTK(resultsfolder+'/VelocityProfile_'+mastNames[i]+'_'+str(int(date[11:13])), X, Y, Z, data = data)
+        pointsToVTK(resultsfolder+'/VelocityProfile_'+mastNames[i]+'_'+datetime.strptime(date[:16],'%Y-%m-%d %H:%M').strftime("%Y%m%d%H"), X, Y, Z, data = data)
 
 
 if __name__ == '__main__':

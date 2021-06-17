@@ -4,7 +4,7 @@
   <!-- General - geometry definitions !-->
   <simra_input>
     <geometry>
-      <patchfile>mesh.dat</patchfile>
+        <patchfile>M0/mesh.dat</patchfile>
       <topologysets>
         <set name="Bottom" type="face">
           <item patch="1">5</item>
@@ -15,8 +15,9 @@
     <scaling u="20" L="2000"/>
         <!--<resultfile type="restart">cont_met.res</resultfile>-->
     <!--<resultfile type="history" step="1">hist_met_rec.res</resultfile>-->
-    <resultfile type="history" step="1">hist.res</resultfile>
-    <boundaryfile type="parallel">boun.dat</boundaryfile> 
+    <resultfile type="history">M0/hist.res</resultfile>
+        <!--<boundaryfile type="parallel">M0/boun.dat</boundaryfile> -->
+    <boundaryfile>M0/boun.dat</boundaryfile> 
         <!--<origin x="-200" y="6899800"/> -->
   </simra_input>
 

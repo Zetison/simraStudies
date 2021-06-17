@@ -31,42 +31,40 @@ outputPath = simraResultsFolder+caseName+'/'
 topoRes = 'SED_topoRes' 
 
 # Set the time
-#t = 9
-t = -1
 openFoamResultsFolder = home+'/results/openfoam/Sula/'
-#fileNames = [outputPath+'M0.pvd']
-#fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd']
-#fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M0.pvd',
-#             simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd']
-fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M0.pvd',
-             simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd']
-#fileNames = [simraResultsFolder+'met_new/SED_TIMESTAMP_M0.pvd',
-#             simraResultsFolder+'met_new/SED_TIMESTAMP_M1.pvd',
-#             openFoamResultsFolder+'SolaSteady_Finer_9596.vtk']
-#fileNames = [openFoamResultsFolder+'SolaSteady_Finer_9596.vtk',
-#             openFoamResultsFolder+'5May_Unsteady_Boussinesq_Finer_sola.vtk']
-#fileNames = [outputPath+caseName+'.pvd']
-fileNames = [
-simraResultsFolder+'met_new/2020111900_M0.pvd',
-simraResultsFolder+'met_new/2020111900_M1.pvd',
-simraResultsFolder+'met_new/2020111906_M0.pvd',
-openFoamResultsFolder+'2020111906_OF_unStdy.pvd',
-openFoamResultsFolder+'2020111906_OF_stdy.pvd',
-openFoamResultsFolder+'2020111906_OF_stdyIso.pvd',
-]
+runAll = False
+if runAll:
+    fileNamesOrg = [
+    simraResultsFolder+'met_new/2020111900_M0.pvd',
+    simraResultsFolder+'met_new/2020111900_M1.pvd',
+    simraResultsFolder+'met_new/2020111906_M0.pvd',
+    simraResultsFolder+'met_new/2020111912_M0.pvd',
+    simraResultsFolder+'met_new/2020111912_M1.pvd',
+    openFoamResultsFolder+'2020111906_OF_unStdy.pvd',
+    openFoamResultsFolder+'2020111906_OF_stdy.pvd',
+    openFoamResultsFolder+'2020111906_OF_stdyIso.pvd',
+    simraResultsFolder+'met/cont_met.pvd',
+    ]
 
-caseNames = ['SIMRA_M0','SIMRA_M1','Finer_sola_steadyisothermal','SolaSteady_Finer_9596']
-caseNames = ['SIMRA_M1']
-caseNames = ['SED_TIMESTAMP_Simra_M0','SED_TIMESTAMP_Simra_M1']
-caseNames = [
-'2020111900_M0',
-'2020111900_M1',
-'2020111906_M0',
-'2020111906_OF_unStdy',
-'2020111906_OF_stdy',
-'2020111906_OF_tdyIso',
-]
-#caseNames = ['5May_Unsteady_Boussinesq_Finer_sola','SolaSteady_Finer_9596']
+    caseNamesOrg = [
+    '2020111900_M0',
+    '2020111900_M1',
+    '2020111906_M0',
+    '2020111912_M0',
+    '2020111912_M1',
+    '2020111906_OF_unStdy',
+    '2020111906_OF_stdy',
+    '2020111906_OF_stdyIso',
+    '2020111906_met',
+    ]
+    #indices = [2,5,6,7,8]
+    indices = range(9) 
+    #indices = [2,3]
+    fileNames = [fileNamesOrg[i] for i in indices]
+    caseNames = [caseNamesOrg[i] for i in indices]
+else:
+    fileNames = [outputPath+fileName+'.pvd']
+    caseNames = [caseName]
 
 colorLogo = 'white' # Default color of SINTEF logo
 originx=-200.0
@@ -75,9 +73,8 @@ topographyFileName   = simraResultsFolder+'Sula'+topoRes+'.vts'
 textureFileName_topo = simraResultsFolder+'Sula'+topoRes+'_topo.png'
 textureFileName_NIB  = simraResultsFolder+'Sula'+topoRes+'.png'
 windCase = 2 
-velProfileMax_Z=120
+velProfileMax_Z = 120
 z_proj = 5000 # Project cone to this height
-noSteps = 201
 finalTime = 11.7006
 sqrtTKE_max = 5.0
 h_max = 4000
@@ -93,13 +90,13 @@ plotTakeOffLines         = 0
 plotBridgeAndSensors     = 1 
 plotUniverseBackground   = 0 
 
-plotLIC                  = 0 
-plotStreamLines          = 0 
+plotLIC                  = 1 
+plotStreamLines          = 0
 plotVolumeRendering      = 0 
-plotIPPCmapsHorizontal   = 0 
-plotIPPCmapsVertical     = 0 
-plotOverTime             = 0 
-plotVelocityProfiles     = 1 
+plotIPPCmapsHorizontal   = 0
+plotIPPCmapsVertical     = 0
+plotOverTime             = not runAll
+plotVelocityProfiles     = runAll 
 
 makeVideo                = 0
 saveScreenShots          = 1 
@@ -222,7 +219,7 @@ def showRunway(renderView,runway=runway):
 
 def annotateDateStep(obj,renderview,RegistrationName,location='LowerRightCorner'):
     annotateTimeFilter1 = AnnotateTimeFilter(registrationName=RegistrationName, Input=obj)
-    annotateTimeFilter1.Format = '2020-11-19 %02.0f:00'
+    annotateTimeFilter1.Format = '%10d'
     annotateTimeFilter1Display = Show(annotateTimeFilter1, renderview, 'ChartTextRepresentation')
     annotateTimeFilter1Display.FontSize = 8 
     return annotateTimeFilter1Display
@@ -314,6 +311,31 @@ def showMasts(renderView):
             lineSourceDisplay[i].AmbientColor = [1.0, 0.0, 0.0]
             lineSourceDisplay[i].DiffuseColor = [1.0, 0.0, 0.0]
 
+def setVisibility(timestamps,visibility,totSteps):
+    #visibilityTrack = GetAnimationTrack('Visibility',proxy=reader1)
+    visibilityTrack = GetAnimationTrack('Visibility')
+    #endStep = startStep+noStep+1
+    #timeStart = startStep/totSteps
+    #timeEnd = endStep/totSteps
+    keyframeArr = []
+    for i in range(totSteps):
+        keyframe0 = CompositeKeyFrame()
+        keyframe0.Interpolation = 'Boolean'
+        keyframe0.KeyTime = timestamps[i] 
+        keyframe0.KeyValues = [visibility[i]]
+        keyframeArr.append(keyframe0)
+    #keyframe1 = CompositeKeyFrame()
+    #keyframe1.Interpolation = 'Boolean'
+    #keyframe1.KeyTime = timeStart
+    #keyframe1.KeyValues = [1]
+    #keyframe2 = CompositeKeyFrame()
+    #keyframe2.KeyTime = timeEnd 
+    #keyframe2.KeyValues = [0]
+    visibilityTrack.KeyFrames = keyframeArr
+    #if startStep == 0:
+    #else:
+    #    visibilityTrack.KeyFrames = [keyframe0, keyframe1, keyframe2]
+
 topography = XMLStructuredGridReader(registrationName='Topography',FileName=topographyFileName)
 topography.PointArrayStatus = ['TCoords_']
 layout1 = GetLayout()
@@ -330,52 +352,70 @@ sliceTopography.SliceType.Normal = runwayNormal
 sliceTopography.SliceType.Origin = runwayCenter
 Hide3DWidgets(proxy=sliceTopography.SliceType)
     
-CreateLayout('Layout #8')
-mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
-hints = [3,4,5,6]
-layout8 = GetLayoutByName("Layout #8")
-layout8.SplitHorizontal(0, 0.5)
-layout8.SplitHorizontal(1, 0.5)
-layout8.SplitHorizontal(2, 0.5)
-quartileChartView2 = [''] * noMasts
-vpcsv = [''] * noMasts
-plotData1 = [''] * noMasts
-vpcsvDisplay = [''] * noMasts
-for i in range(0,noMasts):
-    quartileChartView2[i] = CreateView('QuartileChartView')
-    quartileChartView2[i].BottomAxisTitle = '$u$ [m/s] (magnitude)'
-    quartileChartView2[i].LeftAxisTitle = '$z$ [m]'
-    quartileChartView2[i].ChartTitle = mastLabel[i]
-    quartileChartView2[i].LeftAxisUseCustomRange = 1
-    quartileChartView2[i].LeftAxisRangeMinimum = 0.0
-    quartileChartView2[i].LeftAxisRangeMaximum = velProfileMax_Z
-    quartileChartView2[i].BottomAxisUseCustomRange = 1
-    quartileChartView2[i].BottomAxisRangeMinimum = 0.0
-    quartileChartView2[i].BottomAxisRangeMaximum = 30.0
-    quartileChartView2[i].LegendLocation = 'TopRight'
-    quartileChartView2[i].LegendFontSize = 8 
-    AssignViewToLayout(view=quartileChartView2[i], layout=layout8, hint=hints[i])
-    vpcsv[i] = [''] * 3
-    vpcsvDisplay[i] = [''] * 3
-    plotData1[i] = [''] * 3
-    dataTypes = ['filtered','raw','rawMid']
-    colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.8,0.8]] 
-    for j in range(3):
-        vpcsv[i][j] = PVDReader(registrationName=mastNames[i], FileName=simraResultsFolder+'/'+mastNames[i]+'_'+dataTypes[j]+'.pvd')
-        plotData1[i][j] = PlotData(registrationName=mastNames[i]+'_'+dataTypes[j], Input=vpcsv[i][j])
-        vpcsvDisplay[i][j] = Show(plotData1[i][j], quartileChartView2[i], 'XYChartRepresentation')
-        vpcsvDisplay[i][j].UseIndexForXAxis = 0
-        vpcsvDisplay[i][j].XArrayName = 'u_mag'
-        vpcsvDisplay[i][j].SeriesLineStyle = ['coordsZ', '1']
-        vpcsvDisplay[i][j].SeriesMarkerSize = ['coordsZ', '8']
-        vpcsvDisplay[i][j].SeriesMarkerStyle = ['coordsZ', '4']
-        vpcsvDisplay[i][j].SeriesColor = ['coordsZ', str(colorsData[j][0]), str(colorsData[j][1]), str(colorsData[j][2])]
-        vpcsvDisplay[i][j].SeriesLabel = ['coordsZ', 'Exp. '+dataTypes[j]]
-        vpcsvDisplay[i][j].SeriesVisibility = ['coordsZ']
-
 noFiles = len(fileNames)
-colorsCases = cm.jet(range(256))[0::256//noFiles]
 pvdResults = [''] * noFiles
+timestepValues = []
+timeStamps = [''] * noFiles
+for i_f in range(0,noFiles):
+    # get the time-keeper
+    pvdResults[i_f] = PVDReader(registrationName=fileNames[i_f], FileName=fileNames[i_f])
+    timeStamps[i_f] = pvdResults[i_f].TimestepValues
+    timestepValues.extend(timeStamps[i_f])
+
+timestepValues = np.sort(np.unique(np.array(timestepValues)).astype(int))
+totSteps = len(timestepValues)
+visibility = [''] * noFiles
+for i_f in range(noFiles):
+    visibility[i_f] = np.isin(timestepValues,pvdResults[i_f].TimestepValues)
+
+if plotVelocityProfiles:
+    CreateLayout('Layout #8')
+    mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
+    hints = [3,4,5,6]
+    layout8 = GetLayoutByName("Layout #8")
+    layout8.SplitHorizontal(0, 0.5)
+    layout8.SplitHorizontal(1, 0.5)
+    layout8.SplitHorizontal(2, 0.5)
+    quartileChartView2 = [''] * noMasts
+    vpcsv = [''] * noMasts
+    plotData1 = [''] * noMasts
+    vpcsvDisplay = [''] * noMasts
+    for i in range(0,noMasts):
+        quartileChartView2[i] = CreateView('QuartileChartView')
+        quartileChartView2[i].BottomAxisTitle = '$u$ [m/s] (magnitude)'
+        quartileChartView2[i].LeftAxisTitle = '$z$ [m]'
+        quartileChartView2[i].ChartTitle = mastLabel[i]
+        quartileChartView2[i].LeftAxisUseCustomRange = 1
+        quartileChartView2[i].LeftAxisRangeMinimum = 0.0
+        quartileChartView2[i].LeftAxisRangeMaximum = velProfileMax_Z
+        quartileChartView2[i].BottomAxisUseCustomRange = 1
+        quartileChartView2[i].BottomAxisRangeMinimum = 0.0
+        quartileChartView2[i].BottomAxisRangeMaximum = 30.0
+        quartileChartView2[i].LegendLocation = 'TopRight'
+        quartileChartView2[i].LegendFontSize = 8 
+        AssignViewToLayout(view=quartileChartView2[i], layout=layout8, hint=hints[i])
+        vpcsv[i] = [''] * 3
+        vpcsvDisplay[i] = [''] * 3
+        plotData1[i] = [''] * 3
+        dataTypes = ['filtered','raw','rawMid']
+        colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.8,0.8]] 
+        for j in range(3):
+            fileName = simraResultsFolder+'measurements/'+dataTypes[j]+'/'
+            fileNames = [fileName+'VelocityProfile_'+mastNames[i]+'_'+str(time)+'.vtu' for time in timestepValues]
+            writePVD(fileName+mastNames[i],fileNames,timestepValues)
+            vpcsv[i][j] = PVDReader(registrationName=mastNames[i], FileName=fileName+mastNames[i]+'.pvd')
+            plotData1[i][j] = PlotData(registrationName=mastNames[i]+'_'+dataTypes[j], Input=vpcsv[i][j])
+            vpcsvDisplay[i][j] = Show(plotData1[i][j], quartileChartView2[i], 'XYChartRepresentation')
+            vpcsvDisplay[i][j].UseIndexForXAxis = 0
+            vpcsvDisplay[i][j].XArrayName = 'u_mag'
+            vpcsvDisplay[i][j].SeriesLineStyle = ['coordsZ', '1']
+            vpcsvDisplay[i][j].SeriesMarkerSize = ['coordsZ', '8']
+            vpcsvDisplay[i][j].SeriesMarkerStyle = ['coordsZ', '4']
+            vpcsvDisplay[i][j].SeriesColor = ['coordsZ', str(colorsData[j][0]), str(colorsData[j][1]), str(colorsData[j][2])]
+            vpcsvDisplay[i][j].SeriesLabel = ['coordsZ', 'Exp. '+dataTypes[j]]
+            vpcsvDisplay[i][j].SeriesVisibility = ['coordsZ']
+
+colorsCases = cm.jet(range(256))[0::256//noFiles]
 calculator0 = [''] * noFiles
 calculator1 = [''] * noFiles
 calculator1Display = [''] * noFiles
@@ -415,21 +455,12 @@ resampledSliceTransform = [''] * noFiles
 annotateTimeFilter1 = [''] * noFiles
 cpcsv = [''] * noFiles
 cpcsvDisplay = [''] * noFiles
-for i_f in range(0,noFiles):
+for i_f in range(noFiles):
     # get the time-keeper
-    fileName = caseNames[i_f]
     timeKeeper1 = GetTimeKeeper()
-    
-    openfoamVars = fileNames[i_f][-3:] == 'vtk'
-    if openfoamVars:
-        pvdResults[i_f] = LegacyVTKReader(registrationName=caseNames[i_f], FileNames=[fileNames[i_f]])
-    else:
-        pvdResults[i_f] = PVDReader(registrationName=fileNames[i_f], FileName=fileNames[i_f])
-    
     
     # get active view
     layout1 = GetLayoutByName("Layout #1")
-    
     
     # create a new 'Calculator'
     calculator0[i_f] = Calculator(registrationName='Calculator0', Input=pvdResults[i_f])
@@ -457,7 +488,7 @@ for i_f in range(0,noFiles):
     proj_u[i_f] = Calculator(registrationName='Projected u', Input=calculatorIPPC[i_f])
     proj_u[i_f].Function = 'u_X*iHat+u_Y*jHat+u_Z*kHat-(u_X*'+str(runwayNormal[0])+'+u_Y*'+str(runwayNormal[1])+'+u_Z*'+str(runwayNormal[2])+')*('+str(runwayNormal[0])+'*iHat+'+str(runwayNormal[1])+'*jHat+'+str(runwayNormal[2])+'*kHat)'
     proj_u[i_f].ResultArrayName = 'u_proj'
-    
+   
     planeSlice[i_f] = Plane(registrationName='Plane slice')
     planeSliceLength = 43e3
     planeSliceHeight = h_max
@@ -468,10 +499,10 @@ for i_f in range(0,noFiles):
     planeSlice[i_f].YResolution = np.round(10*planeSliceHeight/1500).astype('int')
     resampledSlice[i_f] = ResampleWithDataset(registrationName='proj_u[i_f] Resampled', SourceDataArrays=proj_u[i_f], DestinationMesh=planeSlice[i_f])
     resampledSlice[i_f].CellLocator = 'Static Cell Locator'
-    
-    ####################################################################################
-    ## Layout 1 - Surface LIC plots
-    # create a new 'Clip'
+   
+   ####################################################################################
+   ## Layout 1 - Surface LIC plots
+   # create a new 'Clip'
     if plotLIC:
         if i_f == 0:
             topographyDisplay = Show(topography, renderView1, 'StructuredGridRepresentation')
@@ -604,8 +635,8 @@ for i_f in range(0,noFiles):
         if i_f == 0:
             insertSINTEFlogo(renderView3,colorLogo)
     
-    ####################################################################################
-    ## Layout 4 - Volume rendering
+   ####################################################################################
+   ## Layout 4 - Volume rendering
     if plotVolumeRendering:
         if i_f == 0:
             CreateLayout('Layout #4')
@@ -645,7 +676,7 @@ for i_f in range(0,noFiles):
     
         if i_f == 0:
             insertSINTEFlogo(renderView4,colorLogo)
-    
+   
     if plotIPPCmapsHorizontal:
         if i_f == 0:
             CreateLayout('Layout #5')
@@ -904,7 +935,8 @@ for i_f in range(0,noFiles):
     if plotVelocityProfiles:
         resampledAtMast[i_f] = [''] * noMasts
         resampledAtMastDisplay[i_f] = [''] * noMasts
-        annotateTimeFilter1Display[i_f] = [''] * noMasts
+        if i_f == 0:
+            annotateTimeFilter1Display = [''] * noMasts
         for i in range(0,noMasts):
             resampledAtMast[i_f][i] = ResampleWithDataset(registrationName='calculator1 resampled '+mastLabel[i], SourceDataArrays=calculator1[i_f], DestinationMesh=mastLine[i])
             resampledAtMastDisplay[i_f][i] = Show(resampledAtMast[i_f][i], quartileChartView2[i], 'XYChartRepresentation')
@@ -914,7 +946,9 @@ for i_f in range(0,noFiles):
             resampledAtMastDisplay[i_f][i].SeriesColor = ['Points_Z', str(colorsCases[i_f][0]), str(colorsCases[i_f][1]), str(colorsCases[i_f][2])]
             resampledAtMastDisplay[i_f][i].SeriesLabel = ['Points_Z', caseNames[i_f]]
             resampledAtMastDisplay[i_f][i].SeriesVisibility = ['Points_Z']
-            annotateTimeFilter1Display[i_f][i] = annotateDateStep(resampledAtMast[i_f][i],quartileChartView2[i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
+            setVisibility(timeStamps[i_f],visibility[i_f],totSteps)
+            if i_f == 0:
+                annotateTimeFilter1Display[i] = annotateDateStep(resampledAtMast[i_f][i],quartileChartView2[i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
         
         
     
@@ -962,8 +996,11 @@ for i_f in range(0,noFiles):
     animationScene1.UpdateAnimationUsingDataTimeSteps()
     animationScene1.GoToFirst()
     # update animation scene based on data timesteps
-    for i in range(0,5):
-        fileNameT = fileName+'_'+str(i)+'_'
+    for i in range(totSteps):
+        if not visibility[i_f][i]:
+            continue
+
+        fileNameT = caseNames[i_f]+'_'+str(i)+'_'
 
         if plotLIC:
             saveScreenShot(renderView1,outputPath+fileNameT+'surfaceLICside_bridge'+str(bridge),saveScreenShots)
@@ -994,7 +1031,7 @@ for i_f in range(0,noFiles):
             saveScreenShot(renderView6,outputPath+fileNameT+'IPPC_vertical_bridge'+str(bridge),saveScreenShots)
         
         if plotVelocityProfiles and i_f == noFiles-1:
-            saveScreenShot(layout8,outputPath+fileNameT+'velocityProfiles',saveScreenShots,saveAllViews=True)
+            saveScreenShot(layout8,outputPath+'velocityProfiles_'+str(i),saveScreenShots,saveAllViews=True)
 
         if plotError:
             slice1Display[i_f].Representation = 'Surface'

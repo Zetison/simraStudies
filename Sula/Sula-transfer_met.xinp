@@ -4,29 +4,28 @@
   <!-- General - geometry definitions !-->
   <simra_input>
     <geometry>
-      <patchfile>mesh_converted.dat</patchfile>
+      <patchfile>met_orig/mesh.dat</patchfile>
       <topologysets>
         <set name="Bottom" type="face">
           <item patch="1">5</item>
         </set>
       </topologysets>
     </geometry>
+    <resultfile type="restart">met_orig/cont.res</resultfile>
+    <boundaryfile type="parallel">met_orig/boun.dat</boundaryfile> 
+        <!--<nesting tol="1e-6"/>-->
     <fluidproperties nu="1.5e-05"/>
     <scaling u="20" L="2000"/>
-    <resultfile type="restart">cont_met.res</resultfile>
-    <boundaryfile type="parallel">boun_met.dat</boundaryfile> 
-        <!--<origin x="-200" y="6899800"/>-->
   </simra_input>
 
   <simra_output>
-    <fluidproperties nu="1.5e-05"/>
-    <scaling u="20" L="2000"/>
     <geometry>
       <patchfile>mesh.dat</patchfile>
     </geometry>
+    <fluidproperties nu="1.5e-05"/>
+    <scaling u="20" L="2000"/>
     <resultfile type="init">init.dat</resultfile>
     <boundaryfile>boun.dat</boundaryfile>
-            <!--    <origin x="-200" y="6899800"/> -->
   </simra_output>
 
 </simulation>

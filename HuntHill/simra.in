@@ -1,5 +1,5 @@
 &PARAM_DATA
- NSTEP=1500,         ! Number of time steps
+ NSTEP=SED_NSTEP,   ! Number of time steps
  DT=0.01,           ! Initial time step
  STRATIFICATION=0,  ! = 1: stratification included
  SAVE_RES=10,       ! time-steps between output
@@ -15,13 +15,13 @@
  ROTBOUND=0,        ! variable outer side boundary BCs
  COURANT_MIN=0.5,   ! min acceptable Cr-number, for time-step control
  COURANT_MAX=3.0,   ! max acceptable Cr-number, for time-step control
- RELAX=1.0/         ! outer BC relaxation
+ RELAX=0.0/         ! outer BC relaxation
 
 &EXTRA_DATA
  TURB=1,            ! = 1: turbulence model included
- SAVE_HIST=100,     ! time-steps between saved output
  WRITE_NORMS=.TRUE.,! print absolute norm of updates
  LOG_ADJUST=.FALSE.,
+ SAVE_HIST=SED_NSTEP,      ! time-steps between saved output
  POINT_FILE='POINT_FILE', ! File containing list of points at which to evaluate solution (closest node)
  SOURCE=0/          ! Source function flag
 
