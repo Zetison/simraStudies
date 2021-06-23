@@ -54,7 +54,7 @@ if runAll:
     caseNamesOrg.extend([f[-17:-3] for f in metFiles])
     #indices = [2,5,6,7,8]
     indices = range(9) 
-    #indices = [0]
+    indices = [0]
     fileNames = [fileNamesOrg[i] for i in indices]
     caseNames = [caseNamesOrg[i] for i in indices]
 else:
@@ -366,55 +366,66 @@ for i_f in range(noFiles):
 
 
 if plotVelocityProfiles:
-    CreateLayout('Layout #8')
-    mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
     hints = [3,4,5,6]
-    layout8 = GetLayoutByName("Layout #8")
-    layout8.SplitHorizontal(0, 0.5)
-    layout8.SplitHorizontal(1, 0.5)
-    layout8.SplitHorizontal(2, 0.5)
-    quartileChartView2 = [''] * noMasts
+    dataTypes = ['filtered','raw','rawMid']
+    colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.8,0.8]] 
+    mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
+    layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'AoAprofiles']
+    xArrayNames = ['u_mag', 'u_mag', 'meandir']
+    bottomAxisRangeMinimums = [0.0, 0.0, -90.0]
+    bottomAxisRangeMaximums = [30.0, 360.0, 90.0]
+    bottomAxisTitles = ['$u$ [m/s] (magnitude)', 'Wind dir', 'Angle of Attack']
+    noPlots = len(layoutNames)
+    noDataTypes = len(dataTypes)
     vpcsv = [''] * noMasts
     plotData1 = [''] * noMasts
-    vpcsvDisplay = [''] * noMasts
     for i in range(0,noMasts):
-        quartileChartView2[i] = CreateView('QuartileChartView')
-        quartileChartView2[i].BottomAxisTitle = '$u$ [m/s] (magnitude)'
-        quartileChartView2[i].LeftAxisTitle = '$z$ [m]'
-        quartileChartView2[i].ChartTitle = mastLabel[i]
-        quartileChartView2[i].LeftAxisUseCustomRange = 1
-        quartileChartView2[i].LeftAxisRangeMinimum = 0.0
-        quartileChartView2[i].LeftAxisRangeMaximum = velProfileMax_Z
-        quartileChartView2[i].BottomAxisUseCustomRange = 1
-        quartileChartView2[i].BottomAxisRangeMinimum = 0.0
-        quartileChartView2[i].BottomAxisRangeMaximum = 30.0
-        quartileChartView2[i].LegendLocation = 'TopRight'
-        quartileChartView2[i].LegendFontSize = 8 
-        quartileChartView2[i].ViewSize = [viewSize[0]//4, viewSize[1]]
-        #quartileChartView1.ViewSize = [345, 704]
-        AssignViewToLayout(view=quartileChartView2[i], layout=layout8, hint=hints[i])
-        vpcsv[i] = [''] * 3
-        vpcsvDisplay[i] = [''] * 3
-        plotData1[i] = [''] * 3
-        dataTypes = ['filtered','raw','rawMid']
-        colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.8,0.8]] 
+        vpcsv[i] = [''] * noDataTypes 
+        plotData1[i] = [''] * noDataTypes 
         for j in range(3):
             fileName = simraResultsFolder+'measurements/'+dataTypes[j]+'/'
             fileNames = [fileName+'VelocityProfile_'+mastNames[i]+'_'+str(time)+'.vtu' for time in timestepValues]
             writePVD(fileName+mastNames[i],fileNames,timestepValues)
             vpcsv[i][j] = PVDReader(registrationName=mastNames[i], FileName=fileName+mastNames[i]+'.pvd')
             plotData1[i][j] = PlotData(registrationName=mastNames[i]+'_'+dataTypes[j], Input=vpcsv[i][j])
-            vpcsvDisplay[i][j] = Show(plotData1[i][j], quartileChartView2[i], 'XYChartRepresentation')
-            vpcsvDisplay[i][j].UseIndexForXAxis = 0
-            vpcsvDisplay[i][j].XArrayName = 'u_mag'
-            vpcsvDisplay[i][j].SeriesLineStyle = ['coordsZ', '1']
-            vpcsvDisplay[i][j].SeriesMarkerSize = ['coordsZ', '8']
-            vpcsvDisplay[i][j].SeriesMarkerStyle = ['coordsZ', '4']
-            vpcsvDisplay[i][j].SeriesColor = ['coordsZ', str(colorsData[j][0]), str(colorsData[j][1]), str(colorsData[j][2])]
-            vpcsvDisplay[i][j].SeriesLabel = ['coordsZ', 'Exp. '+dataTypes[j]]
-            vpcsvDisplay[i][j].SeriesVisibility = ['coordsZ']
 
-colorsCases = cm.jet(range(256))[0::256//noFiles]
+    quartileChartView = [''] * noPlots 
+    layouts1D = [''] * noPlots 
+    vpcsvDisplay = [''] * noPlots 
+    for i_l in range(noPlots):
+        layouts1D[i_l] = CreateLayout(layoutNames[i_l])
+        layouts1D[i_l].SplitHorizontal(0, 0.5)
+        layouts1D[i_l].SplitHorizontal(1, 0.5)
+        layouts1D[i_l].SplitHorizontal(2, 0.5)
+        quartileChartView[i_l] = [''] * noMasts
+        vpcsvDisplay[i_l] = [''] * noMasts
+        for i in range(0,noMasts):
+            quartileChartView[i_l][i] = CreateView('QuartileChartView')
+            quartileChartView[i_l][i].BottomAxisTitle = bottomAxisTitle
+            quartileChartView[i_l][i].LeftAxisTitle = '$z$ [m]'
+            quartileChartView[i_l][i].ChartTitle = mastLabel[i]
+            quartileChartView[i_l][i].LeftAxisUseCustomRange = 1
+            quartileChartView[i_l][i].LeftAxisRangeMinimum = 0.0
+            quartileChartView[i_l][i].LeftAxisRangeMaximum = velProfileMax_Z
+            quartileChartView[i_l][i].BottomAxisUseCustomRange = 1
+            quartileChartView[i_l][i].BottomAxisRangeMinimum = bottomAxisRangeMinimums[i_l]
+            quartileChartView[i_l][i].BottomAxisRangeMaximum = bottomAxisRangeMaximums[i_l]
+            quartileChartView[i_l][i].LegendLocation = 'TopRight'
+            quartileChartView[i_l][i].LegendFontSize = 8 
+            quartileChartView[i_l][i].ViewSize = [viewSize[0]//4, viewSize[1]]
+            AssignViewToLayout(view=quartileChartView[i_l][i], layout=layouts1D[i_l], hint=hints[i])
+            vpcsvDisplay[i_l][i] = [''] * noDataTypes
+            for j in range(3):
+                vpcsvDisplay[i_l][i][j] = Show(plotData1[i][j], quartileChartView[i_l][i], 'XYChartRepresentation')
+                vpcsvDisplay[i_l][i][j].UseIndexForXAxis = 0
+                vpcsvDisplay[i_l][i][j].XArrayName = xArrayNames[i_l] 
+                vpcsvDisplay[i_l][i][j].SeriesLineStyle = ['coordsZ', '1']
+                vpcsvDisplay[i_l][i][j].SeriesMarkerSize = ['coordsZ', '8']
+                vpcsvDisplay[i_l][i][j].SeriesMarkerStyle = ['coordsZ', '4']
+                vpcsvDisplay[i_l][i][j].SeriesColor = ['coordsZ', str(colorsData[j][0]), str(colorsData[j][1]), str(colorsData[j][2])]
+                vpcsvDisplay[i_l][i][j].SeriesLabel = ['coordsZ', 'Exp. '+dataTypes[j]]
+                vpcsvDisplay[i_l][i][j].SeriesVisibility = ['coordsZ']
+
 calculator0 = [''] * noFiles
 calculator1 = [''] * noFiles
 calculator1Display = [''] * noFiles
@@ -455,6 +466,8 @@ annotateTimeFilter1 = [''] * noFiles
 cpcsv = [''] * noFiles
 cpcsvDisplay = [''] * noFiles
 for i_f in range(noFiles):
+    colorsCases = cm.jet(range(256))[0::256//noFiles]
+
     # get the time-keeper
     timeKeeper1 = GetTimeKeeper()
     
@@ -939,7 +952,7 @@ for i_f in range(noFiles):
 
         for i in range(0,noMasts):
             resampledAtMast[i_f][i] = ResampleWithDataset(registrationName='calculator1 resampled '+mastLabel[i], SourceDataArrays=calculator1[i_f], DestinationMesh=mastLine[i])
-            resampledAtMastDisplay[i_f][i] = Show(resampledAtMast[i_f][i], quartileChartView2[i], 'XYChartRepresentation')
+            resampledAtMastDisplay[i_f][i] = Show(resampledAtMast[i_f][i], quartileChartView[i_l][i], 'XYChartRepresentation')
             resampledAtMastDisplay[i_f][i].UseIndexForXAxis = 0
             resampledAtMastDisplay[i_f][i].XArrayName = 'u_Magnitude'
             resampledAtMastDisplay[i_f][i].SeriesLineStyle = ['Points_Z', '1']
@@ -948,7 +961,7 @@ for i_f in range(noFiles):
             resampledAtMastDisplay[i_f][i].SeriesVisibility = ['Points_Z']
             setVisibility(timestepValues,visibility[i_f],totSteps)
             if i_f == 0:
-                annotateTimeFilter1Display[i] = annotateTimeStep(resampledAtMast[i_f][i],quartileChartView2[i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
+                annotateTimeFilter1Display[i] = annotateTimeStep(resampledAtMast[i_f][i],quartileChartView[i_l][i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
         
         
     
@@ -1031,7 +1044,8 @@ for i_f in range(noFiles):
             saveScreenShot(renderView6,outputPath+fileNameT+'IPPC_vertical_bridge'+str(bridge),saveScreenShots)
         
         if plotVelocityProfiles and i_f == noFiles-1:
-            saveScreenShot(layout8,outputPath+'velocityProfiles_'+str(timestepValues[i]),saveScreenShots,saveAllViews=True)
+            for i_l in range(noPlots):
+                saveScreenShot(layouts1D[i_l],outputPath+profileNames[i_l]+'_'+str(timestepValues[i]),saveScreenShots,saveAllViews=True)
 
         if plotError:
             slice1Display[i_f].Representation = 'Surface'
