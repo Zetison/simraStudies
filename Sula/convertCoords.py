@@ -7,13 +7,7 @@ import vtk.util.numpy_support as vtknp
 import click
 import numpy as np
 from datetime import datetime
-@click.command()
-@click.option('--originx', default=0.0, type=float, help='x-coordinate of origin')
-@click.option('--originy', default=0.0, type=float, help='y-coordinate of origin')
-@click.option('--date', default='2020-11-19 06:00', type=str, help='Date for data extraction')
-@click.option('--measurementfolder', default='measurements', type=str, help='Folder for the experimental data')
-@click.option('--resultsfolder', default='measurements', type=str, help='Folder for the results')
-def main(originx,originy,date,measurementfolder,resultsfolder):
+def computeSensorLoc(originx=0.0,originy=0.0):
     proj32 = "+proj=utm +zone=32K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
     proj33 = "+proj=utm +zone=33K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
     transformer = Transformer.from_crs(proj32,proj33)
@@ -29,15 +23,12 @@ def main(originx,originy,date,measurementfolder,resultsfolder):
         CoordUTM32 = np.array([[6924741.06, 345141.99],[6925267.00,348347.02],[6920740.04,346519.99],[6922073.99,351139.99]])
         mastb = np.array([6.0,14.0,6.0,12.0])
     else:
-        CoordUTM32 = np.array([[6924741, 345142],[6925267, 348347],[6920740, 346520],[6922074, 351140]])
+        #CoordUTM32 = np.array([[6924741, 345142],[6925267, 348347],[6920740, 346520],[6922074, 351140]])
         CoordUTM32 = np.array([[6924741, 345142],[6925263.08,348346.72],[6920736.2,346525.95],[6922076.42,351140.03]])
         mastb = np.array([8.0,12.2,1.8,13.9])
 
     noMasts = len(masth)
     sensorLoc = [''] * noMasts
-    f = open("POINT_FILE", "w")
-    noPoints = sum([len(listElem) for listElem in Sensorh])+len(Sensorh)//2
-    f.write("%d\n" % noPoints)
     for i in range(noMasts):
         noSensors = len(Sensorh[i])
         sensorLoc[i] = np.zeros((noSensors,3))
@@ -45,8 +36,25 @@ def main(originx,originy,date,measurementfolder,resultsfolder):
             alpha = np.radians(BoomOrient[i][j])
             x, y = transformer.transform(CoordUTM32[i,1]+Boom1[i]*np.sin(alpha),CoordUTM32[i,0]+Boom1[i]*np.cos(alpha)) # This is probably not the exact formula due to the UTM transformation?
             sensorLoc[i][j,:] = [x-originx,y-originy,mastb[i]+Sensorh[i][j]]
+    return sensorLoc,CoordUTM32,mastb,masth
+
+@click.command()
+@click.option('--originx', default=0.0, type=float, help='x-coordinate of origin')
+@click.option('--originy', default=0.0, type=float, help='y-coordinate of origin')
+@click.option('--date', default='2020-11-19 06:00', type=str, help='Date for data extraction')
+@click.option('--measurementfolder', default='measurements', type=str, help='Folder for the experimental data')
+@click.option('--resultsfolder', default='measurements', type=str, help='Folder for the results')
+def main(originx,originy,date,measurementfolder,resultsfolder):
+    sensorLoc,CoordUTM32,mastb,masth = computeSensorLoc(originx,originy)
+    f = open("POINT_FILE", "w")
+    noPoints = sum([sensorLoc.shape[0] for listElem in sensorLoc])+len(sensorLoc)//2
+    f.write("%d\n" % noPoints)
+    for i in range(noMasts):
+        noSensors = len(Sensorh[i])
+        for j in range(noSensors):
             f.write("%f %f %f\n" % tuple(sensorLoc[i][j,:]))
 
+    # Add coordinates for bridge
     for i in range(0,CoordUTM32.shape[0]//2):
         x1, y1 = transformer.transform(CoordUTM32[2*i,1],CoordUTM32[2*i,0])
         x2, y2 = transformer.transform(CoordUTM32[2*i+1,1],CoordUTM32[2*i+1,0])
@@ -55,7 +63,7 @@ def main(originx,originy,date,measurementfolder,resultsfolder):
     f.close()
 
     f = open("mastLoc.csv", "w")
-    for i in range(len(masth)):
+    for i in range(len(sensorLoc)):
         x, y = transformer.transform(CoordUTM32[i,1],CoordUTM32[i,0])
         f.write("%f,%f,%f,%f\n" % (x-originx,y-originy,mastb[i],masth[i]))
 

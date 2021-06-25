@@ -12,9 +12,9 @@ home = expanduser("~")
 sys.path.insert(1, home+'/kode/paraUtils')
 from sources import coffeeFilter
 from utils import *
-outputPath = home+'/results/simra/Vigra_coarse/'
-#topoRes = '50m'
-topoRes = '10m'
+outputPath = home+'/results/simra/Vigra/'
+topoRes = '50m'
+#topoRes = '10m'
 topologyFileName = outputPath+'VigraFree'+topoRes+'.vts'
 textureFileName_topo = outputPath+'VigraFree10m_topo.png'
 textureFileName_NIB = outputPath+'VigraFree10m.png'
