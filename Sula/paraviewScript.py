@@ -51,10 +51,13 @@ if runAll:
     '2020111906_OF_stdyIso',
     '2020111906_met',
     ]
-    caseNamesOrg.extend([f[-17:-3] for f in metFiles])
+    caseNamesOrg.extend([f[-17:-4] for f in metFiles])
+
     #indices = [2,5,6,7,8]
     indices = range(9) 
-    indices = [0]
+    #indices = [0,3]
+    indices = [0,1,6]
+    #indices = range(len(fileNamesOrg))
     fileNames = [fileNamesOrg[i] for i in indices]
     caseNames = [caseNamesOrg[i] for i in indices]
 else:
@@ -94,7 +97,7 @@ plotOverTime             = not runAll
 plotVelocityProfiles     = runAll 
 
 makeVideo                = 0
-saveScreenShots          = 1 
+saveScreenShots          = 0 
 useTransparentBackground = 0
 plotError                = 0 
 
@@ -308,11 +311,7 @@ def showMasts(renderView):
             lineSourceDisplay[i].DiffuseColor = [1.0, 0.0, 0.0]
 
 def setVisibility(timestepvalues,visibility,totSteps):
-    #visibilityTrack = GetAnimationTrack('Visibility',proxy=reader1)
     visibilityTrack = GetAnimationTrack('Visibility')
-    #endStep = startStep+noStep+1
-    #timeStart = startStep/totSteps
-    #timeEnd = endStep/totSteps
     keyframeArr = []
     for i in range(totSteps):
         keyframe0 = CompositeKeyFrame()
@@ -320,17 +319,8 @@ def setVisibility(timestepvalues,visibility,totSteps):
         keyframe0.KeyTime = timestepValues[i] 
         keyframe0.KeyValues = [visibility[i]]
         keyframeArr.append(keyframe0)
-    #keyframe1 = CompositeKeyFrame()
-    #keyframe1.Interpolation = 'Boolean'
-    #keyframe1.KeyTime = timeStart
-    #keyframe1.KeyValues = [1]
-    #keyframe2 = CompositeKeyFrame()
-    #keyframe2.KeyTime = timeEnd 
-    #keyframe2.KeyValues = [0]
+
     visibilityTrack.KeyFrames = keyframeArr
-    #if startStep == 0:
-    #else:
-    #    visibilityTrack.KeyFrames = [keyframe0, keyframe1, keyframe2]
 
 topography = XMLStructuredGridReader(registrationName='Topography',FileName=topographyFileName)
 topography.PointArrayStatus = ['TCoords_']
@@ -352,7 +342,7 @@ noFiles = len(fileNames)
 pvdResults = [''] * noFiles
 timestepValues = []
 timeStamps = [''] * noFiles
-for i_f in range(0,noFiles):
+for i_f in range(noFiles):
     # get the time-keeper
     pvdResults[i_f] = PVDReader(registrationName=fileNames[i_f], FileName=fileNames[i_f])
     timeStamps[i_f] = pvdResults[i_f].TimestepValues
@@ -368,21 +358,23 @@ for i_f in range(noFiles):
 if plotVelocityProfiles:
     hints = [3,4,5,6]
     dataTypes = ['filtered','raw','rawMid']
+    dataTypes = ['raw','rawMid']
     colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.8,0.8]] 
     mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
-    layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'AoAprofiles']
-    xArrayNames = ['u_mag', 'u_mag', 'meandir']
-    bottomAxisRangeMinimums = [0.0, 0.0, -90.0]
-    bottomAxisRangeMaximums = [30.0, 360.0, 90.0]
-    bottomAxisTitles = ['$u$ [m/s] (magnitude)', 'Wind dir', 'Angle of Attack']
+    layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
+    layoutNames = ['VelocityProfiles']
+    xArrayNames = ['u_mag', 'meandir', 'alpha']
+    bottomAxisRangeMinimums = [0.0, 0.0, -10.0]
+    bottomAxisRangeMaximums = [30.0, 360.0, 10.0]
+    bottomAxisTitles = ['$u$ [m/s] (magnitude)', 'Wind dir', 'Angle of Attack $[^\circ]$']
     noPlots = len(layoutNames)
     noDataTypes = len(dataTypes)
     vpcsv = [''] * noMasts
     plotData1 = [''] * noMasts
-    for i in range(0,noMasts):
+    for i in range(noMasts):
         vpcsv[i] = [''] * noDataTypes 
         plotData1[i] = [''] * noDataTypes 
-        for j in range(3):
+        for j in range(noDataTypes):
             fileName = simraResultsFolder+'measurements/'+dataTypes[j]+'/'
             fileNames = [fileName+'VelocityProfile_'+mastNames[i]+'_'+str(time)+'.vtu' for time in timestepValues]
             writePVD(fileName+mastNames[i],fileNames,timestepValues)
@@ -401,7 +393,7 @@ if plotVelocityProfiles:
         vpcsvDisplay[i_l] = [''] * noMasts
         for i in range(0,noMasts):
             quartileChartView[i_l][i] = CreateView('QuartileChartView')
-            quartileChartView[i_l][i].BottomAxisTitle = bottomAxisTitle
+            quartileChartView[i_l][i].BottomAxisTitle = bottomAxisTitles[i_l]
             quartileChartView[i_l][i].LeftAxisTitle = '$z$ [m]'
             quartileChartView[i_l][i].ChartTitle = mastLabel[i]
             quartileChartView[i_l][i].LeftAxisUseCustomRange = 1
@@ -415,7 +407,7 @@ if plotVelocityProfiles:
             quartileChartView[i_l][i].ViewSize = [viewSize[0]//4, viewSize[1]]
             AssignViewToLayout(view=quartileChartView[i_l][i], layout=layouts1D[i_l], hint=hints[i])
             vpcsvDisplay[i_l][i] = [''] * noDataTypes
-            for j in range(3):
+            for j in range(noDataTypes):
                 vpcsvDisplay[i_l][i][j] = Show(plotData1[i][j], quartileChartView[i_l][i], 'XYChartRepresentation')
                 vpcsvDisplay[i_l][i][j].UseIndexForXAxis = 0
                 vpcsvDisplay[i_l][i][j].XArrayName = xArrayNames[i_l] 
@@ -427,6 +419,8 @@ if plotVelocityProfiles:
                 vpcsvDisplay[i_l][i][j].SeriesVisibility = ['coordsZ']
 
 calculator0 = [''] * noFiles
+calculator01 = [''] * noFiles
+calculator02 = [''] * noFiles
 calculator1 = [''] * noFiles
 calculator1Display = [''] * noFiles
 calculatorIPPC = [''] * noFiles
@@ -480,7 +474,24 @@ for i_f in range(noFiles):
     calculator0[i_f].ResultArrayName = 'dot(n,u)'
     
     # create a new 'Calculator'
-    calculator1[i_f] = Calculator(registrationName='Calculator1', Input=calculator0[i_f])
+    calculator01[i_f] = Calculator(registrationName='Calculator01', Input=calculator0[i_f])
+    rad2degs = str(180/np.pi)
+    calculator01[i_f].Function = 'asin(u_Z/sqrt(u_X^2+u_Y^2+u_Z^2))*'+rad2degs
+
+    calculator01[i_f].ResultArrayName = 'alpha'
+    
+    # create a new 'Calculator'
+    calculator02[i_f] = Calculator(registrationName='Calculator02', Input=calculator01[i_f])
+    calculator02[i_f].Function = '180 + 90 - '+rad2degs+'*' + \
+                                 'if( u_X>0,atan(u_Y/u_X),' + \
+                                     'if( u_X<0,' + \
+                                         'if( u_Y<0, -180 + atan(u_Y/u_X),180 + atan(u_Y/u_X)),' + \
+                                         'if( u_Y>0, 90, if( u_Y<0, -90, 0.0) )))'
+
+    calculator02[i_f].ResultArrayName = 'meandir'
+    
+    # create a new 'Calculator'
+    calculator1[i_f] = Calculator(registrationName='Calculator1', Input=calculator02[i_f])
     calculator1[i_f].Function = 'sqrt(tk)'
     calculator1[i_f].ResultArrayName = 'sqrtTKE'
     calculatorIPPC[i_f] = Calculator(registrationName='CalculatorIPPC', Input=calculator1[i_f])
@@ -945,26 +956,32 @@ for i_f in range(noFiles):
         saveScreenShot(quartileChartView1,outputPath+fileName+'TKE',saveScreenShots)
         
     if plotVelocityProfiles:
+        xArrayNames = ['u_Magnitude', 'meandir', 'alpha']
         resampledAtMast[i_f] = [''] * noMasts
         resampledAtMastDisplay[i_f] = [''] * noMasts
         if i_f == 0:
             annotateTimeFilter1Display = [''] * noMasts
 
-        for i in range(0,noMasts):
-            resampledAtMast[i_f][i] = ResampleWithDataset(registrationName='calculator1 resampled '+mastLabel[i], SourceDataArrays=calculator1[i_f], DestinationMesh=mastLine[i])
-            resampledAtMastDisplay[i_f][i] = Show(resampledAtMast[i_f][i], quartileChartView[i_l][i], 'XYChartRepresentation')
-            resampledAtMastDisplay[i_f][i].UseIndexForXAxis = 0
-            resampledAtMastDisplay[i_f][i].XArrayName = 'u_Magnitude'
-            resampledAtMastDisplay[i_f][i].SeriesLineStyle = ['Points_Z', '1']
-            resampledAtMastDisplay[i_f][i].SeriesColor = ['Points_Z', str(colorsCases[i_f][0]), str(colorsCases[i_f][1]), str(colorsCases[i_f][2])]
-            resampledAtMastDisplay[i_f][i].SeriesLabel = ['Points_Z', caseNames[i_f]]
-            resampledAtMastDisplay[i_f][i].SeriesVisibility = ['Points_Z']
-            setVisibility(timestepValues,visibility[i_f],totSteps)
+        for i in range(noMasts):
+            resampledAtMast[i_f][i] = [''] * noPlots
+            resampledAtMastDisplay[i_f][i] = [''] * noPlots
             if i_f == 0:
-                annotateTimeFilter1Display[i] = annotateTimeStep(resampledAtMast[i_f][i],quartileChartView[i_l][i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
-        
-        
-    
+                annotateTimeFilter1Display[i] = [''] * noPlots
+
+            for i_l in range(noPlots):
+                resampledAtMast[i_f][i][i_l] = ResampleWithDataset(registrationName=caseNames[i_f]+' resampled '+mastLabel[i], SourceDataArrays=calculator1[i_f], DestinationMesh=mastLine[i])
+                resampledAtMastDisplay[i_f][i][i_l] = Show(resampledAtMast[i_f][i][i_l], quartileChartView[i_l][i], 'XYChartRepresentation')
+                resampledAtMastDisplay[i_f][i][i_l].UseIndexForXAxis = 0
+                resampledAtMastDisplay[i_f][i][i_l].XArrayName = xArrayNames[i_l]
+                resampledAtMastDisplay[i_f][i][i_l].SeriesLineStyle = ['Points_Z', '1']
+                resampledAtMastDisplay[i_f][i][i_l].SeriesColor = ['Points_Z', str(colorsCases[i_f][0]), str(colorsCases[i_f][1]), str(colorsCases[i_f][2])]
+                resampledAtMastDisplay[i_f][i][i_l].SeriesLabel = ['Points_Z', caseNames[i_f]]
+                resampledAtMastDisplay[i_f][i][i_l].SeriesVisibility = ['Points_Z']
+                setVisibility(timestepValues,visibility[i_f],totSteps)
+            
+                if i_f == 0:
+                    annotateTimeFilter1Display[i][i_l] = annotateTimeStep(resampledAtMast[i_f][i][i_l],quartileChartView[i_l][i],'timeFilter '+mastLabel[i],location='UpperLeftCorner')
+
     if plotIPPCmapsHorizontal:
         heightLUT.AutomaticRescaleRangeMode = "Never"
         heightLUT.RescaleOnVisibilityChange = 0
@@ -1045,7 +1062,7 @@ for i_f in range(noFiles):
         
         if plotVelocityProfiles and i_f == noFiles-1:
             for i_l in range(noPlots):
-                saveScreenShot(layouts1D[i_l],outputPath+profileNames[i_l]+'_'+str(timestepValues[i]),saveScreenShots,saveAllViews=True)
+                saveScreenShot(layouts1D[i_l],outputPath+layoutNames[i_l]+'_'+str(timestepValues[i]),saveScreenShots,saveAllViews=True)
 
         if plotError:
             slice1Display[i_f].Representation = 'Surface'

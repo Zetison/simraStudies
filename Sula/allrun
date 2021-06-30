@@ -3,12 +3,12 @@ SIMRAPOSTPROC=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
 SIMRASOLTRANSF=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-SolutionTransfer
 caseName=Sula
 #caseName=SulaMetReg
-#caseName=met_new
-caseName=met
+caseName=met_new
+#caseName=met
 #caseName=ideal
 #caseName=test
-simraNesting=1
-#simraNesting=""
+#simraNesting=1
+simraNesting=""
 simraresultsFolder=$HOME/results/simra/Sula
 resultsFolder=$simraresultsFolder/$caseName
 #withMPI=1
@@ -43,7 +43,7 @@ NSTEP=8000
 #NSTEP=10
 #NSTEP=1
 
-for M in 1 # 1 # 1 2 3 # 0 1 2 3
+for M in 0 # 1 # 1 2 3 # 0 1 2 3
 do
     nref=1
     cp ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-nest.xinp Sula-transfer*.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder

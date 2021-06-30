@@ -12,7 +12,7 @@ nz=31
 noitrs=1
 NSTEP=2
 NSTEP=500
-#NSTEP=100
+#NSTEP=1000
 pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
 NAVIERSTOKES=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
 SIMRASOLTRANSF=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-SolutionTransfer
