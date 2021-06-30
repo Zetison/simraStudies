@@ -2,19 +2,28 @@ import numpy as np
 import matplotlib.pylab as plt
 from scipy import interpolate
 from mpl_toolkits.mplot3d import Axes3D
+import pandas as pd
 import numpy as np
 import sys
 import click
-from vtk import vtkXMLStructuredGridReader, vtkPoints, vtkStructuredGrid, vtkProbeFilter
+from vtk import vtkXMLUnstructuredGridReader, vtkXMLStructuredGridReader, vtkPoints, vtkStructuredGrid, vtkProbeFilter
 from vtk import vtkXMLStructuredGridWriter
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 import utm
 from glob import glob
 from os.path import expanduser
 from convertCoords import computeSensorLoc 
+from datetime import datetime, timedelta
+from matplotlib import cm
 
-def load_vts(filename):
-    reader = vtkXMLStructuredGridReader()
+def load_vtk(filename):
+    if filename[-3:] == 'vts':
+        reader = vtkXMLStructuredGridReader()
+    elif filename[-3:] == 'vtu':
+        reader = vtkXMLUnstructuredGridReader()
+    else:
+        print('Error: Not implemented')
+
     reader.SetFileName(filename)
     reader.Update()
     return reader.GetOutput()
@@ -49,41 +58,31 @@ def interpolateVTK(orig_data, sub_grid):
 
 
 @click.command()
-#@click.option('--originx', default=0.0, type=float, help='x-coordinate of origin')
-#@click.option('--originy', default=0.0, type=float, help='y-coordinate of origin')
-#@click.option('--date', default='2020-11-19 06:00', type=str, help='Date for data extraction')
-#@click.option('--measurementfolder', default='measurements', type=str, help='Folder for the experimental data')
-#@click.option('--resultsfolder', default='measurements', type=str, help='Folder for the results')
-def main():
+@click.option('--savepng', default=True, type=bool, help='Export results to png file')
+@click.option('--showplots', default=False, type=bool, help='Show plots from matplotlib')
+def main(savepng,showplots):
     home = expanduser("~")
     simraResultsFolder = home+'/results/simra/Sula/'
     openFoamResultsFolder = home+'/results/openfoam/Sula/'
     fileNamesOrg = [
-        openFoamResultsFolder+'2020111906_OF_unStdy.pvd',
-        openFoamResultsFolder+'2020111906_OF_stdy.pvd',
-        openFoamResultsFolder+'2020111906_OF_stdyIso.pvd',
-        simraResultsFolder+'met/cont_met.pvd',
+        openFoamResultsFolder+'2020111906/steady_3.vtu',
+        openFoamResultsFolder+'2020111906/steadyIsothermal_3.vtu',
+        openFoamResultsFolder+'2020111906/unSteady_3.vtu',
+        simraResultsFolder+'met/2020111906/metmesh_3.vtu',
     ]
-    metFiles = glob(simraResultsFolder+"met_new/2*.pvd")
+    metFiles = glob(simraResultsFolder+"met_new/20*/*.vts")
 
     fileNamesOrg.extend(metFiles)
+    df = pd.DataFrame({'path':fileNamesOrg})
+    df['name'] = [path.split('/')[-1].split('.')[0].split('_')[0] for path in df.path]
+    df['addtime'] = [path.split('/')[-1].split('.')[0].split('_')[-1] for path in df.path]
+    baseDate = [datetime.strptime(path.split('/')[-2],'%Y%m%d%H') for path in df.path]
+    df['baseDate'] = baseDate 
+    df['date'] = [date+timedelta(hours=float(addtime)) for date,addtime in zip(baseDate,df.addtime)]
+    df = df.sort_values(by='date')
+    df = df.reset_index()
+    uniqueDates = df['date'].map(pd.Timestamp).unique()
 
-    caseNamesOrg = [
-    '2020111906_OF_unStdy',
-    '2020111906_OF_stdy',
-    '2020111906_OF_stdyIso',
-    '2020111906_met',
-    ]
-    caseNamesOrg.extend([f[-17:-4] for f in metFiles])
-
-    #indices = [2,5,6,7,8]
-    indices = range(9) 
-    #indices = [0,3]
-    indices = [0,1,6]
-    #indices = range(len(fileNamesOrg))
-    fileNames = [fileNamesOrg[i] for i in indices]
-    caseNames = [caseNamesOrg[i] for i in indices]
-    
     # Get sensor locations
     sensorLoc,CoordUTM32,mastb,masth = computeSensorLoc(originx=-200,originy=6899800)
     noMasts = len(sensorLoc)
@@ -91,58 +90,99 @@ def main():
     for i in range(noMasts):
         curves[i] = interpolatePoints(sensorLoc[i])
 
-    # Load vts files
-    #orig_data = load_vts(home+'/results/simra/Sula/met_new/2020111906/M0_0.vts')
-    orig_data = load_vts(home+'/kode/simraStudies/Sula/small.vts')
-    resampled = [''] * noMasts
-    for i in range(noMasts):
-        resampled[i] = interpolateVTK(orig_data, curves[i])
-    
-    # Load experimental data
-
-    vpcsv[i][j] = PVDReader(registrationName=mastNames[i], FileName=fileName+mastNames[i]+'.pvd')
-
-    # Plot data
-    #dataTypes = ['filtered','raw','rawMid']
     dataTypes = ['raw','rawMid']
     colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.8,0.8]] 
     mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
     layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
-    layoutNames = ['VelocityProfiles']
     xArrayNames = ['u_mag', 'meandir', 'alpha']
-    bottomAxisRangeMinimums = [0.0, 0.0, -10.0]
-    bottomAxisRangeMaximums = [30.0, 360.0, 10.0]
+    bottomAxisRangeMinimums = [0.0, 0.0, -30.0]
+    bottomAxisRangeMaximums = [30.0, 2*np.pi, 30.0]
     bottomAxisTitles = ['$u$ [m/s] (magnitude)', 'Wind dir', 'Angle of Attack $[^\circ]$']
     #fig2 = plt.figure(2)
     #ax3d = fig2.add_subplot(111, projection='3d')
 
     
     noPlots = len(layoutNames)
-    fig = [''] * noPlots
-    ax = [''] * noPlots
-    for i_l in range(noPlots):
-        fig[i_l], ax[i_l] = plt.subplots(1, noMasts, sharey=True)
-        fig[i_l].suptitle(layoutNames[i_l]) 
+    noDataTypes = len(dataTypes)
 
-    for i in range(noMasts):
-        u = vtk_to_numpy(resampled[i].GetPointData().GetAbstractArray('u')).copy()
-        nodes = sensorLoc[i]
-        points = vtk_to_numpy(curves[i].GetPoints().GetData()).copy()
+
+    for date in uniqueDates:
+        fig = [''] * noPlots
+        ax = [''] * noPlots
         for i_l in range(noPlots):
-            ax[i_l][i].plot(np.linalg.norm(u,axis=1),points[:,2],color = [0,1,0],label = 'SIMRA')
-            ax[i_l][i].set_xlim([bottomAxisRangeMinimums[i_l],bottomAxisRangeMaximums[i_l]])
-            ax[i_l][i].set_ylim([0,120])
-            ax[i_l][i].set_title(mastNames[i])
-            if i == 0:
-                ax[i_l][i].set(xlabel=bottomAxisTitles[i_l], ylabel='$z$ [m]')
+            usePolar = layoutNames[i_l] == 'WindDirProfiles'
+            if usePolar:
+                fig[i_l], ax[i_l] = plt.subplots(1, noMasts, sharey=True,figsize=(40,10), subplot_kw=dict(projection="polar"))
             else:
-                ax[i_l][i].set(xlabel=bottomAxisTitles[i_l])
-            ax[i_l][i].legend()
-            #ax3d.plot(nodes[:,0],nodes[:,1],nodes[:,2], 'ro')
-            #ax3d.plot(points[:,0], points[:,1], points[:,2], 'r')
+                fig[i_l], ax[i_l] = plt.subplots(1, noMasts, sharey=True,figsize=(20,10))
+            fig[i_l].suptitle(layoutNames[i_l]+' '+pd.to_datetime(date).strftime('%Y-%m-%d %H:%M'))
 
-    
-    plt.show()
+        for i in range(noMasts):
+            for j in range(noDataTypes):
+                obsData = load_vtk(home+'/results/simra/Sula/measurements/'+dataTypes[j]+'/VelocityProfile_'+mastNames[i]+'_'+pd.to_datetime(date).strftime('%Y%m%d%H')+'.vtu')
+                points = vtk_to_numpy(obsData.GetPoints().GetData()).copy()
+                for i_l in range(noPlots):
+                    QoI = vtk_to_numpy(obsData.GetPointData().GetAbstractArray(xArrayNames[i_l])).copy()
+                    if layoutNames[i_l] == 'WindDirProfiles':
+                        QoI = np.radians(QoI)
+                    elif layoutNames[i_l] == 'WindDirProfiles':
+                        QoI = np.degree(QoI)
+                    ax[i_l][i].plot(QoI,points[:,2],color = colorsData[j],marker='.',label = 'Exp. '+dataTypes[j])
+                    ax[i_l][i].set_xlim([bottomAxisRangeMinimums[i_l],bottomAxisRangeMaximums[i_l]])
+                    ax[i_l][i].set_ylim([0,120])
+                    ax[i_l][i].set_title(mastNames[i])
+                    if j == 0:
+                        if i == 0 and not layoutNames[i_l] == 'WindDirProfiles':
+                            ax[i_l][i].set(xlabel=bottomAxisTitles[i_l], ylabel='$z$ [m]')
+                        else:
+                            ax[i_l][i].set(xlabel=bottomAxisTitles[i_l])
+                    
+                        if layoutNames[i_l] == 'WindDirProfiles':
+                            ax[i_l][i].set_theta_zero_location("N")
+                            ax[i_l][i].set_theta_direction(-1)
+
+        df_sub = df[df.date == date]
+        i_df = 0
+        colorsCases = cm.jet(range(256))[0::256//len(df_sub)]
+        for _, df_date in df_sub.iterrows():
+            # Load vtk files
+            vtkData = load_vtk(df_date.path)
+            resampled = [''] * noMasts
+            for i in range(noMasts):
+                resampled[i] = interpolateVTK(vtkData, curves[i])
+            
+            for i in range(noMasts):
+                u = vtk_to_numpy(resampled[i].GetPointData().GetAbstractArray('u')).copy()
+                u_mag = np.linalg.norm(u,axis=1)
+                nodes = sensorLoc[i]
+                points = vtk_to_numpy(curves[i].GetPoints().GetData()).copy()
+                points = points[u_mag > 0,:]
+                u = u[u_mag > 0,:]
+                u_mag = u_mag[u_mag > 0]
+                for i_l in range(noPlots):
+                    if layoutNames[i_l] == 'VelocityProfiles':
+                        QoI = u_mag
+                    elif layoutNames[i_l] == 'WindDirProfiles':
+                        QoI = np.radians(180+90)-np.arctan2(u[:,1],u[:,0])
+                    elif layoutNames[i_l] == 'alphaProfiles':
+                        QoI = np.degrees(np.arctan(u[:,2],np.linalg.norm(u[:,:2])))
+                        
+                    ax[i_l][i].plot(QoI,points[:,2],color = colorsCases[i_df],label = df_date['name']+' '+pd.to_datetime(df_date['baseDate']).strftime('%Y%m%d%H')+'+'+df_date['addtime'])
+                    if layoutNames[i_l] == 'WindDirProfiles':
+                        ax[i_l][i].legend(loc='lower right')
+                    else:
+                        ax[i_l][i].legend(loc='upper left')
+                    #ax3d.plot(nodes[:,0],nodes[:,1],nodes[:,2], 'ro')
+                    #ax3d.plot(points[:,0], points[:,1], points[:,2], 'r')
+            i_df += 1
+
+        if showplots:
+            plt.show()
+
+        if savepng:
+            for i_l in range(noPlots):
+                fig[i_l].savefig(simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+pd.to_datetime(date).strftime('%Y%m%d%H')+'.png', dpi=300, bbox_inches='tight',pad_inches = 0)
+
 
 if __name__ == '__main__':
     main()

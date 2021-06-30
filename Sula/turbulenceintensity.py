@@ -54,10 +54,11 @@ def binarySearch(nc,T,n,units):
 def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,totPeriod=60,midSampled=False,location='Kvitneset'):
     if midSampled:
         start_dt = datetime(year, month, day, hour) + relativedelta(minutes=-30)
-        dataType = 'raw'
+        dataType = 'rawMid'
     else:
         start_dt = datetime(year, month, day, hour)
-        dataType = 'rawMid'
+        dataType = 'raw'
+
     end_dt = start_dt + relativedelta(minutes=+totPeriod) #40,320
     ############### Read data and clean ###########################################
     t0 = time.perf_counter()
@@ -128,7 +129,7 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
                 mean_u.append(meanu)
                 mean_v.append(meanv)
                 mean_w.append(meanw)
-                alpha.append(np.arctan2(meanw,meanU)*180/np.pi)
+                alpha.append(np.degrees(np.arctan2(meanw,meanU)))
                 if midSampled:
                     dates.append(np.array(np.mean(df10['Time'].dropna()), dtype='datetime64[m]'))
                 else:
