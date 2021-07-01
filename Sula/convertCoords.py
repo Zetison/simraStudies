@@ -36,7 +36,7 @@ def computeSensorLoc(originx=0.0,originy=0.0):
             alpha = np.radians(BoomOrient[i][j])
             x, y = transformer.transform(CoordUTM32[i,1]+Boom1[i]*np.sin(alpha),CoordUTM32[i,0]+Boom1[i]*np.cos(alpha)) # This is probably not the exact formula due to the UTM transformation?
             sensorLoc[i][j,:] = [x-originx,y-originy,mastb[i]+Sensorh[i][j]]
-    return sensorLoc,CoordUTM32,mastb,masth
+    return sensorLoc,CoordUTM32,mastb,masth,Sensorh
 
 @click.command()
 @click.option('--originx', default=0.0, type=float, help='x-coordinate of origin')

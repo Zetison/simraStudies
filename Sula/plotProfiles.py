@@ -58,8 +58,8 @@ def interpolateVTK(orig_data, sub_grid):
 
 
 @click.command()
-@click.option('--savepng', default=True, type=bool, help='Export results to png file')
-@click.option('--showplots', default=False, type=bool, help='Show plots from matplotlib')
+@click.option('--savepng/--no-savepng', default=True, type=bool, help='Export results to png file')
+@click.option('--showplots/--no-showplots', default=False, type=bool, help='Show plots from matplotlib')
 def main(savepng,showplots):
     home = expanduser("~")
     simraResultsFolder = home+'/results/simra/Sula/'
@@ -84,7 +84,7 @@ def main(savepng,showplots):
     uniqueDates = df['date'].map(pd.Timestamp).unique()
 
     # Get sensor locations
-    sensorLoc,CoordUTM32,mastb,masth = computeSensorLoc(originx=-200,originy=6899800)
+    sensorLoc,CoordUTM32,mastb,masth,Sensorh = computeSensorLoc(originx=-200,originy=6899800)
     noMasts = len(sensorLoc)
     curves = [''] * noMasts 
     for i in range(noMasts):
@@ -119,14 +119,24 @@ def main(savepng,showplots):
 
         for i in range(noMasts):
             for j in range(noDataTypes):
-                obsData = load_vtk(home+'/results/simra/Sula/measurements/'+dataTypes[j]+'/VelocityProfile_'+mastNames[i]+'_'+pd.to_datetime(date).strftime('%Y%m%d%H')+'.vtu')
-                points = vtk_to_numpy(obsData.GetPoints().GetData()).copy()
+                df_obs = pd.DataFrame()
+                noSensors = len(Sensorh[i])
+                for k in range(noSensors):
+                    z = np.floor(Sensorh[i][k]).astype(int)
+                    filename = simraResultsFolder+'measurements/'+dataTypes[j]+'/10hz_'+mastNames[i]+'_60mnturbulence_statistics_'+str(z)+'_202011.csv'
+                    df_all = pd.read_csv(filename)
+                    if j == 0:
+                        df_obs = df_obs.append(df_all[df_all.date==0])
+                    indices = np.array(df_all.date,dtype='datetime64[m]') == np.array(date,dtype='datetime64[m]')
+                    if df_all[indices].empty:
+                        df_obs = df_obs.append(pd.Series(dtype='object'), ignore_index=True)
+                    else:
+                        df_obs = df_obs.append(df_all[indices])
+                points = sensorLoc[i] 
                 for i_l in range(noPlots):
-                    QoI = vtk_to_numpy(obsData.GetPointData().GetAbstractArray(xArrayNames[i_l])).copy()
+                    QoI = df_obs[xArrayNames[i_l]]
                     if layoutNames[i_l] == 'WindDirProfiles':
                         QoI = np.radians(QoI)
-                    elif layoutNames[i_l] == 'WindDirProfiles':
-                        QoI = np.degree(QoI)
                     ax[i_l][i].plot(QoI,points[:,2],color = colorsData[j],marker='.',label = 'Exp. '+dataTypes[j])
                     ax[i_l][i].set_xlim([bottomAxisRangeMinimums[i_l],bottomAxisRangeMaximums[i_l]])
                     ax[i_l][i].set_ylim([0,120])
@@ -138,7 +148,7 @@ def main(savepng,showplots):
                             ax[i_l][i].set(xlabel=bottomAxisTitles[i_l])
                     
                         if layoutNames[i_l] == 'WindDirProfiles':
-                            ax[i_l][i].set_theta_zero_location("N")
+                            ax[i_l][i].set_theta_zero_location('N')
                             ax[i_l][i].set_theta_direction(-1)
 
         df_sub = df[df.date == date]
@@ -165,7 +175,7 @@ def main(savepng,showplots):
                     elif layoutNames[i_l] == 'WindDirProfiles':
                         QoI = np.radians(180+90)-np.arctan2(u[:,1],u[:,0])
                     elif layoutNames[i_l] == 'alphaProfiles':
-                        QoI = np.degrees(np.arctan(u[:,2],np.linalg.norm(u[:,:2])))
+                        QoI = np.degrees(np.arctan2(u[:,2],np.linalg.norm(u[:,:2],axis=1)))
                         
                     ax[i_l][i].plot(QoI,points[:,2],color = colorsCases[i_df],label = df_date['name']+' '+pd.to_datetime(df_date['baseDate']).strftime('%Y%m%d%H')+'+'+df_date['addtime'])
                     if layoutNames[i_l] == 'WindDirProfiles':
