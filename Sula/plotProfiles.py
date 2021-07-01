@@ -15,6 +15,7 @@ from os.path import expanduser
 from convertCoords import computeSensorLoc 
 from datetime import datetime, timedelta
 from matplotlib import cm
+from guppy import hpy
 
 def load_vtk(filename):
     if filename[-3:] == 'vts':
@@ -41,7 +42,7 @@ def interpolatePoints(nodes,noPts=1000,z_min=0.0,z_max=120.0):
     points = np.transpose([x_fine, y_fine, z_fine])
 
     vpoints = vtkPoints()
-    vpoints.SetData(numpy_to_vtk(points, deep=True))
+    vpoints.SetData(numpy_to_vtk(points))
 
     vgrid = vtkStructuredGrid()
     vgrid.SetDimensions(noPts,1,1)
@@ -132,6 +133,8 @@ def main(savepng,showplots):
                         df_obs = df_obs.append(pd.Series(dtype='object'), ignore_index=True)
                     else:
                         df_obs = df_obs.append(df_all[indices])
+                if df_obs.empty:
+                    continue
                 points = sensorLoc[i] 
                 for i_l in range(noPlots):
                     QoI = df_obs[xArrayNames[i_l]]
@@ -157,15 +160,13 @@ def main(savepng,showplots):
         for _, df_date in df_sub.iterrows():
             # Load vtk files
             vtkData = load_vtk(df_date.path)
-            resampled = [''] * noMasts
-            for i in range(noMasts):
-                resampled[i] = interpolateVTK(vtkData, curves[i])
             
             for i in range(noMasts):
-                u = vtk_to_numpy(resampled[i].GetPointData().GetAbstractArray('u')).copy()
+                resampled = interpolateVTK(vtkData, curves[i])
+                u = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u'))
                 u_mag = np.linalg.norm(u,axis=1)
                 nodes = sensorLoc[i]
-                points = vtk_to_numpy(curves[i].GetPoints().GetData()).copy()
+                points = vtk_to_numpy(curves[i].GetPoints().GetData())
                 points = points[u_mag > 0,:]
                 u = u[u_mag > 0,:]
                 u_mag = u_mag[u_mag > 0]
@@ -185,10 +186,14 @@ def main(savepng,showplots):
                     #ax3d.plot(nodes[:,0],nodes[:,1],nodes[:,2], 'ro')
                     #ax3d.plot(points[:,0], points[:,1], points[:,2], 'r')
             i_df += 1
+            del vtkData
 
         if showplots:
             plt.show()
 
+
+        h=hpy()
+        h.heap()
         if savepng:
             for i_l in range(noPlots):
                 fig[i_l].savefig(simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+pd.to_datetime(date).strftime('%Y%m%d%H')+'.png', dpi=300, bbox_inches='tight',pad_inches = 0)
