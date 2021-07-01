@@ -15,7 +15,6 @@ from os.path import expanduser
 from convertCoords import computeSensorLoc 
 from datetime import datetime, timedelta
 from matplotlib import cm
-from guppy import hpy
 
 def load_vtk(filename):
     if filename[-3:] == 'vts':
@@ -42,7 +41,7 @@ def interpolatePoints(nodes,noPts=1000,z_min=0.0,z_max=120.0):
     points = np.transpose([x_fine, y_fine, z_fine])
 
     vpoints = vtkPoints()
-    vpoints.SetData(numpy_to_vtk(points))
+    vpoints.SetData(numpy_to_vtk(points, deep=True))
 
     vgrid = vtkStructuredGrid()
     vgrid.SetDimensions(noPts,1,1)
@@ -61,7 +60,8 @@ def interpolateVTK(orig_data, sub_grid):
 @click.command()
 @click.option('--savepng/--no-savepng', default=True, type=bool, help='Export results to png file')
 @click.option('--showplots/--no-showplots', default=False, type=bool, help='Show plots from matplotlib')
-def main(savepng,showplots):
+@click.option('--i_date', default=1, type=int, help='Index of date (1-30) in November')
+def main(savepng,showplots,i_date):
     home = expanduser("~")
     simraResultsFolder = home+'/results/simra/Sula/'
     openFoamResultsFolder = home+'/results/openfoam/Sula/'
@@ -106,6 +106,7 @@ def main(savepng,showplots):
     noPlots = len(layoutNames)
     noDataTypes = len(dataTypes)
 
+    uniqueDates = [uniqueDates[i_date]]
 
     for date in uniqueDates:
         fig = [''] * noPlots
@@ -163,10 +164,10 @@ def main(savepng,showplots):
             
             for i in range(noMasts):
                 resampled = interpolateVTK(vtkData, curves[i])
-                u = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u'))
+                u = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u').copy())
                 u_mag = np.linalg.norm(u,axis=1)
                 nodes = sensorLoc[i]
-                points = vtk_to_numpy(curves[i].GetPoints().GetData())
+                points = vtk_to_numpy(curves[i].GetPoints().GetData().copy())
                 points = points[u_mag > 0,:]
                 u = u[u_mag > 0,:]
                 u_mag = u_mag[u_mag > 0]
@@ -191,9 +192,6 @@ def main(savepng,showplots):
         if showplots:
             plt.show()
 
-
-        h=hpy()
-        h.heap()
         if savepng:
             for i_l in range(noPlots):
                 fig[i_l].savefig(simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+pd.to_datetime(date).strftime('%Y%m%d%H')+'.png', dpi=300, bbox_inches='tight',pad_inches = 0)
