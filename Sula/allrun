@@ -7,8 +7,8 @@ caseName=met_new
 #caseName=met
 #caseName=ideal
 #caseName=test
-#simraNesting=1
-simraNesting=""
+simraNesting=1
+#simraNesting=""
 simraresultsFolder=$HOME/results/simra/Sula
 resultsFolder=$simraresultsFolder/$caseName
 #withMPI=1
@@ -39,11 +39,11 @@ topoRes="50m"
 PHI=315
 U_A=28.284271247461902 # Yields u_x = 20 and u_y = -20 for PHI=315
 NSTEP=8000
-#NSTEP=1000
-#NSTEP=10
+NSTEP=1000
+NSTEP=10
 #NSTEP=1
 
-for M in 0 # 1 # 1 2 3 # 0 1 2 3
+for M in 1 # 1 # 1 2 3 # 0 1 2 3
 do
     nref=1
     cp ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-nest.xinp Sula-transfer*.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
@@ -141,9 +141,9 @@ do
                     $SIMRASOLTRANSF Sula-nest.xinp
                 fi
             fi
-            $SIMRASOLTRANSF Sula-transfer_M0.xinp
+            #$SIMRASOLTRANSF Sula-transfer_M0.xinp
             #$SIMRASOLTRANSF Sula-transfer.xinp
-            #$SIMRASOLTRANSF Sula-nest.xinp
+            $SIMRASOLTRANSF Sula-nest.xinp
             siso -f vts init.dat
             #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
             #$HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra

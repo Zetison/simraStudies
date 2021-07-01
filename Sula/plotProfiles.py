@@ -1,15 +1,11 @@
 import numpy as np
 import matplotlib.pylab as plt
 from scipy import interpolate
-from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
-import numpy as np
-import sys
 import click
 from vtk import vtkXMLUnstructuredGridReader, vtkXMLStructuredGridReader, vtkPoints, vtkStructuredGrid, vtkProbeFilter
 from vtk import vtkXMLStructuredGridWriter
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
-import utm
 from glob import glob
 from os.path import expanduser
 from convertCoords import computeSensorLoc 
@@ -62,6 +58,7 @@ def interpolateVTK(orig_data, sub_grid):
 @click.option('--showplots/--no-showplots', default=False, type=bool, help='Show plots from matplotlib')
 @click.option('--i_date', default=1, type=int, help='Index of date (1-30) in November')
 def main(savepng,showplots,i_date):
+    # Collect metainformation (path,name,date) from SIMRA files
     home = expanduser("~")
     simraResultsFolder = home+'/results/simra/Sula/'
     openFoamResultsFolder = home+'/results/openfoam/Sula/'
@@ -91,6 +88,7 @@ def main(savepng,showplots,i_date):
     for i in range(noMasts):
         curves[i] = interpolatePoints(sensorLoc[i])
 
+    # Initiate plot arrays
     dataTypes = ['raw','rawMid']
     colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.8,0.8]] 
     mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
@@ -99,16 +97,18 @@ def main(savepng,showplots,i_date):
     bottomAxisRangeMinimums = [0.0, 0.0, -30.0]
     bottomAxisRangeMaximums = [30.0, 2*np.pi, 30.0]
     bottomAxisTitles = ['$u$ [m/s] (magnitude)', 'Wind dir', 'Angle of Attack $[^\circ]$']
+    
     #fig2 = plt.figure(2)
     #ax3d = fig2.add_subplot(111, projection='3d')
-
     
     noPlots = len(layoutNames)
     noDataTypes = len(dataTypes)
 
     uniqueDates = [uniqueDates[i_date]]
 
+    # Loop over all dates and generate plots
     for date in uniqueDates:
+        # Initiate figures
         fig = [''] * noPlots
         ax = [''] * noPlots
         for i_l in range(noPlots):
@@ -119,8 +119,10 @@ def main(savepng,showplots,i_date):
                 fig[i_l], ax[i_l] = plt.subplots(1, noMasts, sharey=True,figsize=(20,10))
             fig[i_l].suptitle(layoutNames[i_l]+' '+pd.to_datetime(date).strftime('%Y-%m-%d %H:%M'))
 
+        # Loop over all masts and data types
         for i in range(noMasts):
             for j in range(noDataTypes):
+                # Collect data from all sensors
                 df_obs = pd.DataFrame()
                 noSensors = len(Sensorh[i])
                 for k in range(noSensors):
@@ -136,6 +138,8 @@ def main(savepng,showplots,i_date):
                         df_obs = df_obs.append(df_all[indices])
                 if df_obs.empty:
                     continue
+
+                # Plot experimental data
                 points = sensorLoc[i] 
                 for i_l in range(noPlots):
                     QoI = df_obs[xArrayNames[i_l]]
@@ -155,6 +159,7 @@ def main(savepng,showplots,i_date):
                             ax[i_l][i].set_theta_zero_location('N')
                             ax[i_l][i].set_theta_direction(-1)
 
+        # Iterate over all SIMRA files corresponding to the given date
         df_sub = df[df.date == date]
         i_df = 0
         colorsCases = cm.jet(range(256))[0::256//len(df_sub)]
@@ -162,6 +167,7 @@ def main(savepng,showplots,i_date):
             # Load vtk files
             vtkData = load_vtk(df_date.path)
             
+            # Plot SIMRA results
             for i in range(noMasts):
                 resampled = interpolateVTK(vtkData, curves[i])
                 u = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u').copy())
