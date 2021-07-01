@@ -16,6 +16,7 @@ from dateutil.relativedelta import relativedelta
 import requests
 import time
 import click
+from os.path import expanduser
 
 ############## Perdelta function ############################################## 
 def perdelta(start, end, delta):
@@ -150,7 +151,8 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
 
         df_turbstat['alpha'] = alpha
 
-        df_turbstat.to_csv(r'/home/zetison/results/simra/Sula/measurements/'+dataType+'/10%s_%s_60mnturbulence_statistics_%d_%d%02d.csv' % (frequency,location, z[height_level], year, month), index=False)
+        home = expanduser("~")
+        df_turbstat.to_csv(home+'/results/simra/Sula/measurements/'+dataType+'/10%s_%s_60mnturbulence_statistics_%d_%d%02d.csv' % (frequency,location, z[height_level], year, month), index=False)
         print(time.perf_counter() - t0)
 
 @click.command()
