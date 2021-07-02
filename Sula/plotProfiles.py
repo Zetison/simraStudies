@@ -104,6 +104,7 @@ def main(savepng,showplots,i_date):
     noPlots = len(layoutNames)
     noDataTypes = len(dataTypes)
 
+    print('no dates = '+str(len(uniqueDates)))
     uniqueDates = [uniqueDates[i_date]]
 
     # Loop over all dates and generate plots
@@ -111,13 +112,16 @@ def main(savepng,showplots,i_date):
         # Initiate figures
         fig = [''] * noPlots
         ax = [''] * noPlots
+        datestr = pd.to_datetime(date).strftime('%Y-%m-%d %H:%M')
+        print('Running '+datestr)
         for i_l in range(noPlots):
             usePolar = layoutNames[i_l] == 'WindDirProfiles'
             if usePolar:
                 fig[i_l], ax[i_l] = plt.subplots(1, noMasts, sharey=True,figsize=(40,10), subplot_kw=dict(projection="polar"))
             else:
                 fig[i_l], ax[i_l] = plt.subplots(1, noMasts, sharey=True,figsize=(20,10))
-            fig[i_l].suptitle(layoutNames[i_l]+' '+pd.to_datetime(date).strftime('%Y-%m-%d %H:%M'))
+            suptitle = layoutNames[i_l]+' '+datestr
+            fig[i_l].suptitle(suptitle)
 
         # Loop over all masts and data types
         for i in range(noMasts):
@@ -170,10 +174,10 @@ def main(savepng,showplots,i_date):
             # Plot SIMRA results
             for i in range(noMasts):
                 resampled = interpolateVTK(vtkData, curves[i])
-                u = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u').copy())
+                u = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u')).copy()
                 u_mag = np.linalg.norm(u,axis=1)
                 nodes = sensorLoc[i]
-                points = vtk_to_numpy(curves[i].GetPoints().GetData().copy())
+                points = vtk_to_numpy(curves[i].GetPoints().GetData()).copy()
                 points = points[u_mag > 0,:]
                 u = u[u_mag > 0,:]
                 u_mag = u_mag[u_mag > 0]

@@ -1,12 +1,12 @@
 #!/bin/bash
-for dataType in rawMid raw #filtered
-do
-    for i in {0..23} # 1 2
-    do
-        t=$(printf "%02d" $i)
-        python ~/kode/simraStudies/Sula/convertCoords.py --originx -200 --originy 6899800 --date="2020-11-19 "$t":00" --measurementfolder="measurements/"$dataType --resultsfolder="measurements/"$dataType
-    done
-done
+#for dataType in rawMid raw #filtered
+#do
+#    for i in {0..23} # 1 2
+#    do
+#        t=$(printf "%02d" $i)
+#        python ~/kode/simraStudies/Sula/convertCoords.py --originx -200 --originy 6899800 --date="2020-11-19 "$t":00" --measurementfolder="measurements/"$dataType --resultsfolder="measurements/"$dataType
+#    done
+#done
 
 #rename -v 's/simM1Sula_//' *
 #for f in *
@@ -25,7 +25,12 @@ done
 #    rm temp.res
 #    cd ..
 #done
-
-#year=2020
-#month=11
-#wget https://thredds.met.no/thredds/fileServer/obs/mast-svv-e39/$year/$month/${year}${month}_Traelboneset_10hz.nc ~/results/simra/Sula/measurements/
+for ((i=0; i<719; i++))
+do 
+    python3 plotProfiles.py --i_date $i 
+done
+cd $HOME/results/simra/Sula/profileResults
+for plotType in "WindDirProfiles alphaProfiles"
+do
+    ffmpeg -framerate 5 -pattern_type glob -i $plotType"*.png" -c:v ffv1 $plotType.avi
+done
