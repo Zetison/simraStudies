@@ -55,10 +55,10 @@ def binarySearch(nc,T,n,units):
 def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,totPeriod=60,midSampled=False,location='Kvitneset'):
     if midSampled:
         start_dt = datetime(year, month, day, hour) + relativedelta(minutes=-30)
-        dataType = 'rawMid'
+        dataType = 'rawMidNew'
     else:
         start_dt = datetime(year, month, day, hour)
-        dataType = 'raw'
+        dataType = 'rawNew'
 
     end_dt = start_dt + relativedelta(minutes=+totPeriod) #40,320
     ############### Read data and clean ###########################################
@@ -84,11 +84,13 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
     for height_level in range(len(z)):
         t0 = time.perf_counter()
         df0 = pd.DataFrame({'Time':tAll,
-                            'u':uAll[:,height_level],
+                            'windspeed':uAll[:,height_level],
                             'w':wAll[:,height_level],
-                            'dir':winddirAll[:,height_level]})
+                            'winddirection':winddirAll[:,height_level]})
         df0.dropna()
         df0['Time'] = pd.to_datetime(df0.Time)
+        df0['usn'] = df0['windspeed']*np.cos(np.radians(df0['winddirection']))
+        df0['uwe'] = df0['windspeed']*np.sin(np.radians(df0['winddirection']))
 
         print(time.perf_counter() - t0)
         t0 = time.perf_counter()
@@ -112,16 +114,18 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
                 date_rng10m = pd.date_range(start, end, freq='100ms')
                 df10 = df0[np.in1d(df0['Time'], date_rng10m)]
                 ########## Wind speed decomposition #######################################
-                meandir = calc_mean_wind_direction(df10['dir'].dropna())
-                theta = df10['dir'].dropna() - meandir
-                Cosines = np.cos(np.deg2rad(theta))
-                Sines = np.sin(np.deg2rad(theta))
-                u = [a*b for a,b in zip(df10['u'].dropna(), Cosines)]
-                v = [a*b for a,b in zip(df10['u'].dropna(), Sines)]
-                meanu = np.mean(u)
-                meanv = np.mean(v)
+                #meandir = calc_mean_wind_direction(df10['dir'].dropna())
+                #theta = df10['dir'].dropna() - meandir
+                #Cosines = np.cos(np.deg2rad(theta))
+                #Sines = np.sin(np.deg2rad(theta))
+                #u = [a*b for a,b in zip(df10['u'].dropna(), Cosines)]
+                #v = [a*b for a,b in zip(df10['u'].dropna(), Sines)]
+                meanu = np.mean(df10['uwe'].dropna())
+                meanv = np.mean(df10['usn'].dropna())
+                meandir = np.degrees(np.arctan2(meanu,meanv)) % 360.
+    
                 ########## Statistical quatities ##########################################
-                meanU = np.mean(df10['u'].dropna())
+                meanU = np.mean(df10['windspeed'].dropna())
                 meanw = np.mean(df10['w'].dropna())
                 ########## Save everything in a array #####################################
                 meanDir.append(meandir)
@@ -157,12 +161,13 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
 
 @click.command()
 def main():
-    midSampled = False
     totPeriod = 30*60*24 - 60  # in minutes
     #totPeriod = 60  # in minutes
-
-    for location in ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen']:
+    locations = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen']
+    #locations = ['Kaarsteinen']
+    for location in locations:
         for midSampled in [False,True]:
+            #extractData(totPeriod=totPeriod,midSampled=midSampled,location=location,day=19,hour=15)
             extractData(totPeriod=totPeriod,midSampled=midSampled,location=location)
 
 
