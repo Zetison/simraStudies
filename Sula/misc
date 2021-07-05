@@ -25,10 +25,10 @@
 #    rm temp.res
 #    cd ..
 #done
-#for ((i=0; i<719; i++))
-#do 
-#    python3 plotProfiles.py --i_date $i 
-#done
+for ((i=0; i<719; i++))
+do 
+    python3 plotProfiles.py --i_date $i 
+done
 pushd $HOME/results/simra/Sula/profileResults > /dev/null
 for plotType in WindDirProfiles alphaProfiles
 do

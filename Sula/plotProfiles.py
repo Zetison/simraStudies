@@ -89,8 +89,8 @@ def main(savepng,showplots,i_date):
         curves[i] = interpolatePoints(sensorLoc[i])
 
     # Initiate plot arrays
-    dataTypes = ['raw','rawMid']
-    colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.8,0.8]] 
+    dataTypes = ['raw','rawMid','rawNew','rawMidNew']
+    colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.4,0.8],[0.4,0.8,0.8]] 
     mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
     layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
     xArrayNames = ['u_mag', 'meandir', 'alpha']
