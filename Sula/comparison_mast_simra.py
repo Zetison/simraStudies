@@ -47,7 +47,7 @@ for i in range(len(mastNames)):
                 QoI_sim = dfSim_i[xArrayNames[i_l]]
                 QoI_obs = dfObs[xArrayNames[i_l]]
                 corr_uu = stats.pearsonr(QoI_obs, QoI_sim)
-                sc = plt.scatter(QoI_obs, QoI_sim,c=dfSim_i['meandir'],edgecolors='black',s=None, cmap=twilight)
+                sc = plt.scatter(QoI_obs, QoI_sim,c=dfObs['meandir'],edgecolors='black',s=None, cmap=twilight)
                 plt.colorbar(sc,label="Observation"+" "+"wind"+" "+"direction"+" "+"($^{\circ}$)")
                 plt.title(mastNames[i] +", z = "+ str(z) +": " + "Corr. "+"{0:.2f}".format(corr_uu[0]))
                 plt.plot([0, 25], [0, 25],'k-',linewidth=2)
