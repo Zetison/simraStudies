@@ -7,10 +7,19 @@ from vtk import vtkXMLUnstructuredGridReader, vtkXMLStructuredGridReader, vtkPoi
 from vtk import vtkXMLStructuredGridWriter
 from vtk.util.numpy_support import numpy_to_vtk, vtk_to_numpy
 from glob import glob
-from os.path import expanduser
+from os.path import expanduser, isfile
 from convertCoords import computeSensorLoc 
 from datetime import datetime, timedelta
 from matplotlib import cm
+
+def getQoI(name,u,u_mag):
+    if name == 'VelocityProfiles':
+        QoI = u_mag
+    elif name == 'WindDirProfiles':
+        QoI = np.radians(180+90)-np.arctan2(u[:,1],u[:,0])
+    elif name == 'alphaProfiles':
+        QoI = np.degrees(np.arctan2(u[:,2],np.linalg.norm(u[:,:2],axis=1)))
+    return QoI
 
 def load_vtk(filename):
     if filename[-3:] == 'vts':
@@ -24,6 +33,15 @@ def load_vtk(filename):
     reader.Update()
     return reader.GetOutput()
 
+def createVTKcurve(points):
+    vpoints = vtkPoints()
+    vpoints.SetData(numpy_to_vtk(points, deep=True))
+
+    vgrid = vtkStructuredGrid()
+    vgrid.SetDimensions(points.shape[0],1,1)
+    vgrid.SetPoints(vpoints)
+
+    return vgrid
 
 def interpolatePoints(nodes,noPts=1000,z_min=0.0,z_max=120.0):
     nodes = np.vstack([np.append(nodes[0,:-1],z_max), nodes,np.append(nodes[-1,:-1],z_min)])
@@ -35,15 +53,7 @@ def interpolatePoints(nodes,noPts=1000,z_min=0.0,z_max=120.0):
     x_fine, y_fine, z_fine = interpolate.splev(u_fine, tck)
 
     points = np.transpose([x_fine, y_fine, z_fine])
-
-    vpoints = vtkPoints()
-    vpoints.SetData(numpy_to_vtk(points, deep=True))
-
-    vgrid = vtkStructuredGrid()
-    vgrid.SetDimensions(noPts,1,1)
-    vgrid.SetPoints(vpoints)
-
-    return vgrid
+    return createVTKcurve(points)
 
 def interpolateVTK(orig_data, sub_grid):
     pfilter = vtkProbeFilter()
@@ -56,7 +66,7 @@ def interpolateVTK(orig_data, sub_grid):
 @click.command()
 @click.option('--savepng/--no-savepng', default=True, type=bool, help='Export results to png file')
 @click.option('--showplots/--no-showplots', default=False, type=bool, help='Show plots from matplotlib')
-@click.option('--i_date', default=1, type=int, help='Index of date (1-30) in November')
+@click.option('--i_date', default=0, type=int, help='Index of date (0-29) in November')
 def main(savepng,showplots,i_date):
     # Collect metainformation (path,name,date) from SIMRA files
     home = expanduser("~")
@@ -166,7 +176,9 @@ def main(savepng,showplots,i_date):
         # Iterate over all SIMRA files corresponding to the given date
         df_sub = df[df.date == date]
         i_df = 0
+        dfSensor = pd.DataFrame()
         colorsCases = cm.jet(range(256))[0::256//len(df_sub)]
+        dfSensor = pd.DataFrame()
         for _, df_date in df_sub.iterrows():
             # Load vtk files
             vtkData = load_vtk(df_date.path)
@@ -181,14 +193,13 @@ def main(savepng,showplots,i_date):
                 points = points[u_mag > 0,:]
                 u = u[u_mag > 0,:]
                 u_mag = u_mag[u_mag > 0]
+
+                # Sample also at sensor locations
+                resampledSensor = interpolateVTK(vtkData, createVTKcurve(sensorLoc[i]))
+                uSensor = vtk_to_numpy(resampledSensor.GetPointData().GetAbstractArray('u')).copy()
+                u_magSensor = np.linalg.norm(uSensor,axis=1)
                 for i_l in range(noPlots):
-                    if layoutNames[i_l] == 'VelocityProfiles':
-                        QoI = u_mag
-                    elif layoutNames[i_l] == 'WindDirProfiles':
-                        QoI = np.radians(180+90)-np.arctan2(u[:,1],u[:,0])
-                    elif layoutNames[i_l] == 'alphaProfiles':
-                        QoI = np.degrees(np.arctan2(u[:,2],np.linalg.norm(u[:,:2],axis=1)))
-                        
+                    QoI = getQoI(layoutNames[i_l],u,u_mag)
                     ax[i_l][i].plot(QoI,points[:,2],color = colorsCases[i_df],label = df_date['name']+' '+pd.to_datetime(df_date['baseDate']).strftime('%Y%m%d%H')+'+'+df_date['addtime'])
                     if layoutNames[i_l] == 'WindDirProfiles':
                         ax[i_l][i].legend(loc='lower right')
@@ -196,8 +207,27 @@ def main(savepng,showplots,i_date):
                         ax[i_l][i].legend(loc='upper left')
                     #ax3d.plot(nodes[:,0],nodes[:,1],nodes[:,2], 'ro')
                     #ax3d.plot(points[:,0], points[:,1], points[:,2], 'r')
+                for i_s in range(uSensor.shape[0]):
+                    row = pd.DataFrame({'date': [pd.to_datetime(date).strftime('%Y-%m-%d %H:%M')]})
+                    row['name'] = df_date['name']
+                    row['location'] = mastNames[i]
+                    row['baseDate'] = df_date['baseDate']
+                    row['addtime'] = df_date['addtime']
+                    row['z'] = sensorLoc[i][i_s,-1]
+                    for i_l in range(noPlots):
+                        row[xArrayNames[i_l]] = getQoI(layoutNames[i_l],uSensor[[i_s],:],u_magSensor[[i_s]])
+
+                    dfSensor = dfSensor.append(row)
+
             i_df += 1
             del vtkData
+
+        resultFileName = simraResultsFolder+'sampledResults.csv'
+        if isfile(resultFileName):
+            dfSensor.to_csv(resultFileName,mode='a',index=False,header=False)
+        else:
+            dfSensor.to_csv(resultFileName,mode='a',index=False)
+
 
         if showplots:
             plt.show()
@@ -206,6 +236,7 @@ def main(savepng,showplots,i_date):
             for i_l in range(noPlots):
                 fig[i_l].savefig(simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+pd.to_datetime(date).strftime('%Y%m%d%H')+'.png', dpi=300, bbox_inches='tight',pad_inches = 0)
 
+        plt.close()
 
 if __name__ == '__main__':
     main()
