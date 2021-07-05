@@ -237,7 +237,7 @@ def main(savepng,showplots,i_date):
 
         if savepng:
             for i_l in range(noPlots):
-                fig[i_l].savefig(simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+pd.to_datetime(date).strftime('%Y%m%d%H')+'.png', dpi=300, bbox_inches='tight',pad_inches = 0)
+                fig[i_l].savefig(simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+pd.to_datetime(date).strftime('%Y%m%d%H')+'.pdf', bbox_inches='tight',pad_inches = 0)
 
         plt.close()
 
