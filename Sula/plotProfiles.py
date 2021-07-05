@@ -12,11 +12,14 @@ from convertCoords import computeSensorLoc
 from datetime import datetime, timedelta
 from matplotlib import cm
 
-def getQoI(name,u,u_mag):
+def getQoI(name,u,u_mag,useDeg=False):
     if name == 'VelocityProfiles':
         QoI = u_mag
     elif name == 'WindDirProfiles':
-        QoI = np.radians(180+90)-np.arctan2(u[:,1],u[:,0])
+        if useDeg:
+            QoI = 180+90-np.degrees(np.arctan2(u[:,1],u[:,0]))
+        else:
+            QoI = np.radians(180+90)-np.arctan2(u[:,1],u[:,0])
     elif name == 'alphaProfiles':
         QoI = np.degrees(np.arctan2(u[:,2],np.linalg.norm(u[:,:2],axis=1)))
     return QoI
@@ -215,7 +218,7 @@ def main(savepng,showplots,i_date):
                     row['addtime'] = df_date['addtime']
                     row['z'] = sensorLoc[i][i_s,-1]
                     for i_l in range(noPlots):
-                        row[xArrayNames[i_l]] = getQoI(layoutNames[i_l],uSensor[[i_s],:],u_magSensor[[i_s]])
+                        row[xArrayNames[i_l]] = getQoI(layoutNames[i_l],uSensor[[i_s],:],u_magSensor[[i_s]],useDeg=True)
 
                     dfSensor = dfSensor.append(row)
 
