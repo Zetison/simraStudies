@@ -8,6 +8,10 @@
 #    done
 #done
 
+# Unzip files downloaded from Google-drive (SIMRA_Results)
+#unzip '*.zip'
+
+# After moving files to desired folder, rename folder names
 #rename -v 's/simM1Sula_//' *
 folders=$(ls $HOME/results/simra/Sula/met_new/2020* -d)
 for f in $folders
