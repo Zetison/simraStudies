@@ -33,8 +33,12 @@ viridis=plt.get_cmap('viridis')
 dataTypes = ['raw','rawMid','rawNew','rawMidNew']
 mastNames = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen']
 layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
+xLabels = ['Mean wind speed $[m/s]$', 'Mean wind direction $[^\circ]$', 'Mean angle of attack $[^\circ]$']
 xArrayNames = ['u_mag', 'meandir', 'alpha']
-xArrayLims = [[0,25],[285,330],[-25,25]]
+winddirWindow = np.array([285., 345])
+#xArrayLims = [[0,25],[285,330],[-25,25]]
+#xArrayLims = [[0,25],[0,360],[-25,25]]
+xArrayLims = [[0,30],[0,360],[-30,30]]
 noPlots = len(layoutNames)
 noDataTypes = len(dataTypes)
 sensorLoc,CoordUTM32,mastb,masth,Sensorh = computeSensorLoc(originx=-200,originy=6899800)
@@ -44,13 +48,15 @@ dfSim = pd.read_csv(resultFileName)
 # Find dates at which the wind speed at Kvitneset (92m) is in the interval [285,330]
 filenameKvitneset = simraResultsFolder+'measurements/rawMidNew/10hz_Kvitneset_60mnturbulence_statistics_92_202011.csv'
 df_Kvitneset = pd.read_csv(filenameKvitneset)
-dfObs_nw = df_Kvitneset[(285 < df_Kvitneset.meandir) & (df_Kvitneset.meandir < 330) & (df_Kvitneset.u_mag > 12)].copy()
+dfObs_nw = df_Kvitneset[(winddirWindow[0] < df_Kvitneset.meandir) & (df_Kvitneset.meandir < winddirWindow[1]) & (df_Kvitneset.u_mag > 12)].copy()
 noMasts = len(mastNames)
 totNoSensors = 0
 for i in range(noMasts):
     totNoSensors += len(Sensorh[i])
 
 corrArr = np.zeros((totNoSensors,noDataTypes,noPlots))
+QoImax_sim = -np.Inf*np.ones(3)
+QoImax_obs = -np.Inf*np.ones(3)
 i_s = 0
 for i in range(noMasts):
     noSensors = len(Sensorh[i])
@@ -70,16 +76,40 @@ for i in range(noMasts):
             for i_l in range(noPlots):
                 QoI_sim = dfSim_j[xArrayNames[i_l]]
                 QoI_obs = dfObs[xArrayNames[i_l]]
+
+                maxQoI_sim = np.abs(np.max(QoI_sim))
+                if maxQoI_sim > 360:
+                    print('This is incorrect')
+
+                if QoImax_sim[i_l] < maxQoI_sim:
+                    QoImax_sim[i_l] = maxQoI_sim
+
+                maxQoI_obs = np.abs(np.max(QoI_obs))
+                if QoImax_obs[i_l] < maxQoI_obs:
+                    QoImax_obs[i_l] = maxQoI_obs
+
+                if xArrayNames[i_l] == 'meandir':
+                    shift = np.mean(winddirWindow) - 180
+                    QoI_sim = ((QoI_sim - shift) % 360) + shift
+                    QoI_obs = ((QoI_obs - shift) % 360) + shift
+                else:
+                    shift = 0
+
+
                 corr = stats.pearsonr(QoI_obs, QoI_sim)
                 corrArr[i_s][j][i_l] = corr[0]
                 sc = plt.scatter(QoI_obs, QoI_sim,c=dfObs['meandir'],edgecolors='black',s=None, cmap=twilight)
                 plt.colorbar(sc,label="Observation"+" "+"wind"+" "+"direction"+" "+"($^{\circ}$)")
-                plt.title(mastNames[i] +", z = "+ str(z) +": " + "Corr. "+"{0:.2f}".format(corr[0]))
-                plt.plot(xArrayLims[i_l], xArrayLims[i_l],'k-',linewidth=2)
-                plt.xlabel('Obs. Mean wind speed  $(ms^{-1})$',fontsize=14)
-                plt.ylabel('Sim. Mean wind speed  $(ms^{-1})$',fontsize=14)
-                plt.xlim(xArrayLims[i_l])
-                plt.ylim(xArrayLims[i_l])
+                plt.title(mastNames[i] +", z = "+ str(z) +"m: " + "Corr. "+"{0:.2f}".format(corr[0]))
+                xlim = np.array(xArrayLims[i_l]) + shift
+                plt.plot(xlim, xlim,'k-',linewidth=2)
+                plt.xlabel('Obs. '+xLabels[i_l],fontsize=14)
+                plt.ylabel('Sim. '+xLabels[i_l],fontsize=14)
+                xticks = np.linspace(xlim[0],xlim[1],9)
+                plt.xticks(xticks, (xticks % 360).astype(int))
+                plt.yticks(xticks, (xticks % 360).astype(int))
+                plt.xlim(xlim)
+                plt.ylim(xlim)
                 plt.clim((0,360))
                 plt.grid(True)
                 plt.tight_layout()
@@ -95,6 +125,10 @@ for i in range(noMasts):
 
 
 with open(simraResultsFolder+'/scatterPlots/northwest/metadata.txt', 'w') as f:
+    for i_l in range(noPlots):
+        print('Max '+layoutNames[i_l]+' for simulations is '+str(QoImax_sim[i_l]), file=f)
+        print('Max '+layoutNames[i_l]+' for observations is '+str(QoImax_obs[i_l]), file=f)
+
     for j in range(noDataTypes):
         meanCorrArr = np.mean(corrArr[:,j,:])
         print('Average corr for '+dataTypes[j]+' is '+str(meanCorrArr), file=f)
@@ -117,7 +151,7 @@ with open(simraResultsFolder+'/scatterPlots/northwest/metadata.txt', 'w') as f:
                 print(('%20s' + '%20f'*len(meanCorrArr)) % tuple(tuple((location+' ['+str(z)+'m]',))+tuple(meanCorrArr)), file=f)
                 i_s += 1
 
-    print('\nDates satisfying the criterias meandir in [285,330] and u_mag > 21', file=f)
+    print('\nDates satisfying the criterias meandir in [%f,%f] and u_mag > 21' % tuple(winddirWindow, file=f)
     for _, row in dfObs_nw.iterrows():
         datestr = pd.to_datetime(row['date']).strftime('%Y-%m-%d %H:%M')
         print(datestr, file=f)

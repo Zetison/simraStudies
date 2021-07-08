@@ -17,9 +17,9 @@ def getQoI(name,u,u_mag,useDeg=False):
         QoI = u_mag
     elif name == 'WindDirProfiles':
         if useDeg:
-            QoI = 180+90-np.degrees(np.arctan2(u[:,1],u[:,0]))
+            QoI = (180+90-np.degrees(np.arctan2(u[:,1],u[:,0]))) % 360.
         else:
-            QoI = np.radians(180+90)-np.arctan2(u[:,1],u[:,0])
+            QoI = (np.radians(180+90)-np.arctan2(u[:,1],u[:,0])) % (2*np.pi)
     elif name == 'alphaProfiles':
         QoI = np.degrees(np.arctan2(u[:,2],np.linalg.norm(u[:,:2],axis=1)))
     return QoI
