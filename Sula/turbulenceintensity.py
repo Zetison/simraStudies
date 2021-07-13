@@ -75,8 +75,8 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
                             'winddirection':winddirAll[:,height_level]})
         df0.dropna()
         df0['Time'] = pd.to_datetime(df0.Time)
-        df0['u'] = df0['windspeed']*np.sin(np.radians(df0['winddirection']))
-        df0['v'] = df0['windspeed']*np.cos(np.radians(df0['winddirection']))
+        df0['u'] = -df0['windspeed']*np.sin(np.radians(df0['winddirection']))
+        df0['v'] = -df0['windspeed']*np.cos(np.radians(df0['winddirection']))
 
         print(time.perf_counter() - t0)
         t0 = time.perf_counter()
@@ -102,7 +102,7 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
                 ########## Wind speed decomposition #######################################
                 meanu = np.mean(df10['u'].dropna())
                 meanv = np.mean(df10['v'].dropna())
-                meandir = np.degrees(np.arctan2(meanu,meanv)) % 360.
+                meandir = (180+90-np.degrees(np.arctan2(meanu,meanv))) % 360.
     
                 ########## Statistical quatities ##########################################
                 meanU = np.mean(df10['windspeed'].dropna())
