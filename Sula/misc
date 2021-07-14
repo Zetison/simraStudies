@@ -8,33 +8,6 @@
 #    done
 #done
 
-# Unzip files downloaded from Google-drive (SIMRA_Results)
-#unzip '*.zip'
-
-# After moving files to desired folder, rename folder names
-#rename -v 's/simM1Sula_//' *
-folders=$(ls $HOME/results/simra/Sula/met_new/2020* -d)
-for f in $folders
-do
-    cd $f
-    echo $f
-    nel=$(ls *.vts | wc -l)
-    if [ $nel -lt 8 ]
-    then
-        echo "Running "$f
-        cp ../simra.in .
-        for i in {0..8} # 1 2
-        do
-            for M in 1 
-            do
-                cp contM${M}Sula.res_00+$i temp.res
-                siso -f vts temp.res M${M}_$i.vts --in-endianness big --mesh $HOME/results/simra/Sula/met_new/M${M}/mesh_M${M}.dat 
-            done
-
-        done
-        rm temp.res
-    fi
-done
 
 ## Check for missing files
 #folders=$(ls $HOME/results/simra/Sula/met_new/2020* -d)
@@ -42,19 +15,43 @@ done
 #do
 #    pushd $folder > /dev/null
 #    nel=$(ls *.vts | wc -l)
-#    if [ $nel -lt 8 ]
+#    if [ $nel -lt 9 ]
 #    then
 #        echo $folder
 #    fi
 #    popd > /dev/null
 #done
 
-## Create profiles
-#for ((i=0; i<719; i++))
-##for ((i=0; i<21; i++))
-#do 
-#    python3 plotProfiles.py --i_date $i 
+#rename -v 's/simM1Sula_//' *
+#folders=$(ls $HOME/results/simra/Sula/met_new/2020* -d)
+#for f in $folders
+#do
+#    cd $f
+#    echo $f
+#    nel=$(ls *.vts | wc -l)
+#    if [ $nel -lt 9 ]
+#    then
+#        echo "Running "$f
+#        cp ../simra.in .
+#        for i in {0..8} # 1 2
+#        do
+#            for M in 1 
+#            do
+#                cp contM${M}Sula.res_00+$i temp.res
+#                siso -f vts temp.res M${M}_$i.vts --in-endianness big --mesh $HOME/results/simra/Sula/met_new/M${M}/mesh_M${M}.dat 
+#            done
+#
+#        done
+#        rm temp.res
+#    fi
 #done
+
+## Create profiles
+for ((i=0; i<723; i++))
+#for ((i=0; i<21; i++))
+do 
+    python3 plotProfiles.py --i_date $i 
+done
 #pushd $HOME/results/simra/Sula/profileResults > /dev/null
 #for plotType in WindDirProfiles alphaProfiles
 #do
