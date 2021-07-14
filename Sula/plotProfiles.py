@@ -216,12 +216,12 @@ def main(savefigure,showplots,i_date):
                     else:
                         ax[i_l][i].legend(loc='upper left')
 
-                    QoI = getQoI(layoutNames[i_l],u,u_mag,useDeg=True)
+                    QoI = getQoI(layoutNames[i_l],points,uUTM,u_mag,useDeg=True)
                     dfCurve = pd.DataFrame({'z': points[:,2], xArrayNames[i_l]: QoI})
                     resultFileName = simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+mastNames[i]+'_'+df_date['name']+'_'+datestr+'+'+df_date['addtime']+'.csv'
                     dfCurve.to_csv(resultFileName,index=False)
 
-                for i_s in range(uSensor.shape[0]):
+                for i_s in range(uUTMSensor.shape[0]):
                     row = pd.DataFrame({'date': [pd.to_datetime(date).strftime('%Y-%m-%d %H:%M')]})
                     row['name'] = df_date['name']
                     row['location'] = mastNames[i]
