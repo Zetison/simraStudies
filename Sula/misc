@@ -1,4 +1,5 @@
 #!/bin/bash
+#pushd $HOME/results/simra/Sula/ > /dev/null
 #for dataType in rawMid raw #filtered
 #do
 #    for i in {0..23} # 1 2
@@ -7,7 +8,9 @@
 #        python ~/kode/simraStudies/Sula/convertCoords.py --originx -200 --originy 6899800 --date="2020-11-19 "$t":00" --measurementfolder="measurements/"$dataType --resultsfolder="measurements/"$dataType
 #    done
 #done
-
+#popd > /dev/null
+# Unzip files downloaded from Google-drive (SIMRA_Results)
+#unzip '*.zip'
 
 ## Check for missing files
 #folders=$(ls $HOME/results/simra/Sula/met_new/2020* -d)
@@ -47,11 +50,11 @@
 #done
 
 ## Create profiles
-for ((i=0; i<723; i++))
-#for ((i=0; i<21; i++))
-do 
-    python3 plotProfiles.py --i_date $i 
-done
+#for ((i=0; i<723; i++))
+##for ((i=0; i<21; i++))
+#do 
+#    python3 plotProfiles.py --i_date $i 
+#done
 #pushd $HOME/results/simra/Sula/profileResults > /dev/null
 #for plotType in WindDirProfiles alphaProfiles
 #do
@@ -63,3 +66,31 @@ done
 #    ffmpeg -framerate 5 -pattern_type glob -i "${plotType}*.png" -c:v ffv1 "${plotType}.avi"
 #done
 #popd > /dev/null
+
+# Combine pdfs
+#folders="scatterPlots profileResults"
+#for folder in $folders
+#do
+#    pushd $HOME/results/simra/Sula/$folder > /dev/null
+#    profileNames="alphaProfiles WindDirProfiles VelocityProfiles"
+#    for f in $profileNames 
+#    do 
+#        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE=../${folder}_${f}.pdf -dBATCH ${f}*.pdf
+#    done
+#    popd > /dev/null
+#done
+
+# Convert simra files through PostProc app for visualizations
+srcDir=$HOME/results/simra/Sula/met_new/2020111912
+tarDir=$HOME/results/simra/Sula/met_new/2020111906
+SIMRAPOSTPROC=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
+cp "${srcDir}/SIMRA_PostProc.xinp" "${srcDir}/convertBE.py" ${tarDir}
+pushd $tarDir > /dev/null
+for ((M=0; M<2; M++))
+do
+    python3 convertBE.py --mesh_input mesh_M${M}.dat --cont_input contM${M}Sula.res_00+0
+    fileName=Zak_M${M}
+    $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5
+    siso -f vtu ${fileName}.hdf5 ${fileName}.vtu
+done
+popd > /dev/null

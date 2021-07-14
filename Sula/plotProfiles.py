@@ -11,8 +11,13 @@ from os.path import expanduser, isfile
 from convertCoords import computeSensorLoc 
 from datetime import datetime, timedelta
 from matplotlib import cm
+from siso.coords import graph, Coords
+src = Coords.find('utm:33n')
+tgt = Coords.find('geodetic')
+converter = graph.path(src, tgt)
 
-def getQoI(name,u,u_mag,useDeg=False):
+def getQoI(name,uUTM,u_mag,useDeg=False):
+    u = converter.vectors(src, tgt, uUTM, None)
     if name == 'VelocityProfiles':
         QoI = u_mag
     elif name == 'WindDirProfiles':

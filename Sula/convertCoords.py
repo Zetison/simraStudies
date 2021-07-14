@@ -7,12 +7,11 @@ import vtk.util.numpy_support as vtknp
 import click
 import numpy as np
 from datetime import datetime
+proj32 = "+proj=utm +zone=32K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+proj33 = "+proj=utm +zone=33K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+transformer = Transformer.from_crs(proj32,proj33)
+height = 70 # Height of bridge at middle point
 def computeSensorLoc(originx=0.0,originy=0.0):
-    proj32 = "+proj=utm +zone=32K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-    proj33 = "+proj=utm +zone=33K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
-    transformer = Transformer.from_crs(proj32,proj33)
-
-    height = 70 # Height of bridge at middle point
     # Data for 'SulaNW (Kvitneset)', 'SulaNE (Trælboneset)', 'SulaSW (Langeneset)', 'SulaSE (Kårsteinen)'
     Boom1 = np.array([6.1,6.1,4.4,3.6])
     Sensorh = np.array([[92.5,71.5,44.5],[76.8, 48.3, 27.3],[94.8, 75.0, 50.0, 27.0],[62.8, 40.0, 13.4]],dtype=object)
@@ -45,9 +44,10 @@ def computeSensorLoc(originx=0.0,originy=0.0):
 @click.option('--measurementfolder', default='measurements', type=str, help='Folder for the experimental data')
 @click.option('--resultsfolder', default='measurements', type=str, help='Folder for the results')
 def main(originx,originy,date,measurementfolder,resultsfolder):
-    sensorLoc,CoordUTM32,mastb,masth = computeSensorLoc(originx,originy)
+    sensorLoc,CoordUTM32,mastb,masth,Sensorh = computeSensorLoc(originx,originy)
     f = open("POINT_FILE", "w")
-    noPoints = sum([sensorLoc.shape[0] for listElem in sensorLoc])+len(sensorLoc)//2
+    noPoints = sum([listElem.shape[0] for listElem in sensorLoc])+len(sensorLoc)//2
+    noMasts = len(masth)
     f.write("%d\n" % noPoints)
     for i in range(noMasts):
         noSensors = len(Sensorh[i])

@@ -35,12 +35,12 @@ res=154
 #nz=31
 height=3888.51
 topoRes="50m"
-#topoRes="10m"
+topoRes="10m"
 PHI=315
 U_A=28.284271247461902 # Yields u_x = 20 and u_y = -20 for PHI=315
 NSTEP=8000
-NSTEP=1000
-NSTEP=10
+NSTEP=3000
+#NSTEP=10
 #NSTEP=1
 
 for M in 1 # 1 # 1 2 3 # 0 1 2 3
@@ -144,10 +144,10 @@ do
             #$SIMRASOLTRANSF Sula-transfer_M0.xinp
             #$SIMRASOLTRANSF Sula-transfer.xinp
             $SIMRASOLTRANSF Sula-nest.xinp
-            siso -f vts init.dat
-            #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
-            #$HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
-            #gdb $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
+            #siso -f vts init.dat
+            ##$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
+            ##$HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
+            ##gdb $HOME/kode/simra/build_omp/bin/simra simra.in | tee $logsimra
             simra simra.in | tee $logsimra
         fi
         $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
@@ -164,17 +164,14 @@ do
     fi
     if [[ $3 == 1 ]]
     then
-        for ((i=1; i<2; i++))
-        do
-            BRIDGE=$i
-            SED_VARIABLES="BRIDGE caseName fileName topoRes noObsPoints"
-            DICTS="paraviewScript.py"
-            source $HOME/kode/bashScripts/sedFiles
-            #paraview --script=paraviewScript.py &
-            /usr/lib/ParaView-5.8.1-osmesa-MPI-Linux-Python3.7-64bit/bin/pvbatch paraviewScript.py
-            #$HOME/programs/paraview_build/bin/pvbatch paraviewScript.py
-            #pvbatch paraviewScript.py &
-        done
+        BRIDGE=2
+        SED_VARIABLES="BRIDGE caseName fileName topoRes noObsPoints"
+        DICTS="paraviewScript.py"
+        source $HOME/kode/bashScripts/sedFiles
+        paraview --script=paraviewScript.py &
+        #/usr/lib/ParaView-5.8.1-osmesa-MPI-Linux-Python3.7-64bit/bin/pvbatch paraviewScript.py
+        #$HOME/programs/paraview_build/bin/pvbatch paraviewScript.py
+        #pvbatch paraviewScript.py &
     fi
     tar -cf ${fileName}.tar *.png *.log *.csv simra.in *.xinp ic_bc.f90 
     popd > /dev/null

@@ -35,9 +35,9 @@ mastNames = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen']
 layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
 xLabels = ['Mean wind speed $[m/s]$', 'Mean wind direction $[^\circ]$', 'Mean angle of attack $[^\circ]$']
 xArrayNames = ['u_mag', 'meandir', 'alpha']
+#winddirWindow = np.array([0.,360.])
 winddirWindow = np.array([285., 345])
-#xArrayLims = [[0,25],[285,330],[-25,25]]
-#xArrayLims = [[0,25],[0,360],[-25,25]]
+#winddirWindow = np.array([292.5, 337.5])
 xArrayLims = [[0,30],[0,360],[-30,30]]
 noPlots = len(layoutNames)
 noDataTypes = len(dataTypes)
@@ -55,6 +55,7 @@ for i in range(noMasts):
     totNoSensors += len(Sensorh[i])
 
 corrArr = np.zeros((totNoSensors,noDataTypes,noPlots))
+errArr = np.zeros((totNoSensors,noDataTypes,noPlots))
 QoImax_sim = -np.Inf*np.ones(3)
 QoImax_obs = -np.Inf*np.ones(3)
 i_s = 0
@@ -97,17 +98,24 @@ for i in range(noMasts):
 
 
                 corr = stats.pearsonr(QoI_obs, QoI_sim)
+                #if xArrayNames[i_l] == 'meandir' or xArrayNames[i_l] == 'alpha':
+                #    err = np.linalg.norm(QoI_obs - QoI_sim)
+                #else:
+                #    err = 100*np.linalg.norm(QoI_obs - QoI_sim)/np.linalg.norm(QoI_obs)
+                err = 100*np.linalg.norm(QoI_obs - QoI_sim)/np.linalg.norm(QoI_obs)
                 corrArr[i_s][j][i_l] = corr[0]
+                errArr[i_s][j][i_l] = err
                 sc = plt.scatter(QoI_obs, QoI_sim,c=dfObs['meandir'],edgecolors='black',s=None, cmap=twilight)
                 plt.colorbar(sc,label="Observation"+" "+"wind"+" "+"direction"+" "+"($^{\circ}$)")
-                plt.title(mastNames[i] +", z = "+ str(z) +"m: " + "Corr. "+"{0:.2f}".format(corr[0]))
+                plt.title(mastNames[i] +", z = "+ str(z) +"m: Corr. "+"{0:.2f}".format(corr[0]) +", relative error "+"{0:.2f}%".format(err))
                 xlim = np.array(xArrayLims[i_l]) + shift
                 plt.plot(xlim, xlim,'k-',linewidth=2)
                 plt.xlabel('Obs. '+xLabels[i_l],fontsize=14)
                 plt.ylabel('Sim. '+xLabels[i_l],fontsize=14)
                 xticks = np.linspace(xlim[0],xlim[1],9)
-                plt.xticks(xticks, (xticks % 360).astype(int))
-                plt.yticks(xticks, (xticks % 360).astype(int))
+                if xArrayNames[i_l] == 'meandir':
+                    plt.xticks(xticks, (xticks % 360).astype(int))
+                    plt.yticks(xticks, (xticks % 360).astype(int))
                 plt.xlim(xlim)
                 plt.ylim(xlim)
                 plt.clim((0,360))
@@ -115,43 +123,55 @@ for i in range(noMasts):
                 plt.tight_layout()
                 caseName = layoutNames[i_l]+'_'+mastNames[i]+"_"+str(z)+"_"+dataTypes[j]+"_%d%02d"  % (year,month)
                 print(caseName)
-                plt.savefig(simraResultsFolder+'scatterPlots/northwest/'+caseName+'.pdf')
+                plt.savefig(simraResultsFolder+'scatterPlots/'+caseName+'.pdf')
                 plt.close()
                 dfResult = dfSim_j[['date', xArrayNames[i_l]]].copy()
                 dfResult[xArrayNames[i_l]+'_obs'] = dfObs[xArrayNames[i_l]]
-                dfResult.to_csv(simraResultsFolder+'scatterPlots/northwest/'+caseName+'.csv',index=False)
+                dfResult.to_csv(simraResultsFolder+'scatterPlots/'+caseName+'.csv',index=False)
                 #plt.show()
         i_s += 1
 
 
-with open(simraResultsFolder+'/scatterPlots/northwest/metadata.txt', 'w') as f:
+with open(simraResultsFolder+'/scatterPlots/metadata.txt', 'w') as f:
     for i_l in range(noPlots):
         print('Max '+layoutNames[i_l]+' for simulations is '+str(QoImax_sim[i_l]), file=f)
         print('Max '+layoutNames[i_l]+' for observations is '+str(QoImax_obs[i_l]), file=f)
 
-    for j in range(noDataTypes):
-        meanCorrArr = np.mean(corrArr[:,j,:])
-        print('Average corr for '+dataTypes[j]+' is '+str(meanCorrArr), file=f)
+    i_arr = 0
+    names = ['error','correlation']
+    print('\n\n',file=f)
+    for arr in [errArr, corrArr]:
+        for j in range(noDataTypes):
+            meanArr = np.mean(arr[:,j,:])
+            print('Average '+names[i_arr]+' for '+dataTypes[j]+' is '+str(meanArr), file=f)
+        i_arr += 1
 
-    print('\nTable of mean results', file=f)
-    print(('\n%20s'+'%20s'*noPlots) % tuple(('',)+tuple(layoutNames)), file=f)
-    for j in range(noDataTypes):
-        meanCorrArr = np.mean(corrArr[:,j,:],axis=0)
-        print(('%20s' + '%20f'*len(meanCorrArr)) % tuple(tuple((dataTypes[j],))+tuple(meanCorrArr)), file=f)
+    i_arr = 0
+    for arr in [errArr, corrArr]:
+        print('\nTable of mean '+names[i_arr]+' results', file=f)
+        print(('\n%20s'+'%20s'*noPlots) % tuple(('',)+tuple(layoutNames)), file=f)
+        for j in range(noDataTypes):
+            meanArr = np.mean(arr[:,j,:],axis=0)
+            print(('%20s' + '%20f'*len(meanArr)) % tuple(tuple((dataTypes[j],))+tuple(meanArr)), file=f)
+        i_arr += 1
 
-    for j in range(noDataTypes):
-        print(('\nResults for '+dataTypes[j]+'\n%20s'+'%20s'*noPlots) % tuple(('',)+tuple(layoutNames)), file=f)
-        i_s = 0
-        for i in range(noMasts):
-            noSensors = len(Sensorh[i])
-            for k in range(noSensors):
-                z = np.floor(Sensorh[i][k]).astype(int)
-                meanCorrArr = corrArr[i_s,j,:]
-                location = mastNames[i]
-                print(('%20s' + '%20f'*len(meanCorrArr)) % tuple(tuple((location+' ['+str(z)+'m]',))+tuple(meanCorrArr)), file=f)
-                i_s += 1
+    i_arr = 0
+    for arr in [errArr, corrArr]:
+        print('\nTable of mean '+names[i_arr]+' results', file=f)
+        for j in range(noDataTypes):
+            print(('\nResults for '+dataTypes[j]+'\n%20s'+'%20s'*noPlots) % tuple(('',)+tuple(layoutNames)), file=f)
+            i_s = 0
+            for i in range(noMasts):
+                noSensors = len(Sensorh[i])
+                for k in range(noSensors):
+                    z = np.floor(Sensorh[i][k]).astype(int)
+                    meanArr = arr[i_s,j,:]
+                    location = mastNames[i]
+                    print(('%20s' + '%20f'*len(meanArr)) % tuple(tuple((location+' ['+str(z)+'m]',))+tuple(meanArr)), file=f)
+                    i_s += 1
+        i_arr += 1
 
-    print('\nDates satisfying the criterias meandir in [%f,%f] and u_mag > 21' % tuple(winddirWindow, file=f)
+    print('\nDates satisfying the criterias meandir in [%f,%f] and u_mag > 21' % tuple(winddirWindow), file=f)
     for _, row in dfObs_nw.iterrows():
         datestr = pd.to_datetime(row['date']).strftime('%Y-%m-%d %H:%M')
         print(datestr, file=f)
