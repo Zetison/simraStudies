@@ -73,10 +73,10 @@ def interpolateVTK(orig_data, sub_grid):
 
 
 @click.command()
-@click.option('--savepng/--no-savepng', default=True, type=bool, help='Export results to png file')
+@click.option('--savefigure/--no-savefigure', default=True, type=bool, help='Export results to png file')
 @click.option('--showplots/--no-showplots', default=False, type=bool, help='Show plots from matplotlib')
 @click.option('--i_date', default=0, type=int, help='Index of date (0-29) in November')
-def main(savepng,showplots,i_date):
+def main(savefigure,showplots,i_date):
     # Collect metainformation (path,name,date) from SIMRA files
     home = expanduser("~")
     simraResultsFolder = home+'/results/simra/Sula/'
@@ -108,8 +108,8 @@ def main(savepng,showplots,i_date):
         curves[i] = interpolatePoints(sensorLoc[i])
 
     # Initiate plot arrays
-    dataTypes = ['raw','rawMid']
-    colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.8,0.8]] 
+    dataTypes = ['raw','rawMid','rawNew','rawMidNew']
+    colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.4,0.8],[0.4,0.8,0.8]] 
     mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
     layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
     xArrayNames = ['u_mag', 'meandir', 'alpha']
@@ -191,6 +191,7 @@ def main(savepng,showplots,i_date):
         for _, df_date in df_sub.iterrows():
             # Load vtk files
             vtkData = load_vtk(df_date.path)
+            datestr = pd.to_datetime(df_date['baseDate']).strftime('%Y%m%d%H')
             
             # Plot SIMRA results
             for i in range(noMasts):
@@ -214,9 +215,13 @@ def main(savepng,showplots,i_date):
                         ax[i_l][i].legend(loc='lower right')
                     else:
                         ax[i_l][i].legend(loc='upper left')
-                    #ax3d.plot(nodes[:,0],nodes[:,1],nodes[:,2], 'ro')
-                    #ax3d.plot(points[:,0], points[:,1], points[:,2], 'r')
-                for i_s in range(uUTMSensor.shape[0]):
+
+                    QoI = getQoI(layoutNames[i_l],u,u_mag,useDeg=True)
+                    dfCurve = pd.DataFrame({'z': points[:,2], xArrayNames[i_l]: QoI})
+                    resultFileName = simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+mastNames[i]+'_'+df_date['name']+'_'+datestr+'+'+df_date['addtime']+'.csv'
+                    dfCurve.to_csv(resultFileName,index=False)
+
+                for i_s in range(uSensor.shape[0]):
                     row = pd.DataFrame({'date': [pd.to_datetime(date).strftime('%Y-%m-%d %H:%M')]})
                     row['name'] = df_date['name']
                     row['location'] = mastNames[i]
@@ -241,7 +246,7 @@ def main(savepng,showplots,i_date):
         if showplots:
             plt.show()
 
-        if savepng:
+        if savefigure:
             for i_l in range(noPlots):
                 fig[i_l].savefig(simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+pd.to_datetime(date).strftime('%Y%m%d%H')+'.pdf', bbox_inches='tight',pad_inches = 0)
 
