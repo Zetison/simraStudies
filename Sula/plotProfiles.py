@@ -12,11 +12,12 @@ from convertCoords import computeSensorLoc
 from datetime import datetime, timedelta
 from matplotlib import cm
 from siso.coords import graph, Coords
-src = Coords.find('utm:33n')
-tgt = Coords.find('geodetic')
-converter = graph.path(src, tgt)
 
-def getQoI(name,uUTM,u_mag,useDeg=False):
+def getQoI(name,utmPoints,uUTM,u_mag,useDeg=False):
+    src = Coords.find('utm:33n')
+    tgt = Coords.find('geodetic')
+    converter = graph.path(src, tgt)
+    out_points = converter.points(src, tgt, utmPoints, None)
     u = converter.vectors(src, tgt, uUTM, None)
     if name == 'VelocityProfiles':
         QoI = u_mag
@@ -194,20 +195,20 @@ def main(savepng,showplots,i_date):
             # Plot SIMRA results
             for i in range(noMasts):
                 resampled = interpolateVTK(vtkData, curves[i])
-                u = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u')).copy()
-                u_mag = np.linalg.norm(u,axis=1)
+                uUTM = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u')).copy()
+                u_mag = np.linalg.norm(uUTM,axis=1)
                 nodes = sensorLoc[i]
                 points = vtk_to_numpy(curves[i].GetPoints().GetData()).copy()
                 points = points[u_mag > 0,:]
-                u = u[u_mag > 0,:]
+                uUTM = uUTM[u_mag > 0,:]
                 u_mag = u_mag[u_mag > 0]
 
                 # Sample also at sensor locations
                 resampledSensor = interpolateVTK(vtkData, createVTKcurve(sensorLoc[i]))
-                uSensor = vtk_to_numpy(resampledSensor.GetPointData().GetAbstractArray('u')).copy()
-                u_magSensor = np.linalg.norm(uSensor,axis=1)
+                uUTMSensor = vtk_to_numpy(resampledSensor.GetPointData().GetAbstractArray('u')).copy()
+                u_magSensor = np.linalg.norm(uUTMSensor,axis=1)
                 for i_l in range(noPlots):
-                    QoI = getQoI(layoutNames[i_l],u,u_mag)
+                    QoI = getQoI(layoutNames[i_l],points,uUTM,u_mag)
                     ax[i_l][i].plot(QoI,points[:,2],color = colorsCases[i_df],label = df_date['name']+' '+pd.to_datetime(df_date['baseDate']).strftime('%Y%m%d%H')+'+'+df_date['addtime'])
                     if layoutNames[i_l] == 'WindDirProfiles':
                         ax[i_l][i].legend(loc='lower right')
@@ -215,7 +216,7 @@ def main(savepng,showplots,i_date):
                         ax[i_l][i].legend(loc='upper left')
                     #ax3d.plot(nodes[:,0],nodes[:,1],nodes[:,2], 'ro')
                     #ax3d.plot(points[:,0], points[:,1], points[:,2], 'r')
-                for i_s in range(uSensor.shape[0]):
+                for i_s in range(uUTMSensor.shape[0]):
                     row = pd.DataFrame({'date': [pd.to_datetime(date).strftime('%Y-%m-%d %H:%M')]})
                     row['name'] = df_date['name']
                     row['location'] = mastNames[i]
@@ -223,7 +224,7 @@ def main(savepng,showplots,i_date):
                     row['addtime'] = df_date['addtime']
                     row['z'] = sensorLoc[i][i_s,-1]
                     for i_l in range(noPlots):
-                        row[xArrayNames[i_l]] = getQoI(layoutNames[i_l],uSensor[[i_s],:],u_magSensor[[i_s]],useDeg=True)
+                        row[xArrayNames[i_l]] = getQoI(layoutNames[i_l],sensorLoc[i][[i_s],:],uUTMSensor[[i_s],:],u_magSensor[[i_s]],useDeg=True)
 
                     dfSensor = dfSensor.append(row)
 
