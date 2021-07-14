@@ -12,8 +12,8 @@
       </topologysets>
     </geometry>
         <!--<resultfile type="history">M0/hist.res</resultfile>-->
-    <resultfile>M0/cont.res</resultfile>
-    <boundaryfile>M0/boun.dat</boundaryfile>
+    <resultfile type="restart">M0/cont.res</resultfile>
+    <boundaryfile type="parallel">M0/boun.dat</boundaryfile>
     <nesting tol="1e-6"/>
     <fluidproperties nu="1.5e-05"/>
     <scaling u="20" L="2000"/>

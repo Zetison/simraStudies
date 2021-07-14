@@ -33,7 +33,7 @@ topoRes = 'SED_topoRes'
 
 # Set the time
 openFoamResultsFolder = home+'/results/openfoam/Sula/'
-runAll = True 
+runAll = False
 if runAll:
     fileNamesOrg = [
     openFoamResultsFolder+'2020111906_OF_unStdy.pvd',
@@ -55,14 +55,18 @@ if runAll:
 
     #indices = [2,5,6,7,8]
     indices = range(9) 
+    print(caseNamesOrg)
     #indices = [0,3]
     indices = [0,1,6]
+    indices = [7]
     #indices = range(len(fileNamesOrg))
     fileNames = [fileNamesOrg[i] for i in indices]
     caseNames = [caseNamesOrg[i] for i in indices]
 else:
-    fileNames = [outputPath+fileName+'.pvd']
-    caseNames = [caseName]
+    #fileNames = [outputPath+fileName+'.pvd']
+    #caseNames = [caseName]
+    fileNames = [outputPath+'Zak.pvd']
+    caseNames = ['2020111912']
 
 colorLogo = 'white' # Default color of SINTEF logo
 originx=-200.0
@@ -88,13 +92,13 @@ plotTakeOffLines         = 0
 plotBridgeAndSensors     = 1 
 plotUniverseBackground   = 0 
 
-plotLIC                  = 0  
+plotLIC                  = 1  
 plotStreamLines          = 0
 plotVolumeRendering      = 0 
 plotIPPCmapsHorizontal   = 0
 plotIPPCmapsVertical     = 0
-plotOverTime             = not runAll
-plotVelocityProfiles     = runAll 
+plotOverTime             = 0
+plotVelocityProfiles     = 0
 
 makeVideo                = 0
 saveScreenShots          = 0 
