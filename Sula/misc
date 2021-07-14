@@ -88,7 +88,7 @@ cp "${srcDir}/SIMRA_PostProc.xinp" "${srcDir}/convertBE.py" ${tarDir}
 pushd $tarDir > /dev/null
 for ((M=0; M<2; M++))
 do
-    python3 convertBE.py --mesh_input mesh_M${M}.dat --cont_input contM${M}Sula.res_00+0
+    python3 $HOME/kode/simraStudies/Sula/convertBE.py --mesh_input mesh_M${M}.dat --cont_input contM${M}Sula.res_00+0
     fileName=Zak_M${M}
     $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5
     siso -f vtu ${fileName}.hdf5 ${fileName}.vtu
