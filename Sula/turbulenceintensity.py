@@ -102,7 +102,7 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
                 ########## Wind speed decomposition #######################################
                 meanu = np.mean(df10['u'].dropna())
                 meanv = np.mean(df10['v'].dropna())
-                meandir = (180+90-np.degrees(np.arctan2(meanu,meanv))) % 360.
+                meandir = (180+90-np.degrees(np.arctan2(meanv,meanu))) % 360.
     
                 ########## Statistical quatities ##########################################
                 meanU = np.mean(df10['windspeed'].dropna())
