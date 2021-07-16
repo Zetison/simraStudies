@@ -61,10 +61,6 @@
 #    ffmpeg -framerate 5 -pattern_type glob -i "${plotType}*.png" -c:v ffv1 "${plotType}.avi"
 #done
 #pushd $HOME/results/simra/Sula/profileResults > /dev/null
-#for plotType in WindDirProfiles alphaProfiles
-#do
-#    ffmpeg -framerate 5 -pattern_type glob -i "${plotType}*.png" -c:v ffv1 "${plotType}.avi"
-#done
 #popd > /dev/null
 
 # Combine pdfs
@@ -86,11 +82,11 @@ tarDir=$HOME/results/simra/Sula/met_new/2020111906
 SIMRAPOSTPROC=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
 cp "${srcDir}/SIMRA_PostProc.xinp" "${srcDir}/convertBE.py" ${tarDir}
 pushd $tarDir > /dev/null
-for ((M=0; M<2; M++))
+for ((M=1; M<2; M++))
 do
     python3 $HOME/kode/simraStudies/Sula/convertBE.py --mesh_input mesh_M${M}.dat --cont_input contM${M}Sula.res_00+0
     fileName=Zak_M${M}
-    $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5
+    $OMP_NUM_THREADS=4 SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5
     siso -f vtu ${fileName}.hdf5 ${fileName}.vtu
 done
 popd > /dev/null
