@@ -36,8 +36,8 @@ layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
 xLabels = ['Mean wind speed $[m/s]$', 'Mean wind direction $[^\circ]$', 'Mean angle of attack $[^\circ]$']
 xArrayNames = ['u_mag', 'meandir', 'alpha']
 #winddirWindow = np.array([0.,360.])
-winddirWindow = np.array([285., 345])
-#winddirWindow = np.array([292.5, 337.5])
+#winddirWindow = np.array([285., 345])
+winddirWindow = np.array([292.5, 337.5])
 xArrayLims = [[0,30],[0,360],[-30,30]]
 noPlots = len(layoutNames)
 noDataTypes = len(dataTypes)
@@ -79,8 +79,6 @@ for i in range(noMasts):
                 QoI_obs = dfObs[xArrayNames[i_l]]
 
                 maxQoI_sim = np.abs(np.max(QoI_sim))
-                if maxQoI_sim > 360:
-                    print('This is incorrect')
 
                 if QoImax_sim[i_l] < maxQoI_sim:
                     QoImax_sim[i_l] = maxQoI_sim
