@@ -65,6 +65,7 @@
 
 # Combine pdfs
 #folders="scatterPlots profileResults"
+#folders="scatterPlots"
 #for folder in $folders
 #do
 #    pushd $HOME/results/simra/Sula/$folder > /dev/null
@@ -89,4 +90,7 @@ do
     $OMP_NUM_THREADS=4 SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5
     siso -f vtu ${fileName}.hdf5 ${fileName}.vtu
 done
+pushd $HOME/results/simra/Sula > /dev/null
+tar -cvf profiles.tar profileResults* sampledResults.csv
+tar -cvf scatters.tar scatterPlots*
 popd > /dev/null
