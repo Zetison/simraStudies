@@ -9,22 +9,26 @@ import numpy as np
 from datetime import datetime
 proj32 = "+proj=utm +zone=32K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
 proj33 = "+proj=utm +zone=33K, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+wgs84 = "+proj=pipeline +step +proj=longlat +ellps=WGS84"
 transformer = Transformer.from_crs(proj32,proj33)
+transformer2 = Transformer.from_crs(wgs84,proj32)
 height = 70 # Height of bridge at middle point
+
 def computeSensorLoc(originx=0.0,originy=0.0):
-    # Data for 'SulaNW (Kvitneset)', 'SulaNE (Trælboneset)', 'SulaSW (Langeneset)', 'SulaSE (Kårsteinen)'
-    Boom1 = np.array([6.1,6.1,4.4,3.6])
-    Sensorh = np.array([[92.5,71.5,44.5],[76.8, 48.3, 27.3],[94.8, 75.0, 50.0, 27.0],[62.8, 40.0, 13.4]],dtype=object)
-    BoomOrient = np.array([[72,74,74],[289, 290, 290],[81, 81, 81, 81],[223, 223, 223]],dtype=object)
-    masth = np.array([100.5, 78.0,97.0,63.0])
+    # Data for 'SulaNW (Kvitneset)', 'SulaNE (Trælboneset)', 'SulaSW (Langeneset)', 'SulaSE (Kårsteinen)', 'SulaN' (Bridgecenter)'
+    Boom1 = np.array([6.1,6.1,4.4,3.6,0.0])
+    Sensorh = np.array([[92.5,71.5,44.5],[76.8, 48.3, 27.3],[94.8, 75.0, 50.0, 27.0],[62.8, 40.0, 13.4],[70.0]],dtype=object)
+    BoomOrient = np.array([[72,74,74],[289, 290, 290],[81, 81, 81, 81],[223, 223, 223],[0]],dtype=object)
+    masth = np.array([100.5, 78.0,97.0,63.0,0])
+    xMid, yMid = transformer2.transform(6.0321708,62.4234363) 
     if True:
         # Based on (lat,lon) coords from .nc file: (62.421595,6.00112),(62.42763,6.062626),(62.386301,6.031318), (62.400134,6.119395)
-        CoordUTM32 = np.array([[6924741.06, 345141.99],[6925267.00,348347.02],[6920740.04,346519.99],[6922073.99,351139.99]])
-        mastb = np.array([6.0,14.0,6.0,12.0])
+        CoordUTM32 = np.array([[6924741.06, 345141.99],[6925267.00,348347.02],[6920740.04,346519.99],[6922073.99,351139.99],[yMid,xMid]])
+        mastb = np.array([6.0,14.0,6.0,12.0,0.0])
     else:
         #CoordUTM32 = np.array([[6924741, 345142],[6925267, 348347],[6920740, 346520],[6922074, 351140]])
-        CoordUTM32 = np.array([[6924741, 345142],[6925263.08,348346.72],[6920736.2,346525.95],[6922076.42,351140.03]])
-        mastb = np.array([8.0,12.2,1.8,13.9])
+        CoordUTM32 = np.array([[6924741, 345142],[6925263.08,348346.72],[6920736.2,346525.95],[6922076.42,351140.03],[xMid,yMid]])
+        mastb = np.array([8.0,12.2,1.8,13.9,0.0])
 
     noMasts = len(masth)
     sensorLoc = [''] * noMasts

@@ -101,16 +101,19 @@ def main(savefigure,showplots,i_date):
     uniqueDates = df['date'].map(pd.Timestamp).unique()
 
     # Get sensor locations
-    sensorLoc,CoordUTM32,mastb,masth,Sensorh = computeSensorLoc(originx=-200,originy=6899800)
-    noMasts = len(sensorLoc)
-    curves = [''] * noMasts 
-    for i in range(noMasts):
+    originx = -200
+    originy = 6899800
+    sensorLoc,CoordUTM32,mastb,masth,Sensorh = computeSensorLoc(originx,originy)
+    noLocs = len(sensorLoc)
+    curves = [''] * noLocs
+    for i in range(noLocs):
         curves[i] = interpolatePoints(sensorLoc[i])
 
     # Initiate plot arrays
-    dataTypes = ['raw','rawMid','rawNew','rawMidNew']
+    #dataTypes = ['raw','rawMid','rawNew','rawMidNew']
+    dataTypes = ['rawNew','rawMidNew']
     colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.4,0.8],[0.4,0.8,0.8]] 
-    mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen']
+    mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen', 'Bridgecenter']
     layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
     xArrayNames = ['u_mag', 'meandir', 'alpha']
     bottomAxisRangeMinimums = [0.0, 0.0, -30.0]
@@ -136,14 +139,14 @@ def main(savefigure,showplots,i_date):
         for i_l in range(noPlots):
             usePolar = layoutNames[i_l] == 'WindDirProfiles'
             if usePolar:
-                fig[i_l], ax[i_l] = plt.subplots(1, noMasts, sharey=True,figsize=(40,10), subplot_kw=dict(projection="polar"))
+                fig[i_l], ax[i_l] = plt.subplots(1, noLocs, sharey=True,figsize=(40,10), subplot_kw=dict(projection="polar"))
             else:
-                fig[i_l], ax[i_l] = plt.subplots(1, noMasts, sharey=True,figsize=(20,10))
+                fig[i_l], ax[i_l] = plt.subplots(1, noLocs, sharey=True,figsize=(20,10))
             suptitle = layoutNames[i_l]+' '+datestr
             fig[i_l].suptitle(suptitle)
 
         # Loop over all masts and data types
-        for i in range(noMasts):
+        for i in range(noLocs):
             for j in range(noDataTypes):
                 # Collect data from all sensors
                 df_obs = pd.DataFrame()
@@ -194,7 +197,7 @@ def main(savefigure,showplots,i_date):
             datestr = pd.to_datetime(df_date['baseDate']).strftime('%Y%m%d%H')
             
             # Plot SIMRA results
-            for i in range(noMasts):
+            for i in range(noLocs):
                 resampled = interpolateVTK(vtkData, curves[i])
                 uUTM = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u')).copy()
                 u_mag = np.linalg.norm(uUTM,axis=1)

@@ -49,19 +49,28 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
     end_dt = start_dt + relativedelta(minutes=+totPeriod) #40,320
     ############### Read data and clean ###########################################
     t0 = time.perf_counter()
-    base_url = 'https://thredds.met.no/thredds/dodsC/obs/mast-svv-e39/%d/%d/%d%02d_%s_10%s.nc' % (year,month,year,month,location,frequency)
-    nc_wind = netCDF4.Dataset(base_url)
+    if location == 'Bridgecenter':
+        base_url = '/home/zetison/results/simra/Sula/measurements/%d%02d_%s_10min.nc' % (year,month,location)
+    else:
+        base_url = 'https://thredds.met.no/thredds/dodsC/obs/mast-svv-e39/%d/%d/%d%02d_%s_10%s.nc' % (year,month,year,month,location,frequency)
 
+    nc_wind = netCDF4.Dataset(base_url)
     units = nc_wind.variables['time'].units
-    sz = nc_wind.dimensions['time'].size
-    t_coverage_start = datetime.strptime(nc_wind.time_coverage_start, '%Y-%m-%dT%H:%M:%S')
-    index_start = binarySearch(nc_wind, start_dt, sz, units) 
-    index_end   = binarySearch(nc_wind, end_dt, sz, units) 
-    indices = slice(index_start,index_end+1)
+    if location == 'Bridgecenter':
+        indices = slice(len(nc_wind.variables['time']))
+    else:
+        sz = nc_wind.dimensions['time'].size
+        t_coverage_start = datetime.strptime(nc_wind.time_coverage_start, '%Y-%m-%dT%H:%M:%S')
+        index_start = binarySearch(nc_wind, start_dt, sz, units) 
+        index_end   = binarySearch(nc_wind, end_dt, sz, units) 
+        indices = slice(index_start,index_end+1)
 
     tAll = netCDF4.num2date(nc_wind.variables['time'][indices],units,only_use_cftime_datetimes=False)
     uAll = nc_wind.variables['windspeed'][indices,:]
-    wAll = nc_wind.variables['vws'][indices,:]
+    if location == 'Bridgecenter':
+        wAll = uAll * 0 
+    else:
+        wAll = nc_wind.variables['vws'][indices,:]
     winddirAll = nc_wind.variables['winddirection'][indices,:]
     z = nc_wind.variables['alt'][:]
 
@@ -93,12 +102,18 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
         dates   = []
         ###################### Gust wind speed ########################################
         for dt in perdelta(start_dt, end_dt,  relativedelta(minutes=+time_interval)):
-            try:
+            #try:
                 start = dt.strftime('%Y-%m-%d %H:%M')
-                end = (dt +  relativedelta(minutes=+time_interval)).strftime('%Y-%m-%d %H:%M')
+                end = (dt + relativedelta(minutes=+time_interval)).strftime('%Y-%m-%d %H:%M')
                 print (start, end)
                 date_rng10m = pd.date_range(start, end, freq='100ms')
-                df10 = df0[np.in1d(df0['Time'], date_rng10m)]
+                matches = np.in1d(df0['Time'], date_rng10m)
+                if np.any(matches):
+                    df10 = df0[matches]
+                else:
+                    print('Warning - Bad data (no overlap in time)')
+                    continue
+
                 ########## Wind speed decomposition #######################################
                 meanu = np.mean(df10['u'].dropna())
                 meanv = np.mean(df10['v'].dropna())
@@ -119,8 +134,8 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
                     dates.append(np.array(np.mean(df10['Time'].dropna()), dtype='datetime64[m]'))
                 else:
                     dates.append(np.array(df10['Time'].to_numpy()[0], dtype='datetime64[m]'))
-            except Exception:
-                   print("Warning - Bad data")
+            #except Exception:
+            #       print("Warning - Bad data")
 
         ################### Write all result into a panda dataframe ####################
         df_turbstat = pd.DataFrame()
@@ -143,8 +158,8 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
 def main():
     totPeriod = 30*60*24 - 60  # in minutes
     #totPeriod = 60  # in minutes
-    locations = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen']
-    #locations = ['Kaarsteinen']
+    #locations = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen','Bridgecenter']
+    locations = ['Bridgecenter']
     for location in locations:
         for midSampled in [False,True]:
             #extractData(totPeriod=totPeriod,midSampled=midSampled,location=location,day=19,hour=15)
