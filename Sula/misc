@@ -49,12 +49,13 @@
 #    fi
 #done
 
-## Create profiles
+# Create profiles
 #for ((i=0; i<723; i++))
 ##for ((i=0; i<21; i++))
 #do 
 #    python3 plotProfiles.py --i_date $i 
 #done
+#python3 comparison_mast_simra.py
 #pushd $HOME/results/simra/Sula/profileResults > /dev/null
 #for plotType in WindDirProfiles alphaProfiles
 #do
@@ -64,33 +65,33 @@
 #popd > /dev/null
 
 # Combine pdfs
-#folders="scatterPlots profileResults"
+folders="scatterPlots profileResults"
 #folders="scatterPlots"
-#for folder in $folders
-#do
-#    pushd $HOME/results/simra/Sula/$folder > /dev/null
-#    profileNames="alphaProfiles WindDirProfiles VelocityProfiles"
-#    for f in $profileNames 
-#    do 
-#        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE=../${folder}_${f}.pdf -dBATCH ${f}*.pdf
-#    done
-#    popd > /dev/null
-#done
+for folder in $folders
+do
+    pushd $HOME/results/simra/Sula/$folder > /dev/null
+    profileNames="alphaProfiles WindDirProfiles VelocityProfiles"
+    for f in $profileNames 
+    do 
+        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE=../${folder}_${f}.pdf -dBATCH ${f}*.pdf
+    done
+    popd > /dev/null
+done
 
 # Convert simra files through PostProc app for visualizations
-srcDir=$HOME/results/simra/Sula/met_new/2020111912
-tarDir=$HOME/results/simra/Sula/met_new/2020111906
-SIMRAPOSTPROC=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
-cp "${srcDir}/SIMRA_PostProc.xinp" "${srcDir}/convertBE.py" ${tarDir}
-pushd $tarDir > /dev/null
-for ((M=1; M<2; M++))
-do
-    python3 $HOME/kode/simraStudies/Sula/convertBE.py --mesh_input mesh_M${M}.dat --cont_input contM${M}Sula.res_00+0
-    fileName=Zak_M${M}
-    $OMP_NUM_THREADS=4 SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5
-    siso -f vtu ${fileName}.hdf5 ${fileName}.vtu
-done
-pushd $HOME/results/simra/Sula > /dev/null
-tar -cvf profiles.tar profileResults* sampledResults.csv
-tar -cvf scatters.tar scatterPlots*
-popd > /dev/null
+#srcDir=$HOME/results/simra/Sula/met_new/2020111912
+#tarDir=$HOME/results/simra/Sula/met_new/2020111906
+#SIMRAPOSTPROC=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-PostProc
+#cp "${srcDir}/SIMRA_PostProc.xinp" "${srcDir}/convertBE.py" ${tarDir}
+#pushd $tarDir > /dev/null
+#for ((M=1; M<2; M++))
+#do
+#    python3 $HOME/kode/simraStudies/Sula/convertBE.py --mesh_input mesh_M${M}.dat --cont_input contM${M}Sula.res_00+0
+#    fileName=Zak_M${M}
+#    $OMP_NUM_THREADS=4 SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5
+#    siso -f vtu ${fileName}.hdf5 ${fileName}.vtu
+#done
+#pushd $HOME/results/simra/Sula > /dev/null
+#tar -cvf profiles.tar profileResults* sampledResults.csv
+#tar -cvf scatters.tar scatterPlots*
+#popd > /dev/null
