@@ -189,39 +189,30 @@ def main(savefigure,showplots,i_date):
 
             # Plot Arome data
             xArrayNamesArome = ['windspeed', 'winddirection', 'alpha']
-            nc_Arome = netCDF4.Dataset(home+'/results/simra/Sula/measurements/202011_%s_1hour_Arome.nc' % mastNames[i])
+            try:
+                nc_Arome = netCDF4.Dataset(home+'/results/simra/Sula/measurements/202011_%s_1hour_Arome.nc' % mastNames[i])
+            except Exception:
+                print("Data is lacking for "+mastNames[i])
+                continue
+               
+               
             times = nc_Arome.variables['time']
             
-            tAll = netCDF4.num2date(times[:], times.units,only_use_cftime_datetimes=False)
-            uAll = nc_Arome.variables['windspeed']
-            winddirAll = nc_Arome.variables['winddirection']
-            z = nc_Arome.variables['altitude']
+            tAll = netCDF4.num2date(times[:], times.units,only_use_cftime_datetimes=False).data
+            indices = np.array(tAll,dtype='datetime64[m]') == np.array(date,dtype='datetime64[m]')
+            z = nc_Arome.variables['altitude'][:].data
 
             #df_Arome['Time'] = pd.to_datetime(df_Arome.Time)
             # Plot experimental data
-            points = z
             for i_l in range(noPlots):
                 if layoutNames[i_l] == 'alphaProfiles':
                     continue
                 
-                QoI = nc_Arome.variables[xArrayNamesArome[i_l]]
+                QoI = nc_Arome.variables[xArrayNamesArome[i_l]][0].data[indices]
                 if layoutNames[i_l] == 'WindDirProfiles':
                     QoI = np.radians(QoI)
 
-                ax[i_l][i].plot(QoI,points[:,2],color = [0.5,0.6,0.7],marker='.',label = 'Exp. '+dataTypes[j])
-                ax[i_l][i].set_xlim([bottomAxisRangeMinimums[i_l],bottomAxisRangeMaximums[i_l]])
-                ax[i_l][i].set_ylim([0,120])
-                ax[i_l][i].set_title(mastNames[i])
-                if j == 0:
-                    if i == 0 and not layoutNames[i_l] == 'WindDirProfiles':
-                        ax[i_l][i].set(xlabel=bottomAxisTitles[i_l], ylabel='$z$ [m]')
-                    else:
-                        ax[i_l][i].set(xlabel=bottomAxisTitles[i_l])
-                
-                    if layoutNames[i_l] == 'WindDirProfiles':
-                        ax[i_l][i].set_theta_zero_location('N')
-                        ax[i_l][i].set_theta_direction(-1)
-
+                ax[i_l][i].plot(QoI,z,color = [1.0,0.0,0.0],marker='x',linestyle='None',label = 'Arome')
                 
 
         # Iterate over all SIMRA files corresponding to the given date
