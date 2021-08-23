@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pylab as plt
+import netCDF4
+import xarray as xr
 from scipy import interpolate
 import pandas as pd
 import click
@@ -184,6 +186,43 @@ def main(savefigure,showplots,i_date):
                         if layoutNames[i_l] == 'WindDirProfiles':
                             ax[i_l][i].set_theta_zero_location('N')
                             ax[i_l][i].set_theta_direction(-1)
+
+            # Plot Arome data
+            xArrayNamesArome = ['windspeed', 'winddirection', 'alpha']
+            nc_Arome = netCDF4.Dataset(home+'/results/simra/Sula/measurements/202011_%s_1hour_Arome.nc' % mastNames[i])
+            times = nc_Arome.variables['time']
+            
+            tAll = netCDF4.num2date(times[:], times.units,only_use_cftime_datetimes=False)
+            uAll = nc_Arome.variables['windspeed']
+            winddirAll = nc_Arome.variables['winddirection']
+            z = nc_Arome.variables['altitude']
+
+            #df_Arome['Time'] = pd.to_datetime(df_Arome.Time)
+            # Plot experimental data
+            points = z
+            for i_l in range(noPlots):
+                if layoutNames[i_l] == 'alphaProfiles':
+                    continue
+                
+                QoI = nc_Arome.variables[xArrayNamesArome[i_l]]
+                if layoutNames[i_l] == 'WindDirProfiles':
+                    QoI = np.radians(QoI)
+
+                ax[i_l][i].plot(QoI,points[:,2],color = [0.5,0.6,0.7],marker='.',label = 'Exp. '+dataTypes[j])
+                ax[i_l][i].set_xlim([bottomAxisRangeMinimums[i_l],bottomAxisRangeMaximums[i_l]])
+                ax[i_l][i].set_ylim([0,120])
+                ax[i_l][i].set_title(mastNames[i])
+                if j == 0:
+                    if i == 0 and not layoutNames[i_l] == 'WindDirProfiles':
+                        ax[i_l][i].set(xlabel=bottomAxisTitles[i_l], ylabel='$z$ [m]')
+                    else:
+                        ax[i_l][i].set(xlabel=bottomAxisTitles[i_l])
+                
+                    if layoutNames[i_l] == 'WindDirProfiles':
+                        ax[i_l][i].set_theta_zero_location('N')
+                        ax[i_l][i].set_theta_direction(-1)
+
+                
 
         # Iterate over all SIMRA files corresponding to the given date
         df_sub = df[df.date == date]
