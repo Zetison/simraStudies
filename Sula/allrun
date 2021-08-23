@@ -102,7 +102,7 @@ do
         fi
         options="--nrefu $nref --nrefv $nref $options"
         pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
-        simramesh ${simraresultsFolder}/Sula${topoRes}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
+        simramesh ../${filename}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
         siso -f vts ${fileName}_3D.g2
         siso -f dat ${fileName}_3D.g2 mesh.dat
         #siso -f dat --out-endianness big ${fileName}_3D.g2 mesh_M${M}.dat
