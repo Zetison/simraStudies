@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pylab as plt
 import netCDF4
-import xarray as xr
 from scipy import interpolate
 import pandas as pd
 import click
@@ -77,8 +76,9 @@ def interpolateVTK(orig_data, sub_grid):
 @click.command()
 @click.option('--savefigure/--no-savefigure', default=True, type=bool, help='Export results to png file')
 @click.option('--showplots/--no-showplots', default=False, type=bool, help='Show plots from matplotlib')
+@click.option('--loadvtk/--no-loadvtk', default=False, type=bool, help='Reload vtk files or the existing generated .csv files')
 @click.option('--i_date', default=0, type=int, help='Index of date (0-29) in November')
-def main(savefigure,showplots,i_date):
+def main(savefigure,showplots,loadvtk,i_date):
     # Collect metainformation (path,name,date) from SIMRA files
     home = expanduser("~")
     simraResultsFolder = home+'/results/simra/Sula/'
@@ -118,6 +118,7 @@ def main(savefigure,showplots,i_date):
     mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen', 'Bridgecenter']
     layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
     xArrayNames = ['u_mag', 'meandir', 'alpha']
+    xArrayNamesArome = ['windspeed', 'winddirection', 'alpha']
     bottomAxisRangeMinimums = [0.0, 0.0, -30.0]
     bottomAxisRangeMaximums = [30.0, 2*np.pi, 30.0]
     bottomAxisTitles = ['$u$ [m/s] (magnitude)', 'Wind dir', 'Angle of Attack $[^\circ]$']
@@ -152,18 +153,37 @@ def main(savefigure,showplots,i_date):
             for j in range(noDataTypes):
                 # Collect data from all sensors
                 df_obs = pd.DataFrame()
+                df_arome = pd.DataFrame()
                 noSensors = len(Sensorh[i])
                 for k in range(noSensors):
                     z = np.floor(Sensorh[i][k]).astype(int)
                     filename = simraResultsFolder+'measurements/'+dataTypes[j]+'/10hz_'+mastNames[i]+'_60mnturbulence_statistics_'+str(z)+'_202011.csv'
                     df_all = pd.read_csv(filename)
-                    if j == 0:
-                        df_obs = df_obs.append(df_all[df_all.date==0])
+                    #if j == 0:
+                    #    df_obs = df_obs.append(df_all[df_all.date==0])
                     indices = np.array(df_all.date,dtype='datetime64[m]') == np.array(date,dtype='datetime64[m]')
                     if df_all[indices].empty:
                         df_obs = df_obs.append(pd.Series(dtype='object'), ignore_index=True)
                     else:
                         df_obs = df_obs.append(df_all[indices])
+
+                    # Get Arome data
+                    try:
+                        absHeight = str(Sensorh[i][k]+mastb[i]).rstrip('0').rstrip('.')
+                        nc_Arome = netCDF4.Dataset(home+'/results/simra/Sula/measurements/202011_%s_%sm_mepsdetml.nc' % (mastNames[i],absHeight))
+                    except Exception:
+                        print("Data is lacking for "+mastNames[i])
+                        continue
+
+                    times = nc_Arome.variables['time']
+                    tAll = netCDF4.num2date(times[:], times.units,only_use_cftime_datetimes=False).data
+                    indices = np.array(tAll,dtype='datetime64[m]') == np.array(date,dtype='datetime64[m]')
+                    df0 = pd.DataFrame()
+                    for i_l in range(2):
+                        df0[xArrayNames[i_l]] = nc_Arome.variables[xArrayNamesArome[i_l]][0].data[indices]
+
+                    df_arome = df_arome.append(df0)
+
                 if df_obs.empty:
                     continue
 
@@ -187,33 +207,16 @@ def main(savefigure,showplots,i_date):
                             ax[i_l][i].set_theta_zero_location('N')
                             ax[i_l][i].set_theta_direction(-1)
 
-            # Plot Arome data
-            xArrayNamesArome = ['windspeed', 'winddirection', 'alpha']
-            try:
-                nc_Arome = netCDF4.Dataset(home+'/results/simra/Sula/measurements/202011_%s_1hour_Arome.nc' % mastNames[i])
-            except Exception:
-                print("Data is lacking for "+mastNames[i])
-                continue
-               
-               
-            times = nc_Arome.variables['time']
-            
-            tAll = netCDF4.num2date(times[:], times.units,only_use_cftime_datetimes=False).data
-            indices = np.array(tAll,dtype='datetime64[m]') == np.array(date,dtype='datetime64[m]')
-            z = nc_Arome.variables['altitude'][:].data
+                    if layoutNames[i_l] == 'alphaProfiles' or mastNames[i] == 'Bridgecenter':
+                        continue
+                    else:
+                        QoI = df_arome[xArrayNames[i_l]]
+                        if layoutNames[i_l] == 'WindDirProfiles':
+                            QoI = np.radians(QoI)
 
-            #df_Arome['Time'] = pd.to_datetime(df_Arome.Time)
-            # Plot experimental data
-            for i_l in range(noPlots):
-                if layoutNames[i_l] == 'alphaProfiles':
-                    continue
-                
-                QoI = nc_Arome.variables[xArrayNamesArome[i_l]][0].data[indices]
-                if layoutNames[i_l] == 'WindDirProfiles':
-                    QoI = np.radians(QoI)
-
-                ax[i_l][i].plot(QoI,z,color = [1.0,0.0,0.0],marker='x',linestyle='None',label = 'Arome')
-                
+                        if not len(QoI) == len(points[:,2]):
+                            print('rita')
+                        ax[i_l][i].plot(QoI,points[:,2],color = [1.0,0.0,0.0],marker='x',label = 'Arome')
 
         # Iterate over all SIMRA files corresponding to the given date
         df_sub = df[df.date == date]
@@ -222,58 +225,75 @@ def main(savefigure,showplots,i_date):
         colorsCases = cm.jet(range(256))[0::256//len(df_sub)]
         dfSensor = pd.DataFrame()
         for _, df_date in df_sub.iterrows():
-            # Load vtk files
-            vtkData = load_vtk(df_date.path)
+            if loadvtk:
+                # Load vtk files
+                vtkData = load_vtk(df_date.path)
+
             datestr = pd.to_datetime(df_date['baseDate']).strftime('%Y%m%d%H')
             
             # Plot SIMRA results
             for i in range(noLocs):
-                resampled = interpolateVTK(vtkData, curves[i])
-                uUTM = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u')).copy()
-                u_mag = np.linalg.norm(uUTM,axis=1)
-                nodes = sensorLoc[i]
-                points = vtk_to_numpy(curves[i].GetPoints().GetData()).copy()
-                points = points[u_mag > 0,:]
-                uUTM = uUTM[u_mag > 0,:]
-                u_mag = u_mag[u_mag > 0]
+                if loadvtk:
+                    resampled = interpolateVTK(vtkData, curves[i])
+                    uUTM = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u')).copy()
+                    u_mag = np.linalg.norm(uUTM,axis=1)
+                    nodes = sensorLoc[i]
+                    points = vtk_to_numpy(curves[i].GetPoints().GetData()).copy()
+                    points = points[u_mag > 0,:]
+                    uUTM = uUTM[u_mag > 0,:]
+                    u_mag = u_mag[u_mag > 0]
 
-                # Sample also at sensor locations
-                resampledSensor = interpolateVTK(vtkData, createVTKcurve(sensorLoc[i]))
-                uUTMSensor = vtk_to_numpy(resampledSensor.GetPointData().GetAbstractArray('u')).copy()
-                u_magSensor = np.linalg.norm(uUTMSensor,axis=1)
+                    # Sample also at sensor locations
+                    resampledSensor = interpolateVTK(vtkData, createVTKcurve(sensorLoc[i]))
+                    uUTMSensor = vtk_to_numpy(resampledSensor.GetPointData().GetAbstractArray('u')).copy()
+                    u_magSensor = np.linalg.norm(uUTMSensor,axis=1)
+
                 for i_l in range(noPlots):
-                    QoI = getQoI(layoutNames[i_l],points,uUTM,u_mag)
-                    ax[i_l][i].plot(QoI,points[:,2],color = colorsCases[i_df],label = df_date['name']+' '+pd.to_datetime(df_date['baseDate']).strftime('%Y%m%d%H')+'+'+df_date['addtime'])
+                    if loadvtk:
+                        QoI = getQoI(layoutNames[i_l],points,uUTM,u_mag)
+                        z = points[:,2]
+                    else:
+                        resultFileName = simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+mastNames[i]+'_'+df_date['name']+'_'+datestr+'+'+df_date['addtime']+'.csv'
+                        dfCurve = pd.read_csv(resultFileName)
+                        z = dfCurve['z']
+                        QoI = dfCurve[xArrayNames[i_l]]
+
+                    ax[i_l][i].plot(QoI,z,color = colorsCases[i_df],label = df_date['name']+' '+pd.to_datetime(df_date['baseDate']).strftime('%Y%m%d%H')+'+'+df_date['addtime'])
+
                     if layoutNames[i_l] == 'WindDirProfiles':
                         ax[i_l][i].legend(loc='lower right')
                     else:
                         ax[i_l][i].legend(loc='upper left')
 
-                    QoI = getQoI(layoutNames[i_l],points,uUTM,u_mag,useDeg=True)
-                    dfCurve = pd.DataFrame({'z': points[:,2], xArrayNames[i_l]: QoI})
-                    resultFileName = simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+mastNames[i]+'_'+df_date['name']+'_'+datestr+'+'+df_date['addtime']+'.csv'
-                    dfCurve.to_csv(resultFileName,index=False)
+                    if loadvtk:
+                        resultFileName = simraResultsFolder+'profileResults/'+layoutNames[i_l]+'_'+mastNames[i]+'_'+df_date['name']+'_'+datestr+'+'+df_date['addtime']+'.csv'
+                        QoI = getQoI(layoutNames[i_l],points,uUTM,u_mag,useDeg=True)
+                        dfCurve = pd.DataFrame({'z': points[:,2], xArrayNames[i_l]: QoI})
+                        dfCurve.to_csv(resultFileName,index=False)
 
-                for i_s in range(uUTMSensor.shape[0]):
-                    row = pd.DataFrame({'date': [pd.to_datetime(date).strftime('%Y-%m-%d %H:%M')]})
-                    row['name'] = df_date['name']
-                    row['location'] = mastNames[i]
-                    row['baseDate'] = df_date['baseDate']
-                    row['addtime'] = df_date['addtime']
-                    row['z'] = sensorLoc[i][i_s,-1]
-                    for i_l in range(noPlots):
-                        row[xArrayNames[i_l]] = getQoI(layoutNames[i_l],sensorLoc[i][[i_s],:],uUTMSensor[[i_s],:],u_magSensor[[i_s]],useDeg=True)
+                if loadvtk:
+                    for i_s in range(uUTMSensor.shape[0]):
+                        row = pd.DataFrame({'date': [pd.to_datetime(date).strftime('%Y-%m-%d %H:%M')]})
+                        row['name'] = df_date['name']
+                        row['location'] = mastNames[i]
+                        row['baseDate'] = df_date['baseDate']
+                        row['addtime'] = df_date['addtime']
+                        row['z'] = sensorLoc[i][i_s,-1]
+                        for i_l in range(noPlots):
+                            row[xArrayNames[i_l]] = getQoI(layoutNames[i_l],sensorLoc[i][[i_s],:],uUTMSensor[[i_s],:],u_magSensor[[i_s]],useDeg=True)
 
-                    dfSensor = dfSensor.append(row)
+                        dfSensor = dfSensor.append(row)
 
             i_df += 1
-            del vtkData
+            if loadvtk:
+                del vtkData
 
         resultFileName = simraResultsFolder+'sampledResults.csv'
-        if isfile(resultFileName):
-            dfSensor.to_csv(resultFileName,mode='a',index=False,header=False)
-        else:
-            dfSensor.to_csv(resultFileName,mode='a',index=False)
+        if loadvtk:
+            if isfile(resultFileName):
+                dfSensor.to_csv(resultFileName,mode='a',index=False,header=False)
+            else:
+                dfSensor.to_csv(resultFileName,mode='a',index=False)
 
 
         if showplots:

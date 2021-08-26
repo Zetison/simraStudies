@@ -50,7 +50,7 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
     ############### Read data and clean ###########################################
     t0 = time.perf_counter()
     if location == 'Bridgecenter':
-        base_url = '/home/zetison/results/simra/Sula/measurements/%d%02d_%s_10min.nc' % (year,month,location)
+        base_url = '/home/zetison/results/simra/Sula/measurements/%d%02d_%s_1hz.nc' % (year,month,location)
     else:
         base_url = 'https://thredds.met.no/thredds/dodsC/obs/mast-svv-e39/%d/%d/%d%02d_%s_10%s.nc' % (year,month,year,month,location,frequency)
 
@@ -106,22 +106,22 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
                 start = dt.strftime('%Y-%m-%d %H:%M')
                 end = (dt + relativedelta(minutes=+time_interval)).strftime('%Y-%m-%d %H:%M')
                 print (start, end)
-                date_rng10m = pd.date_range(start, end, freq='100ms')
-                matches = np.in1d(df0['Time'], date_rng10m)
+                matches = np.logical_and(start <= df0['Time'], df0['Time'] <= end)
                 if np.any(matches):
                     df10 = df0[matches]
                 else:
                     print('Warning - Bad data (no overlap in time)')
                     continue
 
+                df10 = df10.dropna()
                 ########## Wind speed decomposition #######################################
-                meanu = np.mean(df10['u'].dropna())
-                meanv = np.mean(df10['v'].dropna())
+                meanu = np.mean(df10['u'])
+                meanv = np.mean(df10['v'])
                 meandir = (180+90-np.degrees(np.arctan2(meanv,meanu))) % 360.
     
                 ########## Statistical quatities ##########################################
-                meanU = np.mean(df10['windspeed'].dropna())
-                meanw = np.mean(df10['w'].dropna())
+                meanU = np.mean(df10['windspeed'])
+                meanw = np.mean(df10['w'])
                 ########## Save everything in a array #####################################
                 meanDir.append(meandir)
                 u_mag.append(np.sqrt(meanu**2+meanv**2+meanw**2))
@@ -131,7 +131,7 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
                 mean_w.append(meanw)
                 alpha.append(np.degrees(np.arctan2(meanw,meanU)))
                 if midSampled:
-                    dates.append(np.array(np.mean(df10['Time'].dropna()), dtype='datetime64[m]'))
+                    dates.append(np.array(np.mean(df10['Time']), dtype='datetime64[m]'))
                 else:
                     dates.append(np.array(df10['Time'].to_numpy()[0], dtype='datetime64[m]'))
             #except Exception:
