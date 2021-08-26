@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pylab as plt
 import netCDF4
-import xarray as xr
 from scipy import interpolate
 import pandas as pd
 import click
@@ -14,6 +13,12 @@ from convertCoords import computeSensorLoc
 from datetime import datetime, timedelta
 from matplotlib import cm
 from siso.coords import graph, Coords
+
+def nearest_ind(items, pivot):
+    time_diff = np.abs([date - pivot for date in items])
+    boolArr = np.zeros((len(items)), dtype=bool)
+    boolArr[time_diff.argmin(0)] = True
+    return boolArr
 
 def getQoI(name,utmPoints,uUTM,u_mag,useDeg=False):
     src = Coords.find('utm:33n')
@@ -157,9 +162,11 @@ def main(savefigure,showplots,i_date):
                     z = np.floor(Sensorh[i][k]).astype(int)
                     filename = simraResultsFolder+'measurements/'+dataTypes[j]+'/10hz_'+mastNames[i]+'_60mnturbulence_statistics_'+str(z)+'_202011.csv'
                     df_all = pd.read_csv(filename)
+                    df_all['date'] = pd.to_datetime(df_all['date'])
                     if j == 0:
                         df_obs = df_obs.append(df_all[df_all.date==0])
-                    indices = np.array(df_all.date,dtype='datetime64[m]') == np.array(date,dtype='datetime64[m]')
+                    
+                    indices = nearest_ind(df_all.date, date)
                     if df_all[indices].empty:
                         df_obs = df_obs.append(pd.Series(dtype='object'), ignore_index=True)
                     else:

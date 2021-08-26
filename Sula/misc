@@ -56,27 +56,32 @@
 #    python3 plotProfiles.py --i_date $i 
 #done
 #python3 comparison_mast_simra.py
+
 #pushd $HOME/results/simra/Sula/profileResults > /dev/null
 #for plotType in WindDirProfiles alphaProfiles
 #do
 #    ffmpeg -framerate 5 -pattern_type glob -i "${plotType}*.png" -c:v ffv1 "${plotType}.avi"
 #done
-#pushd $HOME/results/simra/Sula/profileResults > /dev/null
 #popd > /dev/null
 
 # Combine pdfs
-folders="scatterPlots profileResults"
-#folders="scatterPlots"
-for folder in $folders
-do
-    pushd $HOME/results/simra/Sula/$folder > /dev/null
-    profileNames="alphaProfiles WindDirProfiles VelocityProfiles"
-    for f in $profileNames 
-    do 
-        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE=../${folder}_${f}.pdf -dBATCH ${f}*.pdf
-    done
-    popd > /dev/null
-done
+#folders="scatterPlots profileResults"
+##folders="scatterPlots"
+#for folder in $folders
+#do
+#    pushd $HOME/results/simra/Sula/$folder > /dev/null
+#    profileNames="alphaProfiles WindDirProfiles VelocityProfiles"
+#    for f in $profileNames 
+#    do 
+#        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE=../${folder}_${f}.pdf -dBATCH ${f}*.pdf
+#    done
+#    popd > /dev/null
+#done
+
+pushd $HOME/results/simra/Sula > /dev/null
+tar -cvf profiles.tar profileResults* sampledResults.csv
+tar -cvf scatters.tar scatterPlots*
+popd > /dev/null
 
 # Convert simra files through PostProc app for visualizations
 #srcDir=$HOME/results/simra/Sula/met_new/2020111912
@@ -91,7 +96,4 @@ done
 #    $OMP_NUM_THREADS=4 SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5
 #    siso -f vtu ${fileName}.hdf5 ${fileName}.vtu
 #done
-#pushd $HOME/results/simra/Sula > /dev/null
-#tar -cvf profiles.tar profileResults* sampledResults.csv
-#tar -cvf scatters.tar scatterPlots*
 #popd > /dev/null
