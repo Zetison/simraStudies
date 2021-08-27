@@ -79,9 +79,6 @@ for i in range(noMasts):
             filename = simraResultsFolder+'measurements/'+dataTypes[j]+'/10hz_'+mastNames[i]+'_60mnturbulence_statistics_'+str(z)+'_202011.csv'
             df_all = pd.read_csv(filename)
             if compareWithArome:
-                if k > 0:
-                    continue
-
                 try:
                     absHeight = str(Sensorh[i][k]+mastb[i]).rstrip('0').rstrip('.')
                     nc_Arome = netCDF4.Dataset(home+'/results/simra/Sula/measurements/202011_%s_%sm_mepsdetml.nc' % (mastNames[i],absHeight))
@@ -154,7 +151,7 @@ for i in range(noMasts):
                 plt.close()
                 dfResult = dfSim_j[['date', xArrayNames[i_l]]].copy()
                 dfResult[xArrayNames[i_l]+'_obs'] = dfObs[xArrayNames[i_l]]
-                dfResult.to_csv(simraResultsFolder+'scatterPlots/'+caseName+'.csv',index=False)
+                dfResult.to_csv(simraResultsFolder+'scatterPlots/'+caseName+postfix+'.csv',index=False)
                 #plt.show()
         i_s += 1
 
