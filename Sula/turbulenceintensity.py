@@ -19,6 +19,12 @@ import click
 from os.path import expanduser
 
 ############## Perdelta function ############################################## 
+def nearest_ind(items, pivot):
+    time_diff = np.abs([date - pivot for date in items])
+    boolArr = np.zeros((len(items)), dtype=bool)
+    boolArr[time_diff.argmin(0)] = True
+    return boolArr
+
 def perdelta(start, end, delta):
     curr = start
     while curr < end:
@@ -131,9 +137,9 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
                 mean_w.append(meanw)
                 alpha.append(np.degrees(np.arctan2(meanw,meanU)))
                 if midSampled:
-                    dates.append(np.array(np.mean(df10['Time']), dtype='datetime64[m]'))
+                    dates.append(np.array(np.mean(df10['Time']).round(str(time_interval)+'min'), dtype='datetime64[m]'))
                 else:
-                    dates.append(np.array(df10['Time'].to_numpy()[0], dtype='datetime64[m]'))
+                    dates.append(np.array(df10['Time'].round(str(time_interval)+'min').to_numpy()[0], dtype='datetime64[m]'))
             #except Exception:
             #       print("Warning - Bad data")
 
@@ -158,10 +164,10 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
 def main():
     totPeriod = 30*60*24 - 60  # in minutes
     #totPeriod = 60  # in minutes
-    #locations = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen','Bridgecenter']
-    locations = ['Bridgecenter']
+    locations = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen','Bridgecenter']
+    #locations = ['Bridgecenter']
     for location in locations:
-        for midSampled in [False,True]:
+        for midSampled in [True]:
             #extractData(totPeriod=totPeriod,midSampled=midSampled,location=location,day=19,hour=15)
             extractData(totPeriod=totPeriod,midSampled=midSampled,location=location)
 

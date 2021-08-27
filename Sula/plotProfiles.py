@@ -14,12 +14,6 @@ from datetime import datetime, timedelta
 from matplotlib import cm
 from siso.coords import graph, Coords
 
-def nearest_ind(items, pivot):
-    time_diff = np.abs([date - pivot for date in items])
-    boolArr = np.zeros((len(items)), dtype=bool)
-    boolArr[time_diff.argmin(0)] = True
-    return boolArr
-
 def getQoI(name,utmPoints,uUTM,u_mag,useDeg=False):
     src = Coords.find('utm:33n')
     tgt = Coords.find('geodetic')
@@ -119,7 +113,7 @@ def main(savefigure,showplots,loadvtk,i_date):
 
     # Initiate plot arrays
     #dataTypes = ['raw','rawMid','rawNew','rawMidNew']
-    dataTypes = ['rawNew','rawMidNew']
+    dataTypes = ['rawMidNew']
     colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.4,0.8],[0.4,0.8,0.8]] 
     mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen', 'Bridgecenter']
     layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
