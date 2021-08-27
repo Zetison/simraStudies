@@ -14,6 +14,12 @@ from datetime import datetime, timedelta
 from matplotlib import cm
 from siso.coords import graph, Coords
 
+def nearest_ind(items, pivot):
+    time_diff = np.abs([date - pivot for date in items])
+    boolArr = np.zeros((len(items)), dtype=bool)
+    boolArr[time_diff.argmin(0)] = True
+    return boolArr
+
 def getQoI(name,utmPoints,uUTM,u_mag,useDeg=False):
     src = Coords.find('utm:33n')
     tgt = Coords.find('geodetic')
