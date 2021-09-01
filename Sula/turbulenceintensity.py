@@ -14,7 +14,6 @@ import pandas as pd
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import requests
-import time
 import click
 from os.path import expanduser
 
@@ -54,9 +53,8 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
 
     end_dt = start_dt + relativedelta(minutes=+totPeriod) #40,320
     ############### Read data and clean ###########################################
-    t0 = time.perf_counter()
     if location == 'Bridgecenter':
-        base_url = '/home/zetison/results/simra/Sula/measurements/%d%02d_%s_1hz.nc' % (year,month,location)
+        base_url = '/home/zetison/results/simra/Sula/measurements/%d%02d_%s_1%s.nc' % (year,month,location,frequency)
     else:
         base_url = 'https://thredds.met.no/thredds/dodsC/obs/mast-svv-e39/%d/%d/%d%02d_%s_10%s.nc' % (year,month,year,month,location,frequency)
 
@@ -80,10 +78,7 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
     winddirAll = nc_wind.variables['winddirection'][indices,:]
     z = nc_wind.variables['alt'][:]
 
-    print(time.perf_counter() - t0)
-    t0 = time.perf_counter()
     for height_level in range(len(z)):
-        t0 = time.perf_counter()
         df0 = pd.DataFrame({'Time':tAll,
                             'windspeed':uAll[:,height_level],
                             'w':wAll[:,height_level],
@@ -93,8 +88,6 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
         df0['u'] = -df0['windspeed']*np.sin(np.radians(df0['winddirection']))
         df0['v'] = -df0['windspeed']*np.cos(np.radians(df0['winddirection']))
 
-        print(time.perf_counter() - t0)
-        t0 = time.perf_counter()
         #################################### Program Start ############################
         print (location,z[height_level],start_dt)
 
@@ -108,45 +101,45 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
         dates   = []
         ###################### Gust wind speed ########################################
         for dt in perdelta(start_dt, end_dt,  relativedelta(minutes=+time_interval)):
-            #try:
-                start = dt.strftime('%Y-%m-%d %H:%M')
-                end = (dt + relativedelta(minutes=+time_interval)).strftime('%Y-%m-%d %H:%M')
-                print (start, end)
-                matches = np.logical_and(start <= df0['Time'], df0['Time'] <= end)
-                if np.any(matches):
-                    df10 = df0[matches]
-                else:
-                    print('Warning - Bad data (no overlap in time)')
-                    continue
+            start = dt.strftime('%Y-%m-%d %H:%M')
+            end = (dt + relativedelta(minutes=+time_interval)).strftime('%Y-%m-%d %H:%M')
+            print (start, end)
 
-                df10 = df10.dropna()
-                ########## Wind speed decomposition #######################################
-                meanu = np.mean(df10['u'])
-                meanv = np.mean(df10['v'])
-                meandir = (180+90-np.degrees(np.arctan2(meanv,meanu))) % 360.
-    
-                ########## Statistical quatities ##########################################
-                meanU = np.mean(df10['windspeed'])
-                meanw = np.mean(df10['w'])
-                ########## Save everything in a array #####################################
-                meanDir.append(meandir)
-                u_mag.append(np.sqrt(meanu**2+meanv**2+meanw**2))
-                mean_U.append(meanU)
-                mean_u.append(meanu)
-                mean_v.append(meanv)
-                mean_w.append(meanw)
-                alpha.append(np.degrees(np.arctan2(meanw,meanU)))
-                if midSampled:
-                    dates.append(np.array(np.mean(df10['Time']).round(str(time_interval)+'min'), dtype='datetime64[m]'))
-                else:
-                    dates.append(np.array(df10['Time'].round(str(time_interval)+'min').to_numpy()[0], dtype='datetime64[m]'))
-            #except Exception:
-            #       print("Warning - Bad data")
+            indices = np.logical_and(start <= df0['Time'], df0['Time'] <= end)
+            if np.any(indices):
+                dfUniform = pd.DataFrame()
+                uniformTime = pd.date_range(start, end, freq='100ms')
+                dfUniform['Time'] = uniformTime
+                for field in ['windspeed','u','v','w']:
+                    dfUniform[field] = np.interp(uniformTime,df0['Time'][indices],df0[field][indices])
+            else:
+                print('Warning - Bad data (no overlap in time)')
+                continue
+
+            ########## Wind speed decomposition #######################################
+            meanu = np.mean(dfUniform['u'])
+            meanv = np.mean(dfUniform['v'])
+            meandir = (180+90-np.degrees(np.arctan2(meanv,meanu))) % 360.
+            meanU = np.mean(dfUniform['windspeed'])
+            meanw = np.mean(dfUniform['w'])
+
+            ########## Save everything in a array #####################################
+            meanDir.append(meandir)
+            u_mag.append(np.sqrt(meanu**2+meanv**2+meanw**2))
+            mean_U.append(meanU)
+            mean_u.append(meanu)
+            mean_v.append(meanv)
+            mean_w.append(meanw)
+            alpha.append(np.degrees(np.arctan2(meanw,meanU)))
+            if midSampled:
+                dates.append(np.array(np.mean(dfUniform['Time']).round(str(time_interval)+'min'), dtype='datetime64[m]'))
+            else:
+                dates.append(np.array(dfUniform['Time'].round(str(time_interval)+'min').to_numpy()[0], dtype='datetime64[m]'))
 
         ################### Write all result into a panda dataframe ####################
         df_turbstat = pd.DataFrame()
-        df_turbstat['meandir'] = meanDir
         df_turbstat['date'] = dates
+        df_turbstat['meandir'] = meanDir
 
         df_turbstat['u_mag'] = u_mag
         df_turbstat['meanU'] = mean_U
@@ -157,8 +150,9 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
         df_turbstat['alpha'] = alpha
 
         home = expanduser("~")
-        df_turbstat.to_csv(home+'/results/simra/Sula/measurements/'+dataType+'/10%s_%s_60mnturbulence_statistics_%d_%d%02d.csv' % (frequency,location, z[height_level], year, month), index=False)
-        print(time.perf_counter() - t0)
+        filename = home+'/results/simra/Sula/measurements/'+dataType+'/10%s_%s_60mnturbulence_statistics_%d_%d%02d.csv' % (frequency,location, z[height_level], year, month)
+        df_turbstat.to_csv(filename, index=False)
+        print("File %s written." % filename)
 
 @click.command()
 def main():

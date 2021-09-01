@@ -5,6 +5,7 @@ SIMRASOLTRANSF=$HOME/kode/IFEM/Apps/SIMRA-PostProc/r/bin/SIMRA-SolutionTransfer
 caseName=Frankfurt
 simraresultsFolder=$HOME/results/simra
 resultsFolder=$simraresultsFolder/$caseName
+wrfInputFile=$HOME/results/WRF/Frankfurt/2021072612/wrfout_d04.nc
 #withMPI=1
 withMPI=0
 mkdir -p $resultsFolder
@@ -34,7 +35,7 @@ NSTEP=1000
 #NSTEP=10
 for M in 0 # 0 1 2 3
 do
-    cp ../ic_bc_MPI.f90 ../extract_yplusSurf.py ../ic_bc.f90 simra.in ../SIMRA_PostProc.xinp $resultsFolder
+    cp Frankfurt-transfer.xinp ../ic_bc_MPI.f90 ../extract_yplusSurf.py ../ic_bc.f90 simra.in ../SIMRA_PostProc.xinp $resultsFolder
     pushd $resultsFolder > /dev/null
     UREF=$(cat $simrainfile | grep -oP '(?<=UREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
     LENREF=$(cat $simrainfile | grep -oP '(?<=LENREF=)[+-]?[0-9]+([.][0-9]+)?+([e][+-][0-9]+)?')
@@ -46,7 +47,6 @@ do
     fileName=${caseName}_M${M}
     logsimra=${fileName}_simra.log
     logsimramesh=${fileName}_simramesh.log
-    logIFEMmesh=${fileName}_simramesh.log
     if [[ $1 == 1 ]]
     then
         if [[ "$M" == 0 ]]
@@ -69,13 +69,14 @@ do
         pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
         simramesh ${caseName}${topoRes}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
         siso -f vts ${fileName}_3D.g2
-        siso -f dat ${fileName}_3D.g2 mesh.dat
+        siso -f dat ${fileName}_3D.g2 mesh_simramesh.dat
         #paraview ${fileName}_3D.vts & # View mesh (optional)
     fi
     if [[ $2 == 1 ]]
     then
         #cp mesh_converted.dat mesh.dat
         logsimra=${fileName}_simra.log
+        logIFEMmesh=${fileName}_IFEM.log
         #rm $resultsFolder/yplus*.*
         if [[ $withMPI == 1 ]]
         then
@@ -85,20 +86,21 @@ do
             $HOME/kode/simra/build_mpi/bin/cppe1
             $HOME/kode/simra/build_mpi/bin/simra_mpi simra.in | tee $logsimra
         else
-            gfortran ic_bc.f90 -o ic_bc
-            ./ic_bc simra.in
+            #gfortran ic_bc.f90 -o ic_bc
+            #./ic_bc simra.in
             #python3 convertBE.py
-            #$SIMRASOLTRANSF Sula-transfer.xinp
-            $HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
+            wrf2simra $wrfInputFile mesh.dat cont_wrf.res
+            $SIMRASOLTRANSF Frankfurt-transfer.xinp -selfTransfer -fixup | tee $logIFEM 
+            #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
             #simra simra.in | tee $logsimra
         fi
-        $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
-        siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
-        #siso -f pvd cont.res ${fileName}.pvd
-        nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
-        nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
-        nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
-        python3 extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $NSTEP --pvdname $fileName 
+        #$SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
+        #siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
+        ##siso -f pvd cont.res ${fileName}.pvd
+        #nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
+        #nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
+        #nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
+        #python3 extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $NSTEP --pvdname $fileName 
     fi
     popd > /dev/null
 done

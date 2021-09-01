@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<simulation>
+  <!-- General - geometry definitions !-->
+  <simra_input>
+    <geometry>
+        <patchfile>mesh_simramesh.dat</patchfile>
+      <topologysets>
+        <set name="Bottom" type="face">
+          <item patch="1">5</item>
+        </set>
+      </topologysets>
+    </geometry>
+    <fluidproperties nu="1.5e-05"/>
+    <scaling u="20" L="2000"/>
+    <resultfile type="restart">cont_wrf.res</resultfile>
+    <generator surface_roughness="0.3"/>
+  </simra_input>
+
+  <simra_output>
+    <fluidproperties nu="1.5e-05"/>
+    <scaling u="20" L="2000"/>
+    <geometry>
+      <patchfile>mesh.dat</patchfile>
+    </geometry>
+    <resultfile type="init">init.dat</resultfile>
+    <boundaryfile>boun.dat</boundaryfile>
+  </simra_output>
+
+</simulation>

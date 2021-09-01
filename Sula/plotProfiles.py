@@ -14,6 +14,33 @@ from datetime import datetime, timedelta
 from matplotlib import cm
 from siso.coords import graph, Coords
 
+def getAromeData(filename,Sensorh,mastb,date=False):
+    xArrayNames = ['u_mag', 'meandir', 'alpha']
+    xArrayNamesArome = ['windspeed', 'winddirection', 'upward_air_velocity']
+    # Get Arome data
+    try:
+        nc_Arome = netCDF4.Dataset(filename)
+    except Exception:
+        print("Data is lacking for "+mastNames[i])
+        return pd.DataFrame()
+
+    times = nc_Arome.variables['time']
+    tAll = netCDF4.num2date(times[:], times.units,only_use_cftime_datetimes=False).data
+    if date:
+        indices = np.array(tAll,dtype='datetime64[m]') == np.array(date,dtype='datetime64[m]')
+    else:
+        indices = slice(len(times))
+
+    df0 = pd.DataFrame()
+    for i_l in range(2):
+        df0[xArrayNames[i_l]] = nc_Arome.variables[xArrayNamesArome[i_l]][0].data[indices]
+    
+    w = nc_Arome.variables[xArrayNamesArome[2]][0].data[indices]
+    u_mag = nc_Arome.variables[xArrayNamesArome[0]][0].data[indices]
+    df0['date'] = tAll[indices]
+    df0[xArrayNames[2]] = np.degrees(np.arctan2(w,u_mag))
+    return df0
+
 def getQoI(name,utmPoints,uUTM,u_mag,useDeg=False):
     src = Coords.find('utm:33n')
     tgt = Coords.find('geodetic')
@@ -118,7 +145,6 @@ def main(savefigure,showplots,loadvtk,i_date):
     mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen', 'Bridgecenter']
     layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
     xArrayNames = ['u_mag', 'meandir', 'alpha']
-    xArrayNamesArome = ['windspeed', 'winddirection', 'alpha']
     bottomAxisRangeMinimums = [0.0, 0.0, -30.0]
     bottomAxisRangeMaximums = [30.0, 2*np.pi, 30.0]
     bottomAxisTitles = ['$u$ [m/s] (magnitude)', 'Wind dir', 'Angle of Attack $[^\circ]$']
@@ -167,22 +193,9 @@ def main(savefigure,showplots,loadvtk,i_date):
                     else:
                         df_obs = df_obs.append(df_all[indices])
 
-                    # Get Arome data
-                    try:
-                        absHeight = str(Sensorh[i][k]+mastb[i]).rstrip('0').rstrip('.')
-                        nc_Arome = netCDF4.Dataset(home+'/results/simra/Sula/measurements/202011_%s_%sm_mepsdetml.nc' % (mastNames[i],absHeight))
-                    except Exception:
-                        print("Data is lacking for "+mastNames[i])
-                        continue
-
-                    times = nc_Arome.variables['time']
-                    tAll = netCDF4.num2date(times[:], times.units,only_use_cftime_datetimes=False).data
-                    indices = np.array(tAll,dtype='datetime64[m]') == np.array(date,dtype='datetime64[m]')
-                    df0 = pd.DataFrame()
-                    for i_l in range(2):
-                        df0[xArrayNames[i_l]] = nc_Arome.variables[xArrayNamesArome[i_l]][0].data[indices]
-
-                    df_arome = df_arome.append(df0)
+                    absHeight = str(Sensorh[i][k]+mastb[i]).rstrip('0').rstrip('.')
+                    filename = home+'/results/simra/Sula/measurements/202011_%s_%sm_mepsdetml.nc' % (mastNames[i],absHeight)
+                    df_arome = df_arome.append(getAromeData(filename,Sensorh,mastb,date))
 
                 if df_obs.empty:
                     continue
@@ -214,8 +227,6 @@ def main(savefigure,showplots,loadvtk,i_date):
                         if layoutNames[i_l] == 'WindDirProfiles':
                             QoI = np.radians(QoI)
 
-                        if not len(QoI) == len(points[:,2]):
-                            print('rita')
                         ax[i_l][i].plot(QoI,points[:,2],color = [1.0,0.0,0.0],marker='x',label = 'Arome')
 
         # Iterate over all SIMRA files corresponding to the given date

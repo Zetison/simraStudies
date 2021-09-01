@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
 from convertCoords import computeSensorLoc 
+from plotProfiles import getAromeData
 from os.path import expanduser
 
 home = expanduser("~")
@@ -37,7 +38,7 @@ mastNames = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen', 'Bridgecente
 xLabels = ['Mean wind speed $[m/s]$', 'Mean wind direction $[^\circ]$', 'Mean angle of attack $[^\circ]$']
 xArrayNames = ['u_mag', 'meandir', 'alpha']
 xArrayLims = [[0,30],[0,360],[-30,30]]
-for compareWithArome in [False,True]:
+for compareWithArome in [True,False]:
     for postfix in ['_wide','_narrow']:
         if postfix == '_wide':
             winddirWindow = np.array([285., 345])
@@ -84,19 +85,9 @@ for compareWithArome in [False,True]:
                     filename = simraResultsFolder+'measurements/'+dataTypes[j]+'/10hz_'+mastNames[i]+'_60mnturbulence_statistics_'+str(z)+'_202011.csv'
                     df_all = pd.read_csv(filename)
                     if compareWithArome:
-                        try:
-                            absHeight = str(Sensorh[i][k]+mastb[i]).rstrip('0').rstrip('.')
-                            nc_Arome = netCDF4.Dataset(home+'/results/simra/Sula/measurements/202011_%s_%sm_mepsdetml.nc' % (mastNames[i],absHeight))
-                        except Exception:
-                            print("Data is lacking for "+mastNames[i])
-                            continue
-
-                        times = nc_Arome.variables['time']
-                        tAll = netCDF4.num2date(times[:], times.units,only_use_cftime_datetimes=False).data
-                        dfSim_i = pd.DataFrame()
-                        dfSim_i['date'] = tAll
-                        dfSim_i['u_mag'] = nc_Arome.variables['windspeed'][0].data
-                        dfSim_i['meandir'] = nc_Arome.variables['winddirection'][0].data
+                        absHeight = str(Sensorh[i][k]+mastb[i]).rstrip('0').rstrip('.')
+                        filename = home+'/results/simra/Sula/measurements/202011_%s_%sm_mepsdetml.nc' % (mastNames[i],absHeight)
+                        dfSim_i = getAromeData(filename,Sensorh,mastb)
 
                     indices_obs = np.isin(np.array(df_all.date,dtype='datetime64[m]'),np.intersect1d(np.array(dfObs_nw.date,dtype='datetime64[m]'),np.array(dfSim_i.date,dtype='datetime64[m]')))
 
@@ -145,6 +136,7 @@ for compareWithArome in [False,True]:
                         if xArrayNames[i_l] == 'meandir':
                             plt.xticks(xticks, (xticks % 360).astype(int))
                             plt.yticks(xticks, (xticks % 360).astype(int))
+
                         plt.xlim(xlim)
                         plt.ylim(xlim)
                         plt.clim((0,360))
@@ -156,11 +148,8 @@ for compareWithArome in [False,True]:
                         plt.close()
                         dfResult = dfSim_j[['date', xArrayNames[i_l]]].copy()
                         dfResult[xArrayNames[i_l]+'_obs'] = dfObs[xArrayNames[i_l]]
-                        if caseName == 'VelocityProfiles_Bridgecenter_70_rawMidNew_202011':
-                            print('test')
 
                         dfResult.to_csv(simraResultsFolder+'scatterPlots/'+caseName+postfix+'.csv',index=False)
-                        #plt.show()
                 i_s += 1
 
 
