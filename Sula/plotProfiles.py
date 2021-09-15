@@ -15,8 +15,6 @@ from matplotlib import cm
 from siso.coords import graph, Coords
 
 def getAromeData(filename,Sensorh,mastb,date=False):
-    xArrayNames = ['u_mag', 'meandir', 'alpha']
-    xArrayNamesArome = ['windspeed', 'winddirection', 'upward_air_velocity']
     # Get Arome data
     try:
         nc_Arome = netCDF4.Dataset(filename)
@@ -31,14 +29,16 @@ def getAromeData(filename,Sensorh,mastb,date=False):
     else:
         indices = slice(len(times))
 
+    w = nc_Arome.variables['upward_air_velocity'][0].data[indices]
+
     df0 = pd.DataFrame()
-    for i_l in range(2):
-        df0[xArrayNames[i_l]] = nc_Arome.variables[xArrayNamesArome[i_l]][0].data[indices]
-    
-    w = nc_Arome.variables[xArrayNamesArome[2]][0].data[indices]
-    u_mag = nc_Arome.variables[xArrayNamesArome[0]][0].data[indices]
     df0['date'] = tAll[indices]
-    df0[xArrayNames[2]] = np.degrees(np.arctan2(w,u_mag))
+    df0['meanU'] = nc_Arome.variables['windspeed'][0].data[indices]
+    meanU = df0['meanU'] 
+    df0['u_mag'] = np.sqrt(meanU**2 + w**2) 
+    df0['alpha'] = np.degrees(np.arctan2(w,meanU))
+    df0['meandir'] = nc_Arome.variables['winddirection'][0].data[indices]
+
     return df0
 
 def getQoI(name,utmPoints,uUTM,u_mag,useDeg=False):
@@ -56,6 +56,14 @@ def getQoI(name,utmPoints,uUTM,u_mag,useDeg=False):
             QoI = (np.radians(180+90)-np.arctan2(u[:,1],u[:,0])) % (2*np.pi)
     elif name == 'alphaProfiles':
         QoI = np.degrees(np.arctan2(u[:,2],np.linalg.norm(u[:,:2],axis=1)))
+    elif name == 'meanU':
+        QoI = np.linalg.norm(u[:,:2],axis=1)
+    elif name == 'meanu':
+        QoI = u[:,0]
+    elif name == 'meanv':
+        QoI = u[:,1]
+    elif name == 'meanw':
+        QoI = u[:,2]
     return QoI
 
 def load_vtk(filename):
@@ -144,7 +152,7 @@ def main(savefigure,showplots,loadvtk,i_date):
     colorsData = [[0,0,0],[0.4,0.4,0.4],[0.8,0.4,0.8],[0.4,0.8,0.8]] 
     mastNames = ['Kvitneset', 'Traelboneset','Langeneset','Kaarsteinen', 'Bridgecenter']
     layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
-    xArrayNames = ['u_mag', 'meandir', 'alpha']
+    xArrayNames = ['u_mag', 'meandir', 'alpha', 'meanU']
     bottomAxisRangeMinimums = [0.0, 0.0, -30.0]
     bottomAxisRangeMaximums = [30.0, 2*np.pi, 30.0]
     bottomAxisTitles = ['$u$ [m/s] (magnitude)', 'Wind dir', 'Angle of Attack $[^\circ]$']
@@ -290,8 +298,9 @@ def main(savefigure,showplots,loadvtk,i_date):
                         row['baseDate'] = df_date['baseDate']
                         row['addtime'] = df_date['addtime']
                         row['z'] = sensorLoc[i][i_s,-1]
-                        for i_l in range(noPlots):
-                            row[xArrayNames[i_l]] = getQoI(layoutNames[i_l],sensorLoc[i][[i_s],:],uUTMSensor[[i_s],:],u_magSensor[[i_s]],useDeg=True)
+                        layoutNamesOut = layoutNames + ['meanU']
+                        for i_l in range(len(layoutNamesOut)):
+                            row[xArrayNames[i_l]] = getQoI(layoutNamesOut[i_l],sensorLoc[i][[i_s],:],uUTMSensor[[i_s],:],u_magSensor[[i_s]],useDeg=True)
 
                         dfSensor = dfSensor.append(row)
 

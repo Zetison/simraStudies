@@ -50,12 +50,12 @@
 #done
 
 # Create profiles
-for ((i=0; i<723; i++))
-#for ((i=0; i<21; i++))
-do 
-    python3 plotProfiles.py --i_date $i 
-done
-#python3 comparison_mast_simra.py
+#for ((i=0; i<723; i++))
+##for ((i=0; i<21; i++))
+#do 
+#    python3 plotProfiles.py --i_date $i 
+#done
+python3 comparison_mast_simra.py
 
 #pushd $HOME/results/simra/Sula/profileResults > /dev/null
 #for plotType in WindDirProfiles alphaProfiles
@@ -65,26 +65,26 @@ done
 #popd > /dev/null
 
 # Combine pdfs
-#profileNames="alphaProfiles WindDirProfiles VelocityProfiles"
-#postfix="_wide _narrow"
-#for f in $profileNames 
-#do 
-#    pushd $HOME/results/simra/Sula/scatterPlots > /dev/null
-#    for g in $postfix
-#    do
-#        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../scatterPlots_${f}${g}_simra.pdf" -dBATCH ${f}*${g}_simra.pdf
-#        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../scatterPlots_${f}${g}_arome.pdf" -dBATCH ${f}*${g}_arome.pdf
-#    done
-#    popd > /dev/null
-#    pushd $HOME/results/simra/Sula/profileResults > /dev/null
-#    gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../profileResults_${f}.pdf" -dBATCH ${f}*1.pdf
-#    popd > /dev/null
-#done
+profileNames="alphaProfiles WindDirProfiles VelocityProfiles"
+postfix="_wide _narrow"
+for f in $profileNames 
+do 
+    pushd $HOME/results/simra/Sula/scatterPlots > /dev/null
+    for g in $postfix
+    do
+        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../scatterPlots_${f}${g}_simra.pdf" -dBATCH ${f}*${g}_simra.pdf
+        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../scatterPlots_${f}${g}_arome.pdf" -dBATCH ${f}*${g}_arome.pdf
+    done
+    popd > /dev/null
+    #pushd $HOME/results/simra/Sula/profileResults > /dev/null
+    #gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../profileResults_${f}.pdf" -dBATCH ${f}*1.pdf
+    #popd > /dev/null
+done
 #
-#pushd $HOME/results/simra/Sula > /dev/null
+pushd $HOME/results/simra/Sula > /dev/null
 #tar -cvf profiles.tar profileResults* sampledResults.csv
-#tar -cvf scatters.tar scatterPlots*
-#popd > /dev/null
+tar -cvf scatters.tar scatterPlots*
+popd > /dev/null
 
 # Convert simra files through PostProc app for visualizations
 #srcDir=$HOME/results/simra/Sula/met_new/2020111912

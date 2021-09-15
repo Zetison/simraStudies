@@ -35,8 +35,12 @@ viridis=plt.get_cmap('viridis')
 #dataTypes = ['raw','rawMid','rawNew','rawMidNew']
 dataTypes = ['rawMidNew']
 mastNames = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen', 'Bridgecenter']
-xLabels = ['Mean wind speed $[m/s]$', 'Mean wind direction $[^\circ]$', 'Mean angle of attack $[^\circ]$']
-xArrayNames = ['u_mag', 'meandir', 'alpha']
+xLabels = ['Mean wind speed $[m/s]$', 'Mean wind direction $[^\circ]$', 'Mean angle of attack $[^\circ]$', 'Mean horizontal wind speed $[m/s]$']
+xArrayNames = ['u_mag', 'meandir', 'alpha', 'meanU']
+#xArrayNames = ['meanU']
+layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles', 'meanUProfiles']
+noPlots = len(layoutNames)
+noDataTypes = len(dataTypes)
 xArrayLims = [[0,30],[0,360],[-30,30]]
 for compareWithArome in [True,False]:
     for postfix in ['_wide','_narrow']:
@@ -49,12 +53,9 @@ for compareWithArome in [True,False]:
 
         if compareWithArome:
             postfix += '_arome'
-            layoutNames = ['VelocityProfiles', 'WindDirProfiles']
         else:
             postfix += '_simra'
-            layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles']
-        noPlots = len(layoutNames)
-        noDataTypes = len(dataTypes)
+
         sensorLoc,CoordUTM32,mastb,masth,Sensorh = computeSensorLoc(originx=-200,originy=6899800)
 
         resultFileName = simraResultsFolder+'sampledResults.csv'
@@ -79,15 +80,17 @@ for compareWithArome in [True,False]:
             noSensors = len(Sensorh[i])
             for k in range(noSensors):
                 z = np.floor(Sensorh[i][k]).astype(int)
-                dfSim_i = dfSim[(dfSim.name == 'M1') & (dfSim.location == mastNames[i]) & (dfSim.z == sensorLoc[i][k,-1]) & (dfSim.addtime < 6)]
+                if compareWithArome:
+                    absHeight = str(Sensorh[i][k]+mastb[i]).rstrip('0').rstrip('.')
+                    filename = home+'/results/simra/Sula/measurements/202011_%s_%sm_mepsdetml.nc' % (mastNames[i],absHeight)
+                    dfSim_i = getAromeData(filename,Sensorh,mastb)
+                else:
+                    dfSim_i = dfSim[(dfSim.name == 'M1') & (dfSim.location == mastNames[i]) & (dfSim.z == sensorLoc[i][k,-1]) & (dfSim.addtime < 6)]
+
                 for j in range(noDataTypes):
                     # Filter data based on the criteria above
                     filename = simraResultsFolder+'measurements/'+dataTypes[j]+'/10hz_'+mastNames[i]+'_60mnturbulence_statistics_'+str(z)+'_202011.csv'
                     df_all = pd.read_csv(filename)
-                    if compareWithArome:
-                        absHeight = str(Sensorh[i][k]+mastb[i]).rstrip('0').rstrip('.')
-                        filename = home+'/results/simra/Sula/measurements/202011_%s_%sm_mepsdetml.nc' % (mastNames[i],absHeight)
-                        dfSim_i = getAromeData(filename,Sensorh,mastb)
 
                     indices_obs = np.isin(np.array(df_all.date,dtype='datetime64[m]'),np.intersect1d(np.array(dfObs_nw.date,dtype='datetime64[m]'),np.array(dfSim_i.date,dtype='datetime64[m]')))
 
@@ -127,7 +130,7 @@ for compareWithArome in [True,False]:
                         errArr[i_s][j][i_l] = err
                         sc = plt.scatter(QoI_obs, QoI_sim,c=dfObs['meandir'],edgecolors='black',s=None, cmap=twilight)
                         plt.colorbar(sc,label="Observation"+" "+"wind"+" "+"direction"+" "+"($^{\circ}$)")
-                        plt.title(mastNames[i] +", z = "+ str(z) +"m: Corr. "+"{0:.2f}".format(corr[0]) +", relative error "+"{0:.2f}%".format(err))
+                        plt.title(mastNames[i]+postfix.replace('_',', ')+", z = "+ str(z) +"m:\nCorr. "+"{0:.2f}".format(corr[0]) +", relative error "+"{0:.2f}%".format(err))
                         xlim = np.array(xArrayLims[i_l]) + shift
                         plt.plot(xlim, xlim,'k-',linewidth=2)
                         plt.xlabel('Obs. '+xLabels[i_l],fontsize=14)
@@ -163,7 +166,7 @@ for compareWithArome in [True,False]:
             print('\n\n',file=f)
             for arr in [errArr, corrArr]:
                 for j in range(noDataTypes):
-                    meanArr = np.mean(arr[:,j,:])
+                    meanArr = np.ma.masked_invalid(arr[:,j,:]).mean()
                     print('Average '+names[i_arr]+' for '+dataTypes[j]+' is '+str(meanArr), file=f)
                 i_arr += 1
 
@@ -172,7 +175,7 @@ for compareWithArome in [True,False]:
                 print('\nTable of mean '+names[i_arr]+' results', file=f)
                 print(('\n%20s'+'%20s'*noPlots) % tuple(('',)+tuple(layoutNames)), file=f)
                 for j in range(noDataTypes):
-                    meanArr = np.mean(arr[:,j,:],axis=0)
+                    meanArr = np.ma.masked_invalid(arr[:,j,:]).mean(axis=0)
                     print(('%20s' + '%20f'*len(meanArr)) % tuple(tuple((dataTypes[j],))+tuple(meanArr)), file=f)
                 i_arr += 1
 
