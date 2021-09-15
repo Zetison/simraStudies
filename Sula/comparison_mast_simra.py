@@ -27,11 +27,6 @@ twilight=plt.get_cmap('twilight')
 viridis=plt.get_cmap('viridis')
 
 ########################### Give parameters and file names ######################################
-#dataTypes = ['raw']
-#mastNames = ['Kvitneset']
-#layoutNames = ['VelocityProfiles']
-#xArrayNames = ['u_mag']
-#xArrayLims = [[0,25]]
 #dataTypes = ['raw','rawMid','rawNew','rawMidNew']
 dataTypes = ['rawMidNew']
 mastNames = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen', 'Bridgecenter']
@@ -41,7 +36,7 @@ xArrayNames = ['u_mag', 'meandir', 'alpha', 'meanU']
 layoutNames = ['VelocityProfiles', 'WindDirProfiles', 'alphaProfiles', 'meanUProfiles']
 noPlots = len(layoutNames)
 noDataTypes = len(dataTypes)
-xArrayLims = [[0,30],[0,360],[-30,30]]
+xArrayLims = [[0,30],[0,360],[-30,30],[0,30]]
 for compareWithArome in [True,False]:
     for postfix in ['_wide','_narrow']:
         if postfix == '_wide':
@@ -73,8 +68,8 @@ for compareWithArome in [True,False]:
 
         corrArr = np.zeros((totNoSensors,noDataTypes,noPlots))
         errArr = np.zeros((totNoSensors,noDataTypes,noPlots))
-        QoImax_sim = -np.Inf*np.ones(3)
-        QoImax_obs = -np.Inf*np.ones(3)
+        QoImax_sim = -np.Inf*np.ones(noPlots)
+        QoImax_obs = -np.Inf*np.ones(noPlots)
         i_s = 0
         for i in range(noMasts):
             noSensors = len(Sensorh[i])
@@ -121,10 +116,6 @@ for compareWithArome in [True,False]:
 
 
                         corr = stats.pearsonr(QoI_obs, QoI_sim)
-                        #if xArrayNames[i_l] == 'meandir' or xArrayNames[i_l] == 'alpha':
-                        #    err = np.linalg.norm(QoI_obs - QoI_sim)
-                        #else:
-                        #    err = 100*np.linalg.norm(QoI_obs - QoI_sim)/np.linalg.norm(QoI_obs)
                         err = 100*np.linalg.norm(QoI_obs - QoI_sim)/np.linalg.norm(QoI_obs)
                         corrArr[i_s][j][i_l] = corr[0]
                         errArr[i_s][j][i_l] = err
