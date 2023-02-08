@@ -15,11 +15,12 @@
  ROTBOUND=0,        ! variable outer side boundary BCs
  COURANT_MIN=0.25,  ! min acceptable Cr-number, for time-step control
  COURANT_MAX=1,     ! max acceptable Cr-number, for time-step control
- RELAX=1/           ! outer BC relaxation
+ RELAX=0/           ! outer BC relaxation
 
 &EXTRA_DATA
  TURB=1,            ! = 1: turbulence model included
  WRITE_NORMS=.TRUE.,! print absolute norm of updates
  LOG_ADJUST=.FALSE.,
+ POINT_FILE='POINT_FILE', ! File containing list of points at which to evaluate solution (closest node)
  SAVE_HIST=SED_NSTEP,      ! time-steps between saved output
  SOURCE=0/          ! Source function flag

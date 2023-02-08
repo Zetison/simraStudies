@@ -141,13 +141,19 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
         df_turbstat['date'] = dates
         df_turbstat['meandir'] = meanDir
 
-        df_turbstat['u_mag'] = u_mag
+        
+        if location == 'Bridgecenter':
+            df_turbstat['u_mag'] = np.nan
+            df_turbstat['meanw'] = np.nan
+            df_turbstat['alpha'] = np.nan
+        else:
+            df_turbstat['u_mag'] = u_mag
+            df_turbstat['meanw'] = mean_w
+            df_turbstat['alpha'] = alpha
+
         df_turbstat['meanU'] = mean_U
         df_turbstat['meanu'] = mean_u
         df_turbstat['meanv'] = mean_v
-        df_turbstat['meanw'] = mean_w
-
-        df_turbstat['alpha'] = alpha
 
         home = expanduser("~")
         filename = home+'/results/simra/Sula/measurements/'+dataType+'/10%s_%s_60mnturbulence_statistics_%d_%d%02d.csv' % (frequency,location, z[height_level], year, month)
@@ -159,7 +165,7 @@ def main():
     totPeriod = 30*60*24 - 60  # in minutes
     #totPeriod = 60  # in minutes
     locations = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen','Bridgecenter']
-    #locations = ['Bridgecenter']
+    locations = ['Bridgecenter']
     for location in locations:
         for midSampled in [True]:
             #extractData(totPeriod=totPeriod,midSampled=midSampled,location=location,day=19,hour=15)

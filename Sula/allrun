@@ -7,8 +7,8 @@ caseName=met_new
 #caseName=met
 #caseName=ideal
 #caseName=test
-simraNesting=1
-#simraNesting=""
+#simraNesting=1
+simraNesting=""
 simraresultsFolder=$HOME/results/simra/Sula
 resultsFolder=$simraresultsFolder/$caseName
 #withMPI=1
@@ -24,18 +24,20 @@ zeta=0.1
 zeta=0.05
 #zeta=0.01
 grading=1.116
-res=600
-#res=300
+#res=600
+res=300
 #res=150
 nz=51
-res=154
-#res=308
+# Values to get Met-similar number of elements:
+#res=154
+res=308
 #res=616
 #res=1232
 #nz=31
 height=3888.51
 topoRes="50m"
-topoRes="10m"
+#topoRes="10m"
+filename="Sula$topoRes"
 PHI=315
 U_A=28.284271247461902 # Yields u_x = 20 and u_y = -20 for PHI=315
 NSTEP=8000
@@ -43,7 +45,7 @@ NSTEP=3000
 #NSTEP=10
 #NSTEP=1
 
-for M in 1 # 1 # 1 2 3 # 0 1 2 3
+for M in 0 # 1 # 1 2 3 # 0 1 2 3
 do
     nref=1
     cp ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-nest.xinp Sula-transfer*.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder
@@ -102,7 +104,8 @@ do
         fi
         options="--nrefu $nref --nrefv $nref $options"
         pip3 install --user $HOME/kode/simramesh # make sure newest simremesh update is installed
-        simramesh ../${filename}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
+        #simramesh ../${filename}.g2 ${fileName}_3D.g2 --no-addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
+        simramesh ../${filename}.g2 ${fileName}_3D.g2 --addpadding --no-puregeomdistr --nz $nz --height $height --res $res --grading $grading --zeta $zeta $options | tee $logsimramesh
         siso -f vts ${fileName}_3D.g2
         siso -f dat ${fileName}_3D.g2 mesh.dat
         #siso -f dat --out-endianness big ${fileName}_3D.g2 mesh_M${M}.dat
@@ -156,11 +159,7 @@ do
         nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
         nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
         python3 extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $NSTEP --pvdname $fileName 
-        for ((pidx=1; pidx<=$noObsPoints; pidx++))
-        do
-            echo "ux,uy,uz,p,TKE" > "${fileName}_Point${pidx}.csv"
-            cat $logsimra | gawk '($3 = /'\ $pidx':/) { print $6","$9","$12","$15","$18}' >> "${fileName}_Point${pidx}.csv"
-        done
+        source $HOME/kode/simraStudies/extractLogData
     fi
     if [[ $3 == 1 ]]
     then

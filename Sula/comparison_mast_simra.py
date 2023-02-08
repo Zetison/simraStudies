@@ -29,7 +29,8 @@ viridis=plt.get_cmap('viridis')
 ########################### Give parameters and file names ######################################
 #dataTypes = ['raw','rawMid','rawNew','rawMidNew']
 dataTypes = ['rawMidNew']
-mastNames = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen', 'Bridgecenter']
+mastNames =  ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen', 'Bridgecenter']
+mastNames2 = ['SulaNW',   'SulaNE',      'SulaSW',    'SulaSE',      'Lidar']
 xLabels = ['Mean wind speed $[m/s]$', 'Mean wind direction $[^\circ]$', 'Mean angle of attack $[^\circ]$', 'Mean horizontal wind speed $[m/s]$']
 xArrayNames = ['u_mag', 'meandir', 'alpha', 'meanU']
 #xArrayNames = ['meanU']
@@ -115,13 +116,17 @@ for compareWithArome in [True,False]:
                             shift = 0
 
 
-                        corr = stats.pearsonr(QoI_obs, QoI_sim)
                         err = 100*np.linalg.norm(QoI_obs - QoI_sim)/np.linalg.norm(QoI_obs)
+                        if np.any(np.isnan(QoI_obs)):
+                            corr = (np.nan,np.nan)
+                        else:
+                            corr = stats.pearsonr(QoI_obs, QoI_sim)
+
                         corrArr[i_s][j][i_l] = corr[0]
                         errArr[i_s][j][i_l] = err
                         sc = plt.scatter(QoI_obs, QoI_sim,c=dfObs['meandir'],edgecolors='black',s=None, cmap=twilight)
                         plt.colorbar(sc,label="Observation"+" "+"wind"+" "+"direction"+" "+"($^{\circ}$)")
-                        plt.title(mastNames[i]+postfix.replace('_',', ')+", z = "+ str(z) +"m:\nCorr. "+"{0:.2f}".format(corr[0]) +", relative error "+"{0:.2f}%".format(err))
+                        plt.title(mastNames2[i]+postfix.replace('_',', ')+", z = "+ str(z) +"m:\nCorr. "+"{0:.2f}".format(corr[0]) +", relative error "+"{0:.2f}%".format(err))
                         xlim = np.array(xArrayLims[i_l]) + shift
                         plt.plot(xlim, xlim,'k-',linewidth=2)
                         plt.xlabel('Obs. '+xLabels[i_l],fontsize=14)

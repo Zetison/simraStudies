@@ -33,7 +33,7 @@ topoRes = 'SED_topoRes'
 
 # Set the time
 openFoamResultsFolder = home+'/results/openfoam/Sula/'
-runAll = False
+runAll = True
 if runAll:
     fileNamesOrg = [
     openFoamResultsFolder+'2020111906_OF_unStdy.pvd',

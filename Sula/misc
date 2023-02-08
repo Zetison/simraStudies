@@ -65,7 +65,7 @@ python3 comparison_mast_simra.py
 #popd > /dev/null
 
 # Combine pdfs
-profileNames="alphaProfiles WindDirProfiles VelocityProfiles"
+profileNames="alphaProfiles WindDirProfiles VelocityProfiles meanUProfiles"
 postfix="_wide _narrow"
 for f in $profileNames 
 do 
