@@ -28,7 +28,9 @@ ImportPresets(filename=home+'/kode/colormaps/google.json')
 fileName = 'SED_fileName'
 caseName = 'SED_caseName'
 simraResultsFolder = home+'/results/simra/Sula/'
+wrfResultsFolder = home+'/results/WRF/Sula/'
 outputPath = simraResultsFolder+caseName+'/'
+#outputPath = wrfResultsFolder+caseName+'/'
 topoRes = 'SED_topoRes' 
 
 # Set the time
@@ -41,7 +43,10 @@ if runAll:
     openFoamResultsFolder+'2020111906_OF_stdyIso.pvd',
     simraResultsFolder+'met/cont_met.pvd',
     ]
-    metFiles = glob(simraResultsFolder+"met_new/2*.pvd")
+    fileNamesOrg = []
+    #metFiles = glob(simraResultsFolder+"met_new/2*.pvd")
+    #metFiles = glob(simraResultsFolder+"met_new/2020111906/M1_0.vts")
+    metFiles = glob(wrfResultsFolder+"20*/*.pvd")
 
     fileNamesOrg.extend(metFiles)
 
@@ -51,14 +56,17 @@ if runAll:
     '2020111906_OF_stdyIso',
     '2020111906_met',
     ]
-    caseNamesOrg.extend([f[-17:-4] for f in metFiles])
+    caseNamesOrg = ['2020111906_wrf']
+    #caseNamesOrg.extend([f[-17:-4] for f in metFiles])
 
     #indices = [2,5,6,7,8]
     indices = range(9) 
+    indices = 0
     print(caseNamesOrg)
+    print(fileNamesOrg)
     #indices = [0,3]
     indices = [0,1,6]
-    indices = [7]
+    indices = [0]
     #indices = range(len(fileNamesOrg))
     fileNames = [fileNamesOrg[i] for i in indices]
     caseNames = [caseNamesOrg[i] for i in indices]
@@ -92,8 +100,8 @@ plotTakeOffLines         = 0
 plotBridgeAndSensors     = 1 
 plotUniverseBackground   = 0 
 
-plotLIC                  = 1  
-plotStreamLines          = 0
+plotLIC                  = 0
+plotStreamLines          = 1
 plotVolumeRendering      = 0 
 plotIPPCmapsHorizontal   = 0
 plotIPPCmapsVertical     = 0

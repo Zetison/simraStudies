@@ -163,13 +163,15 @@ def extractData(year=2020,month=11,day=1,hour=0,frequency='hz',time_interval=60,
 @click.command()
 def main():
     totPeriod = 30*60*24 - 60  # in minutes
+    #totPeriod = 365*60*24 - 60  # in minutes
     #totPeriod = 60  # in minutes
     locations = ['Kvitneset','Traelboneset','Langeneset','Kaarsteinen','Bridgecenter']
     locations = ['Bridgecenter']
+    locations = ['Kvitneset']
     for location in locations:
         for midSampled in [True]:
             #extractData(totPeriod=totPeriod,midSampled=midSampled,location=location,day=19,hour=15)
-            extractData(totPeriod=totPeriod,midSampled=midSampled,location=location)
+            extractData(totPeriod=totPeriod,midSampled=midSampled,location=location,month=11)
 
 
 if __name__ == '__main__':

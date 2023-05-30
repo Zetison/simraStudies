@@ -17,8 +17,8 @@ zeta=0.1
 zeta=0.05
 #zeta=0.01
 grading=1.116
-res=600
-#res=300
+#res=600
+res=300
 #res=150
 nz=51
 nref=0
@@ -27,8 +27,8 @@ height=4000
 topoRes="25m"
 PHI=135
 U_A=20
-NSTEP=3000
-#NSTEP=1
+NSTEP=1000
+#NSTEP=20
 for M in 0 # 0 1 2 3
 do
     cp POINT_FILE Frankfurt-transfer.xinp ../ic_bc_MPI.f90 ../extract_yplusSurf.py ../ic_bc.f90 simra.in ../SIMRA_PostProc.xinp $resultsFolder
@@ -74,17 +74,17 @@ do
             siso -f vts cont_wrf.res
             $SIMRASOLTRANSF Frankfurt-transfer.xinp -selfTransfer -fixup | tee $logIFEM 
             siso -f vts init.dat
-            #$HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
+            $HOME/kode/simra/build/bin/simra simra.in | tee $logsimra
             #simra simra.in | tee $logsimra
         fi
-        #$SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
-        #siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
-        ##siso -f pvd cont.res ${fileName}.pvd
-        #nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
-        #nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
-        #nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
-        #python3 extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $NSTEP --pvdname $fileName 
-        #source $HOME/kode/simraStudies/extractLogData
+        $SIMRAPOSTPROC SIMRA_PostProc.xinp -hdf5 ${fileName}.hdf5 | tee $logIFEM 
+        siso -f pvd ${fileName}.hdf5 ${fileName}.pvd
+        #siso -f pvd cont.res ${fileName}.pvd
+        nelu=$(cat $logsimramesh | grep -oP '(?<=dir 0: )[+-]?[0-9]+([.][0-9]+)?')
+        nelv=$(cat $logsimramesh | grep -oP '(?<=dir 1: )[+-]?[0-9]+([.][0-9]+)?')
+        nelw=$(cat $logsimramesh | grep -oP '(?<=dir 2: )[+-]?[0-9]+([.][0-9]+)?')
+        python3 extract_yplusSurf.py --resultsfolder $resultsFolder --nelu $nelu --nelv $nelv --nelw $nelw --nstep $NSTEP --savehist $NSTEP --pvdname $fileName 
+        source $HOME/kode/simraStudies/extractLogData
     fi
     popd > /dev/null
 done

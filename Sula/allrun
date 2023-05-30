@@ -45,7 +45,7 @@ NSTEP=3000
 #NSTEP=10
 #NSTEP=1
 
-for M in 0 # 1 # 1 2 3 # 0 1 2 3
+for M in 1 # 1 # 1 2 3 # 0 1 2 3
 do
     nref=1
     cp ../ic_bc_MPI.f90 ../ic_bc.f90 simra.in paraviewScript.py ../SIMRA_PostProc.xinp Sula-nest.xinp Sula-transfer*.xinp ../extract_yplusSurf.py convertBE.py $resultsFolder

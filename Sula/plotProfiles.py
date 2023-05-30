@@ -12,7 +12,9 @@ from os.path import expanduser, isfile
 from convertCoords import computeSensorLoc 
 from datetime import datetime, timedelta
 from matplotlib import cm
-from siso.coords import graph, Coords
+from siso.coord import find_system, conversion_path
+from siso.filter.coordtransform import CoordTransformCache
+from siso.util import FieldData
 
 def getAromeData(filename,Sensorh,mastb,date=False):
     # Get Arome data
@@ -42,11 +44,15 @@ def getAromeData(filename,Sensorh,mastb,date=False):
     return df0
 
 def getQoI(name,utmPoints,uUTM,u_mag,useDeg=False):
-    src = Coords.find('utm:33n')
-    tgt = Coords.find('geodetic')
-    converter = graph.path(src, tgt)
-    out_points = converter.points(src, tgt, utmPoints, None)
-    u = converter.vectors(src, tgt, uUTM, None)
+    src = find_system('utm:33n')
+    tgt = find_system('geodetic')
+    path = conversion_path(src, tgt)
+    my_points = FieldData(np.array(utmPoints))
+    my_vectors = FieldData(np.array(uUTM))
+    cache = CoordTransformCache(path)
+    out_points = cache.convert_geometry(my_points, 0).numpy()
+    u = cache.convert_vectors(my_vectors, 0).numpy()
+    
     if name == 'VelocityProfiles':
         QoI = u_mag
     elif name == 'WindDirProfiles':
@@ -109,14 +115,17 @@ def interpolateVTK(orig_data, sub_grid):
 
 
 @click.command()
-@click.option('--savefigure/--no-savefigure', default=True, type=bool, help='Export results to png file')
-@click.option('--showplots/--no-showplots', default=False, type=bool, help='Show plots from matplotlib')
+@click.option('--savefigure/--no-savefigure', default=False, type=bool, help='Export results to png file')
+@click.option('--showplots/--no-showplots', default=True, type=bool, help='Show plots from matplotlib')
 @click.option('--loadvtk/--no-loadvtk', default=False, type=bool, help='Reload vtk files or the existing generated .csv files')
 @click.option('--i_date', default=0, type=int, help='Index of date (0-29) in November')
-def main(savefigure,showplots,loadvtk,i_date):
+@click.option('--plot_simraresults/--no-plot_simraresults', default=False, type=bool, help='Plot SIMRA results')
+@click.option('--plot_wrfresults/--no-plot_wrfresults', default=True, type=bool, help='Plot WRF results')
+def main(savefigure,showplots,loadvtk,i_date,plot_simraresults,plot_wrfresults):
     # Collect metainformation (path,name,date) from SIMRA files
     home = expanduser("~")
     simraResultsFolder = home+'/results/simra/Sula/'
+    wrfResultsFolder = home+'/results/WRF/Sula/'
     openFoamResultsFolder = home+'/results/openfoam/Sula/'
     fileNamesOrg = [
         openFoamResultsFolder+'2020111906/steady_3.vtu',
@@ -124,9 +133,18 @@ def main(savefigure,showplots,loadvtk,i_date):
         openFoamResultsFolder+'2020111906/unSteady_3.vtu',
         simraResultsFolder+'met/2020111906/metmesh_3.vtu',
     ]
-    metFiles = glob(simraResultsFolder+"met_new/20*/*.vts")
+    fileNamesOrg = []
+    if plot_simraresults:
+        metFiles = glob(simraResultsFolder+"met_new/20*/*.vts")
+    if plot_wrfresults:
+        wrfFiles = glob(wrfResultsFolder+"20*/*.vts")
 
-    fileNamesOrg.extend(metFiles)
+    if plot_simraresults:
+        fileNamesOrg.extend(metFiles)
+    
+    if plot_wrfresults:
+        fileNamesOrg.extend(wrfFiles)
+
     df = pd.DataFrame({'path':fileNamesOrg})
     df['name'] = [path.split('/')[-1].split('.')[0].split('_')[0] for path in df.path]
     df['addtime'] = [path.split('/')[-1].split('.')[0].split('_')[-1] for path in df.path]
@@ -138,8 +156,13 @@ def main(savefigure,showplots,loadvtk,i_date):
     uniqueDates = df['date'].map(pd.Timestamp).unique()
 
     # Get sensor locations
-    originx = -200
-    originy = 6899800
+    if plot_wrfresults:
+        originx = 0
+        originy = 0
+    else:
+        originx = -200
+        originy = 6899800
+
     sensorLoc,CoordUTM32,mastb,masth,Sensorh = computeSensorLoc(originx,originy)
     noLocs = len(sensorLoc)
     curves = [''] * noLocs
@@ -197,13 +220,13 @@ def main(savefigure,showplots,loadvtk,i_date):
                     #    df_obs = df_obs.append(df_all[df_all.date==0])
                     indices = np.array(df_all.date,dtype='datetime64[m]') == np.array(date,dtype='datetime64[m]')
                     if df_all[indices].empty:
-                        df_obs = df_obs.append(pd.Series(dtype='object'), ignore_index=True)
+                        df_obs = pd.concat([df_obs,pd.Series(dtype='object')], ignore_index=True)
                     else:
-                        df_obs = df_obs.append(df_all[indices])
+                        df_obs = pd.concat([df_obs,df_all[indices]])
 
                     absHeight = str(Sensorh[i][k]+mastb[i]).rstrip('0').rstrip('.')
                     filename = home+'/results/simra/Sula/measurements/202011_%s_%sm_mepsdetml.nc' % (mastNames[i],absHeight)
-                    df_arome = df_arome.append(getAromeData(filename,Sensorh,mastb,date))
+                    df_arome = pd.concat([df_arome,getAromeData(filename,Sensorh,mastb,date)])
 
                 if df_obs.empty:
                     continue
@@ -214,7 +237,12 @@ def main(savefigure,showplots,loadvtk,i_date):
                     QoI = df_obs[xArrayNames[i_l]]
                     if layoutNames[i_l] == 'WindDirProfiles':
                         QoI = np.radians(QoI)
-                    ax[i_l][i].plot(QoI,points[:,2],color = colorsData[j],marker='.',label = 'Exp. '+dataTypes[j])
+                    # ax[i_l][i].plot(QoI,points[:,2],color = colorsData[j],marker='.',label = 'Exp. '+dataTypes[j])
+                    if mastNames[i] == 'Bridgecenter':
+                        ax[i_l][i].plot(QoI,points[:,2],color = colorsData[j],marker='.',label = 'Lidar')
+                    else:
+                        ax[i_l][i].plot(QoI,points[:,2],color = colorsData[j],marker='.',label = 'Anemometers')
+
                     ax[i_l][i].set_xlim([bottomAxisRangeMinimums[i_l],bottomAxisRangeMaximums[i_l]])
                     ax[i_l][i].set_ylim([0,120])
                     ax[i_l][i].set_title(mastNames[i])
@@ -254,7 +282,10 @@ def main(savefigure,showplots,loadvtk,i_date):
             for i in range(noLocs):
                 if loadvtk:
                     resampled = interpolateVTK(vtkData, curves[i])
-                    uUTM = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u')).copy()
+                    try:
+                        uUTM = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('u')).copy()
+                    except:
+                        uUTM = vtk_to_numpy(resampled.GetPointData().GetAbstractArray('WIND')).copy()
                     u_mag = np.linalg.norm(uUTM,axis=1)
                     nodes = sensorLoc[i]
                     points = vtk_to_numpy(curves[i].GetPoints().GetData()).copy()
@@ -264,7 +295,10 @@ def main(savefigure,showplots,loadvtk,i_date):
 
                     # Sample also at sensor locations
                     resampledSensor = interpolateVTK(vtkData, createVTKcurve(sensorLoc[i]))
-                    uUTMSensor = vtk_to_numpy(resampledSensor.GetPointData().GetAbstractArray('u')).copy()
+                    try:
+                        uUTMSensor = vtk_to_numpy(resampledSensor.GetPointData().GetAbstractArray('u')).copy()
+                    except:
+                        uUTMSensor = vtk_to_numpy(resampledSensor.GetPointData().GetAbstractArray('WIND')).copy()
                     u_magSensor = np.linalg.norm(uUTMSensor,axis=1)
 
                 for i_l in range(noPlots):
@@ -302,7 +336,7 @@ def main(savefigure,showplots,loadvtk,i_date):
                         for i_l in range(len(layoutNamesOut)):
                             row[xArrayNames[i_l]] = getQoI(layoutNamesOut[i_l],sensorLoc[i][[i_s],:],uUTMSensor[[i_s],:],u_magSensor[[i_s]],useDeg=True)
 
-                        dfSensor = dfSensor.append(row)
+                        dfSensor = pd.concat([dfSensor,row])
 
             i_df += 1
             if loadvtk:

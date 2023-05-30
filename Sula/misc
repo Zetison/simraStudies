@@ -25,29 +25,30 @@
 #    popd > /dev/null
 #done
 
+# In order to rename downloaded files from met in suitable format do the following (also converts to .vts files)
 #rename -v 's/simM1Sula_//' *
-#folders=$(ls $HOME/results/simra/Sula/met_new/2020* -d)
-#for f in $folders
-#do
-#    cd $f
-#    echo $f
-#    nel=$(ls *.vts | wc -l)
-#    if [ $nel -lt 9 ]
-#    then
-#        echo "Running "$f
-#        cp ../simra.in .
-#        for i in {0..8} # 1 2
-#        do
-#            for M in 1 
-#            do
-#                cp contM${M}Sula.res_00+$i temp.res
-#                siso -f vts temp.res M${M}_$i.vts --in-endianness big --mesh $HOME/results/simra/Sula/met_new/M${M}/mesh_M${M}.dat 
-#            done
-#
-#        done
-#        rm temp.res
-#    fi
-#done
+folders=$(ls $HOME/results/simra/Sula/met_new/2020*/ -d)
+for f in $folders
+do
+    cd $f
+    echo $f
+    nel=$(ls *.vts | wc -l)
+    if [ $nel -lt 9 ]
+    then
+        echo "Running "$f
+        cp ../simra.in .
+        for i in {0..8} # 1 2
+        do
+            for M in 1 
+            do
+                cp contM${M}Sula.res_00+$i temp.res
+                siso -f vts temp.res M${M}_$i.vts --in-endianness big --mesh $HOME/results/simra/Sula/met_new/M${M}/mesh_M${M}.dat 
+            done
+
+        done
+        rm temp.res
+    fi
+done
 
 # Create profiles
 #for ((i=0; i<723; i++))
@@ -55,7 +56,7 @@
 #do 
 #    python3 plotProfiles.py --i_date $i 
 #done
-python3 comparison_mast_simra.py
+# python3 comparison_mast_simra.py
 
 #pushd $HOME/results/simra/Sula/profileResults > /dev/null
 #for plotType in WindDirProfiles alphaProfiles
@@ -65,26 +66,26 @@ python3 comparison_mast_simra.py
 #popd > /dev/null
 
 # Combine pdfs
-profileNames="alphaProfiles WindDirProfiles VelocityProfiles meanUProfiles"
-postfix="_wide _narrow"
-for f in $profileNames 
-do 
-    pushd $HOME/results/simra/Sula/scatterPlots > /dev/null
-    for g in $postfix
-    do
-        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../scatterPlots_${f}${g}_simra.pdf" -dBATCH ${f}*${g}_simra.pdf
-        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../scatterPlots_${f}${g}_arome.pdf" -dBATCH ${f}*${g}_arome.pdf
-    done
-    popd > /dev/null
-    #pushd $HOME/results/simra/Sula/profileResults > /dev/null
-    #gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../profileResults_${f}.pdf" -dBATCH ${f}*1.pdf
-    #popd > /dev/null
-done
-#
-pushd $HOME/results/simra/Sula > /dev/null
-#tar -cvf profiles.tar profileResults* sampledResults.csv
-tar -cvf scatters.tar scatterPlots*
-popd > /dev/null
+#profileNames="alphaProfiles WindDirProfiles VelocityProfiles meanUProfiles"
+#postfix="_wide _narrow"
+#for f in $profileNames 
+#do 
+#    pushd $HOME/results/simra/Sula/scatterPlots > /dev/null
+#    for g in $postfix
+#    do
+#        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../scatterPlots_${f}${g}_simra.pdf" -dBATCH ${f}*${g}_simra.pdf
+#        gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../scatterPlots_${f}${g}_arome.pdf" -dBATCH ${f}*${g}_arome.pdf
+#    done
+#    popd > /dev/null
+#    #pushd $HOME/results/simra/Sula/profileResults > /dev/null
+#    #gs -dNOPAUSE -sDEVICE=pdfwrite -sOUTPUTFILE="../profileResults_${f}.pdf" -dBATCH ${f}*1.pdf
+#    #popd > /dev/null
+#done
+##
+#pushd $HOME/results/simra/Sula > /dev/null
+##tar -cvf profiles.tar profileResults* sampledResults.csv
+#tar -cvf scatters.tar scatterPlots*
+#popd > /dev/null
 
 # Convert simra files through PostProc app for visualizations
 #srcDir=$HOME/results/simra/Sula/met_new/2020111912
